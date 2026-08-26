@@ -3,7 +3,7 @@
 ## Why
 
 Codex 0.144.3 deserializes every entry in the native model catalog as one
-`ModelsResponse`. Hidden metadata retained from codex-lb's older bootstrap
+`ModelsResponse`. Hidden metadata retained from openhub's older bootstrap
 entries can omit the non-defaulted `truncation_policy` and
 `experimental_supported_tools` fields. One such hidden entry makes Codex reject
 the entire otherwise-valid catalog, retry model refresh continuously, and use

@@ -62,7 +62,7 @@ WHEN `config.sessionBridgeInstanceRing` is non-empty, chart rendering MUST fail 
 
 #### Scenario: Static ring with correct count but wrong values fails to render
 
-- **WHEN** the chart is rendered with `replicaCount=2` and a `config.sessionBridgeInstanceRing` listing 2 entries that are not the expected StatefulSet pod names (for example FQDN-style entries or `codex-lb-0,codex-lb-1`)
+- **WHEN** the chart is rendered with `replicaCount=2` and a `config.sessionBridgeInstanceRing` listing 2 entries that are not the expected StatefulSet pod names (for example FQDN-style entries or `openhub-0,openhub-1`)
 - **THEN** `helm template` fails with an error naming the missing expected pod names and the exact ring the chart requires
 
 #### Scenario: Static ring with an unexpected extra entry fails to render

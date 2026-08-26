@@ -1,6 +1,6 @@
 ## Why
 
-Docker containers started on the default bridge can retain a Wi-Fi-provided DNS server across a host network change, leaving codex-lb unable to resolve upstream hosts until the container is restarted. codex-lb currently compounds that host-wide outage by treating each failed connection as an account failure, exhausting account retries and breaking continuity-sensitive Codex sessions.
+Docker containers started on the default bridge can retain a Wi-Fi-provided DNS server across a host network change, leaving openhub unable to resolve upstream hosts until the container is restarted. openhub currently compounds that host-wide outage by treating each failed connection as an account failure, exhausting account retries and breaking continuity-sensitive Codex sessions.
 
 ## What Changes
 

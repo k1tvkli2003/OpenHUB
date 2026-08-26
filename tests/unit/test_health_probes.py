@@ -73,7 +73,7 @@ async def test_health_ready_db_ok():
 
         response = await health_ready()
         assert response.status == "ok"
-        assert response.checks == {"database": "ok"}
+        assert response.checks == {"database": "ok", "openhub_managed_route_protocol": "2"}
 
 
 @pytest.mark.asyncio
@@ -145,7 +145,7 @@ async def test_health_ready_ignores_upstream_state():
         response = await health_ready()
 
     assert response.status == "ok"
-    assert response.checks == {"database": "ok"}
+    assert response.checks == {"database": "ok", "openhub_managed_route_protocol": "2"}
 
 
 @pytest.mark.asyncio
@@ -174,7 +174,7 @@ async def test_health_ready_circuit_breaker_disabled_returns_200():
             response = await health_ready()
 
     assert response.status == "ok"
-    assert response.checks == {"database": "ok"}
+    assert response.checks == {"database": "ok", "openhub_managed_route_protocol": "2"}
 
 
 @pytest.mark.asyncio

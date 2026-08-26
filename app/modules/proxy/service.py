@@ -75,6 +75,7 @@ from app.core.errors import (
     previous_response_stream_incomplete_error,
     response_failed_event,
 )
+from app.core.managed_codex_route import managed_codex_route_active
 from app.core.metrics.prometheus import (
     PROMETHEUS_AVAILABLE,
     bridge_same_account_takeover_total,
@@ -115,6 +116,7 @@ from app.modules.api_keys.service import (
 from app.modules.api_keys.service import (
     ApiKeysService as ApiKeysService,
 )
+from app.modules.codex_integration.service import CodexIntegrationError, get_codex_integration_service
 from app.modules.proxy._service.api_key_usage import (
     _API_KEY_RESERVATION_HEARTBEAT_SECONDS as _API_KEY_RESERVATION_HEARTBEAT_SECONDS,
 )
@@ -835,9 +837,12 @@ _UPSTREAM_UNAVAILABLE_NON_TRANSIENT_MESSAGE_MARKERS = (
 )
 _UPSTREAM_CLOSE_CODES_SKIP_SAME_ACCOUNT_RETRY = frozenset({1011})
 _MAX_TRANSIENT_SAME_ACCOUNT_RETRIES = 3
-_COMPACT_MAX_ACCOUNT_ATTEMPTS = 2
-_STREAM_MAX_ACCOUNT_ATTEMPTS = 3
-_WEBSOCKET_MAX_ACCOUNT_ATTEMPTS = 3
+# Bound distinct-account traversal while still covering OpenHUB's managed
+# fifteen-account fleet. Selection and the request deadline can stop sooner.
+_MAX_DISTINCT_ACCOUNT_ATTEMPTS = 16
+_COMPACT_MAX_ACCOUNT_ATTEMPTS = _MAX_DISTINCT_ACCOUNT_ATTEMPTS
+_STREAM_MAX_ACCOUNT_ATTEMPTS = _MAX_DISTINCT_ACCOUNT_ATTEMPTS
+_WEBSOCKET_MAX_ACCOUNT_ATTEMPTS = _MAX_DISTINCT_ACCOUNT_ATTEMPTS
 _WEBSOCKET_TRANSPARENT_REPLAY_ERROR_CODES = frozenset(
     {
         "rate_limit_exceeded",
@@ -874,11 +879,11 @@ _SECURITY_WORK_AUTHORIZATION_REQUIRED_HINTS = (
 )
 _SECURITY_WORK_RETRY_MESSAGE = (
     "Upstream flagged this request as possible cybersecurity work. "
-    "codex-lb is retrying on an account marked as authorized for security work."
+    "openhub is retrying on an account marked as authorized for security work."
 )
 _SECURITY_WORK_NO_AUTHORIZED_ACCOUNTS_MESSAGE = (
     "Upstream flagged this request as possible cybersecurity work, but no account is marked as authorized for "
-    "security work. codex-lb is continuing with normal account selection; the upstream request may still fail until "
+    "security work. openhub is continuing with normal account selection; the upstream request may still fail until "
     "an account with Trusted Access for Cyber is marked as security-work-authorized."
 )
 
@@ -930,7 +935,7 @@ class ProxyService(
         self._websocket_previous_response_account_index: dict[tuple[str, str | None, str | None], str] = {}
         self._websocket_continuity_index: dict[tuple[str, str | None], _WebSocketContinuityState] = {}
         self._background_cleanup_tasks: set[asyncio.Task[None]] = set()
-        # In-memory pin from upstream-issued file_id -> codex-lb account_id.
+        # In-memory pin from upstream-issued file_id -> openhub account_id.
         # Used so ``finalize_file`` for a given ``file_id`` is routed to
         # the same account that handled ``create_file``. Cross-instance
         # routing is best-effort: if the finalize request lands on a
@@ -1444,7 +1449,7 @@ class ProxyService(
         # detached/shielded token-refresh task. A client disconnect cancels the
         # request and closes the request-scoped session below; without this the
         # still-running refresh task would touch that closed session and strand
-        # a background-pool connection (the codex-lb pool-exhaustion leak).
+        # a background-pool connection (the openhub pool-exhaustion leak).
         async with self._repo_factory() as repos:
             yield repos.accounts
 
@@ -1697,6 +1702,55 @@ class ProxyService(
         fallback_on_preferred_account_unavailable: bool = True,
         traffic_class: TrafficClass = TRAFFIC_CLASS_FOREGROUND,
     ) -> AccountSelection:
+        managed_launch_account_id: str | None = None
+        managed_launch_selection_mode: str | None = None
+        if managed_codex_route_active():
+            try:
+                launch_route = get_codex_integration_service().launch_route_snapshot()
+            except CodexIntegrationError:
+                logger.exception(
+                    "Prepared Codex launch route unavailable request_id=%s kind=%s request_stage=%s",
+                    request_id,
+                    kind,
+                    request_stage,
+                )
+                return AccountSelection(
+                    account=None,
+                    error_message="Prepared Codex launch route is invalid",
+                    error_code="codex_launch_route_invalid",
+                )
+            managed_launch_account_id = launch_route.account_id if launch_route.prepared else None
+            managed_launch_selection_mode = getattr(launch_route, "selection_mode", "manual")
+            if managed_launch_account_id is None:
+                return AccountSelection(
+                    account=None,
+                    error_message="Prepare this Codex launch in OpenHUB before sending work",
+                    error_code="codex_launch_not_prepared",
+                )
+            if managed_launch_selection_mode == "manual":
+                if (
+                    preferred_account_id is not None
+                    and preferred_account_id != managed_launch_account_id
+                    and not fallback_on_preferred_account_unavailable
+                ):
+                    return AccountSelection(
+                        account=None,
+                        error_message="This Codex work belongs to a different prepared account",
+                        error_code="codex_launch_continuity_conflict",
+                    )
+                preferred_account_id = managed_launch_account_id
+                preferred_account_is_continuity_owner = False
+                fallback_on_preferred_account_unavailable = False
+            elif preferred_account_id is None:
+                # An automatic OpenHUB launch selects the first account only as
+                # a warm preference. Canonical retry paths add a failed account
+                # to ``exclude_account_ids`` and can then choose the next usable
+                # registered account without restarting Codex. A caller-proven
+                # continuity owner remains authoritative and is never replaced
+                # by this launch hint.
+                preferred_account_id = managed_launch_account_id
+                preferred_account_is_continuity_owner = False
+                fallback_on_preferred_account_unavailable = True
         remaining_budget = _remaining_budget_seconds(deadline)
         if remaining_budget <= 0:
             logger.warning(
@@ -1808,8 +1862,16 @@ class ProxyService(
                     if not fallback_on_preferred_account_unavailable:
                         return AccountSelection(
                             account=None,
-                            error_message="Preferred account is not available",
-                            error_code="preferred_account_unavailable",
+                            error_message=(
+                                "Prepared Codex account is not available"
+                                if managed_launch_account_id is not None
+                                else "Preferred account is not available"
+                            ),
+                            error_code=(
+                                "codex_launch_account_unavailable"
+                                if managed_launch_account_id is not None
+                                else "preferred_account_unavailable"
+                            ),
                         )
                 if preferred_eligible:
                     preferred_sticky_inputs = _AffinityPolicy.preferred_owner_sticky_inputs(
@@ -2311,7 +2373,7 @@ def _security_work_advisory_event(
     if account_id:
         warning["account_id"] = account_id
     return {
-        "type": "codex_lb.warning",
+        "type": "openhub.warning",
         "warning": warning,
     }
 
@@ -2340,7 +2402,7 @@ def _raise_proxy_unavailable(message: str) -> NoReturn:
     )
 
 
-_FAILED_ACCOUNT_ATTR = "_codex_lb_failed_account"
+_FAILED_ACCOUNT_ATTR = "_openhub_failed_account"
 
 
 def _raise_proxy_unavailable_for_account(message: str, account: Account) -> NoReturn:

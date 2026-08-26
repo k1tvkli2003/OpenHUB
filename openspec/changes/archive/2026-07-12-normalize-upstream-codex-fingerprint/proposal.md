@@ -2,7 +2,7 @@
 
 ## Problem
 
-On production codex-lb (`gpt-5.5`, priority-tier API keys), a large share of
+On production openhub (`gpt-5.5`, priority-tier API keys), a large share of
 requests fail with `server_is_overloaded` ("Our servers are currently
 overloaded. Please try again later."). Measured over a 12h prod window:
 
@@ -39,7 +39,7 @@ Requests carrying a non-first-party fingerprint (e.g. the `openai` Python SDK's
 as second-class API traffic: their requested `priority` tier is more likely to
 be downgraded to `auto`, which the backend sheds first under load.
 
-codex-lb forwards the inbound client's headers verbatim on the http path
+openhub forwards the inbound client's headers verbatim on the http path
 (`app/core/clients/proxy.py::_build_upstream_headers` does `headers =
 dict(inbound)` with no User-Agent / originator normalization), so a
 non-native client's fingerprint reaches the backend unchanged.
@@ -85,7 +85,7 @@ internal websocket, and client-facing Responses websocket egress.
   consistent with that capability's existing intent.
 - No client can depend on its raw `User-Agent` / `x-openai-client-*` reaching
   the ChatGPT backend: those headers are an upstream-private transport detail,
-  not part of any documented codex-lb request/response contract. codex-lb's own
+  not part of any documented openhub request/response contract. openhub's own
   `request_logs.useragent` keeps the original client value for observability;
   only the upstream wire fingerprint changes.
 - Native Codex clients are explicitly excluded, so the change cannot regress

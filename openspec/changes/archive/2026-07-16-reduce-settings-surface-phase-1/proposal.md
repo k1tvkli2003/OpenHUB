@@ -21,7 +21,7 @@ Phase 1 removes the zero-risk batch: 24 fields deleted, 1 added
 - **OAuth protocol constants (6 removed)**: `auth_base_url`,
   `oauth_client_id`, `oauth_originator`, `oauth_scope`, `oauth_redirect_uri`,
   `oauth_callback_port` become module constants in
-  `app/core/config/settings.py`. They identify codex-lb to OpenAI; changing
+  `app/core/config/settings.py`. They identify openhub to OpenAI; changing
   any of them breaks login. `oauth_timeout_seconds` and `oauth_callback_host`
   remain settings.
 - **Auth guardian tuning (7 removed)**: interval, max refresh age, batch
@@ -29,7 +29,7 @@ Phase 1 removes the zero-risk batch: 24 fields deleted, 1 added
   `app/core/auth/guardian.py` at their previous defaults.
   `auth_guardian_enabled` remains the single switch.
 - **Debug log booleans (6 removed, 1 added)**: the six `log_proxy_*` /
-  `log_upstream_*` booleans are replaced by one `CODEX_LB_TRACE` setting, a
+  `log_upstream_*` booleans are replaced by one `OPENHUB_TRACE` setting, a
   comma-separated list of trace channels (`shape`, `shape_raw_cache_key`,
   `payload`, `service_tier`, `upstream_summary`, `upstream_payload`). Empty
   (the default) keeps everything off, matching the previous defaults.
@@ -47,7 +47,7 @@ Phase 1 removes the zero-risk batch: 24 fields deleted, 1 added
   and its floor validation (admission wait + 2x refresh timeout) are
   unchanged.
 - **One-release removal warning**: startup logs a single WARN listing any
-  removed `CODEX_LB_*` env names still present in the environment
+  removed `OPENHUB_*` env names still present in the environment
   (`extra="ignore"` already makes them inert).
 
 ## Impact

@@ -25,6 +25,7 @@ from app.core.crypto import TokenEncryptor
 from app.core.plan_types import ACCOUNT_PLAN_TYPES, coerce_account_plan_type, normalize_account_plan_type
 from app.core.upstream_proxy import ResolvedUpstreamRoute, UpstreamProxyRouteError, resolve_upstream_route
 from app.core.usage.models import AdditionalRateLimitPayload, UsagePayload, UsageWindow
+from app.core.usage.quota import apply_usage_quota
 from app.core.utils.request_id import get_request_id
 from app.core.utils.time import utcnow
 from app.db.models import Account, AccountStatus, UsageHistory
@@ -32,7 +33,11 @@ from app.db.session import get_background_session
 from app.modules.accounts.auth_manager import AccountsRepositoryPort, AuthManager
 from app.modules.accounts.background_repository import BackgroundAccountsRepository
 from app.modules.accounts.repository import AccountsRepository as SessionAccountsRepository
-from app.modules.proxy.account_cache import get_account_selection_cache, mark_account_routing_unavailable
+from app.modules.proxy.account_cache import (
+    clear_account_routing_unavailable,
+    get_account_selection_cache,
+    mark_account_routing_unavailable,
+)
 from app.modules.usage.additional_quota_keys import canonicalize_additional_quota_key
 from app.modules.usage.background_repository import BackgroundAdditionalUsageRepository, BackgroundUsageRepository
 from app.modules.usage.repository import AdditionalUsageRepository, UsageWindowWrite
@@ -264,8 +269,11 @@ class UsageUpdater:
         now = utcnow()
         interval = settings.usage_refresh_interval_seconds
         _prune_usage_refresh_auth_cooldowns()
+        pending_accounts: list[Account] = []
         for account in accounts:
-            if account.status in (AccountStatus.REAUTH_REQUIRED, AccountStatus.DEACTIVATED):
+            if account.status == AccountStatus.REAUTH_REQUIRED:
+                continue
+            if account.status == AccountStatus.DEACTIVATED and not _is_retryable_legacy_usage_404_deactivation(account):
                 continue
             if _is_usage_refresh_in_cooldown(account.id):
                 continue
@@ -300,9 +308,9 @@ class UsageUpdater:
                     ):
                         _last_successful_refresh[account.id] = additional_fresh_at
                         continue
-            # NOTE: AsyncSession is not safe for concurrent use. Run sequentially
-            # within the request-scoped session to avoid PK collisions and
-            # flush-time warnings (SAWarning: Session.add during flush).
+            pending_accounts.append(account)
+
+        async def refresh_pending_account(account: Account) -> bool:
             try:
                 if own_singleflight_sessions:
 
@@ -331,13 +339,13 @@ class UsageUpdater:
                 )
                 if not own_singleflight_sessions:
                     await self._sync_account_from_repo(account)
-                refreshed = refreshed or result.usage_written
                 # Only cache when the upstream fetch actually succeeded.
                 # Transient errors (401 retry failure, 5xx, etc.) must not
                 # suppress retries within the interval.
                 if result.fetch_succeeded:
                     _last_successful_refresh[account.id] = now
                     _clear_usage_refresh_auth_cooldown(account.id)
+                return result.usage_written
             except Exception as exc:
                 logger.warning(
                     "Usage refresh failed account_id=%s request_id=%s error=%s",
@@ -347,7 +355,33 @@ class UsageUpdater:
                     exc_info=True,
                 )
                 # swallow per-account failures so the whole refresh loop keeps going
-                continue
+                return False
+
+        if own_singleflight_sessions:
+            # Every refresh below owns its SQLAlchemy session, so the network
+            # waits can safely overlap. Keep a small explicit bound to protect
+            # SQLite write latency and upstream rate limits when a large fleet
+            # becomes stale at once.
+            concurrency = max(
+                1,
+                int(getattr(settings, "usage_refresh_max_concurrency", 4)),
+            )
+            semaphore = asyncio.Semaphore(concurrency)
+
+            async def refresh_bounded(account: Account) -> bool:
+                async with semaphore:
+                    return await refresh_pending_account(account)
+
+            results = await asyncio.gather(
+                *(refresh_bounded(account) for account in pending_accounts),
+            )
+            return any(results)
+
+        # A request-scoped AsyncSession is not safe for concurrent use. Retain
+        # serial execution for callers that intentionally share that session.
+        for account in pending_accounts:
+            usage_written = await refresh_pending_account(account)
+            refreshed = refreshed or usage_written
         return refreshed
 
     async def force_refresh(
@@ -376,7 +410,9 @@ class UsageUpdater:
         settings = get_settings()
         if not settings.usage_refresh_enabled and not ignore_refresh_disabled:
             return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
-        if account.status in (AccountStatus.REAUTH_REQUIRED, AccountStatus.DEACTIVATED):
+        if account.status == AccountStatus.REAUTH_REQUIRED:
+            return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
+        if account.status == AccountStatus.DEACTIVATED and not _is_retryable_legacy_usage_404_deactivation(account):
             return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
         try:
             result = await _USAGE_REFRESH_SINGLEFLIGHT.run(
@@ -506,7 +542,9 @@ class UsageUpdater:
             account = await accounts_repo.get_by_id(account_id)
             if account is None:
                 return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
-            if account.status in (AccountStatus.PAUSED, AccountStatus.REAUTH_REQUIRED, AccountStatus.DEACTIVATED):
+            if account.status in (AccountStatus.PAUSED, AccountStatus.REAUTH_REQUIRED):
+                return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
+            if account.status == AccountStatus.DEACTIVATED and not _is_retryable_legacy_usage_404_deactivation(account):
                 return AccountRefreshResult(usage_written=False, fetch_succeeded=False)
             return await UsageUpdater(
                 usage_repo,
@@ -726,7 +764,15 @@ class UsageUpdater:
             snapshot_windows,
         )
         usage_written = any(_usage_entry_written(entry) for entry in entries)
-        await self._recover_quota_status_from_usage(account, primary=primary, secondary=secondary, monthly=monthly)
+        await self._recover_quota_status_from_usage(
+            account,
+            primary=primary,
+            secondary=secondary,
+            monthly=monthly,
+            credits_has=credits_has,
+            credits_unlimited=credits_unlimited,
+            credits_balance=credits_balance,
+        )
         return AccountRefreshResult(usage_written=usage_written)
 
     async def _deactivate_for_client_error(self, account: Account, exc: UsageFetchError) -> None:
@@ -812,10 +858,42 @@ class UsageUpdater:
         primary: UsageWindow | None,
         secondary: UsageWindow | None,
         monthly: UsageWindow | None = None,
+        credits_has: bool | None = None,
+        credits_unlimited: bool | None = None,
+        credits_balance: float | None = None,
     ) -> None:
         if not self._auth_manager:
             return
-        if account.status == AccountStatus.RATE_LIMITED:
+        legacy_404_recovery = _is_retryable_legacy_usage_404_deactivation(account)
+        if legacy_404_recovery:
+            long_window = monthly or secondary
+            evidence_windows = [
+                window for window in (primary, long_window) if window is not None and window.used_percent is not None
+            ]
+            if not evidence_windows:
+                return
+            primary_reset_at = (
+                _reset_at(primary.reset_at, primary.reset_after_seconds, _now_epoch()) if primary is not None else None
+            )
+            long_reset_at = (
+                _reset_at(long_window.reset_at, long_window.reset_after_seconds, _now_epoch())
+                if long_window is not None
+                else None
+            )
+            target_status, _, target_reset_at = apply_usage_quota(
+                status=AccountStatus.ACTIVE,
+                primary_used=primary.used_percent if primary is not None else None,
+                primary_reset=primary_reset_at,
+                primary_window_minutes=(_window_minutes(primary.limit_window_seconds) if primary is not None else None),
+                runtime_reset=None,
+                secondary_used=long_window.used_percent if long_window is not None else None,
+                secondary_reset=long_reset_at,
+                credits_has=credits_has,
+                credits_unlimited=credits_unlimited,
+                credits_balance=credits_balance,
+            )
+            expected_status = AccountStatus.DEACTIVATED
+        elif account.status == AccountStatus.RATE_LIMITED:
             if account.blocked_at is not None:
                 # An account marked RATE_LIMITED by an actual 429 always
                 # carries a blocked_at marker. Honor the persisted cooldown
@@ -885,6 +963,9 @@ class UsageUpdater:
         account.deactivation_reason = None
         account.reset_at = target_reset_at
         account.blocked_at = None
+        if legacy_404_recovery:
+            clear_account_routing_unavailable(account.id)
+            get_account_selection_cache().invalidate()
 
     async def _sync_account_from_repo(self, account: Account) -> None:
         if not self._accounts_repo:
@@ -939,14 +1020,15 @@ def _payload_mismatches_account_slot(account: Account, payload: UsagePayload) ->
         normalized_payload_plan_type = normalize_account_plan_type(payload.plan_type)
         stored_plan_type = coerce_account_plan_type(account.plan_type, "free")
         recognized_paid_plans = ACCOUNT_PLAN_TYPES - {"free"}
+        personal_paid_plans = {"plus", "pro", "prolite"}
         # A transition from free into a recognized paid plan (e.g. Free -> Plus)
         # or between paid plans (e.g. Plus -> Pro) is a legitimate plan change,
         # not an identity mismatch: the usage payload carries no independent
         # account identifier and is fetched per-account token, so plan_type alone
-        # cannot establish identity. A workspace-less payload that instead
-        # introduces "free" or an unrecognized plan stays untrusted -- the
-        # signature of a degraded or wrong-identity usage response that must not
-        # silently rewrite the stored plan.
+        # cannot establish identity. A recognized personal paid plan may also
+        # legitimately fall back to Free when its subscription expires. Keep
+        # unknown -> Free and workspace-plan downgrades fail-closed: those remain
+        # ambiguous degraded/wrong-slot responses and must not rewrite metadata.
         if payload_plan_type != stored_plan_type and not (
             stored_plan_type == "unknown"
             and normalized_payload_plan_type in recognized_paid_plans
@@ -955,6 +1037,7 @@ def _payload_mismatches_account_slot(account: Account, payload: UsagePayload) ->
                 and stored_plan_type in ACCOUNT_PLAN_TYPES
                 and payload_plan_type in recognized_paid_plans
             )
+            or (not account.workspace_id and stored_plan_type in personal_paid_plans and payload_plan_type == "free")
         ):
             return True
     return False
@@ -1153,6 +1236,8 @@ _MAIN_USAGE_WINDOWS = ("primary", "secondary", "monthly")
 
 
 def _quota_recovery_should_bypass_freshness(account: Account, *, latest: UsageHistory | None) -> bool:
+    if _is_retryable_legacy_usage_404_deactivation(account):
+        return True
     if _account_needs_post_reset_refresh(account, latest=latest):
         return True
     if account.status != AccountStatus.QUOTA_EXCEEDED:
@@ -1216,14 +1301,22 @@ def _reset_at(reset_at: int | None, reset_after_seconds: int | None, now_epoch: 
     return now_epoch + max(0, int(reset_after_seconds))
 
 
-# The usage endpoint can return 403 for accounts that are still otherwise usable
-# for proxy traffic, so treat it as a refresh failure instead of a permanent
-# account-level deactivation signal.
-_DEACTIVATING_USAGE_STATUS_CODES = {402, 404}
+# The usage endpoint can return generic 403/404 responses for accounts that are
+# still otherwise usable for proxy traffic. Only billing failure or an explicit
+# permanent code/message is account-level deactivation evidence.
+_DEACTIVATING_USAGE_STATUS_CODES = {402}
 _DEACTIVATING_USAGE_MESSAGE_HINTS = (
     "your openai account has been deactivated",
     "account has been deactivated",
 )
+_LEGACY_GENERIC_USAGE_404_DEACTIVATION_REASON = "Usage API error: HTTP 404 - Usage fetch failed (404)"
+
+
+def _is_retryable_legacy_usage_404_deactivation(account: Account) -> bool:
+    return (
+        account.status == AccountStatus.DEACTIVATED
+        and account.deactivation_reason == _LEGACY_GENERIC_USAGE_404_DEACTIVATION_REASON
+    )
 
 
 def _should_deactivate_for_usage_error(exc: UsageFetchError) -> bool:
@@ -1246,7 +1339,7 @@ async def _resolve_upstream_route_for_account(account: Account, *, operation: st
 
 
 def _mark_usage_refresh_auth_cooldown(account_id: str, status_code: int) -> None:
-    if status_code not in {401, 403}:
+    if status_code not in {401, 403, 404}:
         return
     cooldown_seconds = max(0.0, float(get_settings().usage_refresh_auth_failure_cooldown_seconds))
     if cooldown_seconds <= 0:

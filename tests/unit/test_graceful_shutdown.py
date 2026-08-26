@@ -8,12 +8,44 @@ from importlib import import_module
 import pytest
 
 from app.core.shutdown import wait_for_tasks_to_drain
+from app.core.utils.async_tasks import stop_periodic_task
 from app.main import InFlightMiddleware, _drain_detached_control_plane_tasks, _release_leader_lease_within
 
 app_main = import_module("app.main")
 shutdown_state = import_module("app.core.shutdown")
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.asyncio
+async def test_stop_periodic_task_waits_for_inflight_resource_work() -> None:
+    stop_event = asyncio.Event()
+    work_started = asyncio.Event()
+    release_work = asyncio.Event()
+    was_cancelled = asyncio.Event()
+
+    async def periodic_work() -> None:
+        work_started.set()
+        try:
+            await release_work.wait()
+        except asyncio.CancelledError:
+            was_cancelled.set()
+            raise
+
+    worker = asyncio.create_task(periodic_work())
+    await asyncio.wait_for(work_started.wait(), timeout=1)
+    stopping = asyncio.create_task(stop_periodic_task(worker, stop_event))
+    await asyncio.sleep(0)
+
+    assert stop_event.is_set() is True
+    assert stopping.done() is False
+    assert was_cancelled.is_set() is False
+
+    release_work.set()
+    await asyncio.wait_for(stopping, timeout=1)
+
+    assert worker.done() is True
+    assert was_cancelled.is_set() is False
 
 
 @pytest.mark.asyncio

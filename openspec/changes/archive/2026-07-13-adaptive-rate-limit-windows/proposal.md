@@ -1,6 +1,6 @@
 ## Why
 
-On 2026-07-12 OpenAI temporarily removed the 5-hour Codex usage limit for Plus, Business, and Pro plans (weekly limits remain), and upstream `openai/codex` has been duration-driven since May 2026: window kinds are derived from server-reported durations, and a primary short window is no longer guaranteed to exist. codex-lb still assumes the primary (5h) window keeps being reported. When upstream stops emitting it, the last stored primary row is never rewritten and codex-lb degrades in four verified ways:
+On 2026-07-12 OpenAI temporarily removed the 5-hour Codex usage limit for Plus, Business, and Pro plans (weekly limits remain), and upstream `openai/codex` has been duration-driven since May 2026: window kinds are derived from server-reported durations, and a primary short window is no longer guaranteed to exist. openhub still assumes the primary (5h) window keeps being reported. When upstream stops emitting it, the last stored primary row is never rewritten and openhub degrades in four verified ways:
 
 - Selection state only zeroes stale samples at `used_percent >= 100`, so a frozen sub-100% primary row (e.g. 87%) permanently holds the soft-drain tier, budget-safe stickiness pressure, and primary-ordered strategies.
 - A persisted `rate_limited` account can never recover through the background scheduler: recovery evidence for non-monthly plans is the primary row alone, which is never written again.

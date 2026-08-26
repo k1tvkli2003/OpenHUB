@@ -10,27 +10,27 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
-TEST_DB_DIR = Path(tempfile.mkdtemp(prefix="codex-lb-tests-"))
-TEST_DB_PATH = TEST_DB_DIR / "codex-lb.db"
+TEST_DB_DIR = Path(tempfile.mkdtemp(prefix="openhub-tests-"))
+TEST_DB_PATH = TEST_DB_DIR / "openhub.db"
 
-os.environ["CODEX_LB_DATABASE_URL"] = os.environ.get(
-    "CODEX_LB_TEST_DATABASE_URL", f"sqlite+aiosqlite:///{TEST_DB_PATH}"
+os.environ["OPENHUB_DATABASE_URL"] = os.environ.get(
+    "OPENHUB_TEST_DATABASE_URL", f"sqlite+aiosqlite:///{TEST_DB_PATH}"
 )
-os.environ["CODEX_LB_UPSTREAM_BASE_URL"] = "https://example.invalid/backend-api"
-os.environ["CODEX_LB_USAGE_REFRESH_ENABLED"] = "false"
-os.environ["CODEX_LB_MODEL_REGISTRY_ENABLED"] = "false"
-os.environ["CODEX_LB_STICKY_SESSION_CLEANUP_ENABLED"] = "false"
-os.environ["CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_ENABLED"] = "false"
-os.environ["CODEX_LB_QUOTA_PLANNER_SCHEDULER_ENABLED"] = "false"
+os.environ["OPENHUB_UPSTREAM_BASE_URL"] = "https://example.invalid/backend-api"
+os.environ["OPENHUB_USAGE_REFRESH_ENABLED"] = "false"
+os.environ["OPENHUB_MODEL_REGISTRY_ENABLED"] = "false"
+os.environ["OPENHUB_STICKY_SESSION_CLEANUP_ENABLED"] = "false"
+os.environ["OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_ENABLED"] = "false"
+os.environ["OPENHUB_QUOTA_PLANNER_SCHEDULER_ENABLED"] = "false"
 # Route-resolution caching is opt-in per test (cache-specific tests set a TTL
 # explicitly); keeping it off preserves fresh-read semantics everywhere else.
-os.environ["CODEX_LB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS"] = "0"
+os.environ["OPENHUB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS"] = "0"
 # The app-level automations scheduler ticks on the real clock; with leader
 # election enabled its startup tick runs as a background task and can land
 # inside a test that stages its own due-now jobs, racing the test's
 # claim_run. Tests drive automations via AutomationsService.run_due_jobs
 # with explicit clocks or construct AutomationsScheduler directly.
-os.environ["CODEX_LB_AUTOMATIONS_SCHEDULER_ENABLED"] = "false"
+os.environ["OPENHUB_AUTOMATIONS_SCHEDULER_ENABLED"] = "false"
 # NOTE: Leader election is intentionally NOT disabled via an env override here.
 # It is default-enabled in production, and a global override would leak into
 # every ``Settings()`` constructed anywhere in the suite — breaking the
@@ -241,7 +241,7 @@ def _disable_default_refresh_claims():
 @pytest.fixture(autouse=True)
 def temp_key_file(monkeypatch):
     key_path = TEST_DB_DIR / f"encryption-{uuid4().hex}.key"
-    monkeypatch.setenv("CODEX_LB_ENCRYPTION_KEY_FILE", str(key_path))
+    monkeypatch.setenv("OPENHUB_ENCRYPTION_KEY_FILE", str(key_path))
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()

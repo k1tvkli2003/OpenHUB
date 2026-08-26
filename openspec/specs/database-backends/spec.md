@@ -6,19 +6,19 @@ Define supported database backend wiring so local, Helm, SQLite, and external Po
 ## Requirements
 ### Requirement: Helm external PostgreSQL wiring resolves a non-empty database URL
 
-When the Helm chart deploys with `postgresql.enabled=false`, it MUST provide a non-empty `CODEX_LB_DATABASE_URL` to the workload from one of the supported external database inputs. The chart MUST accept a direct `externalDatabase.url`, and it MUST also support reading `database-url` from an operator-provided external database secret reference without requiring the application encryption-key secret to be the same object.
+When the Helm chart deploys with `postgresql.enabled=false`, it MUST provide a non-empty `OPENHUB_DATABASE_URL` to the workload from one of the supported external database inputs. The chart MUST accept a direct `externalDatabase.url`, and it MUST also support reading `database-url` from an operator-provided external database secret reference without requiring the application encryption-key secret to be the same object.
 
 #### Scenario: Direct external database URL is used
 
 - **WHEN** `postgresql.enabled=false`
 - **AND** `externalDatabase.url` is non-empty
-- **THEN** the rendered workload uses that value for `CODEX_LB_DATABASE_URL`
+- **THEN** the rendered workload uses that value for `OPENHUB_DATABASE_URL`
 
 #### Scenario: External database URL comes from a dedicated secret reference
 
 - **WHEN** `postgresql.enabled=false`
 - **AND** `externalDatabase.existingSecret` is set
-- **THEN** the rendered workload reads `database-url` from that secret for `CODEX_LB_DATABASE_URL`
+- **THEN** the rendered workload reads `database-url` from that secret for `OPENHUB_DATABASE_URL`
 
 ### Requirement: PostgreSQL engines validate and recycle pooled connections
 
@@ -197,4 +197,27 @@ advisory-lock behavior.
 - **GIVEN** the deployment uses a file-backed SQLite database
 - **WHEN** an account status transition is persisted
 - **THEN** the write executes inside the shared SQLite writer section
+
+### Requirement: Periodic database workers shut down without orphaning driver work
+
+Event-driven periodic workers that can be inside an asynchronous database
+operation MUST stop cooperatively. Shutdown MUST signal their stop event, allow
+the current database iteration and session cleanup to finish, and await the
+worker before closing the database engine or event loop. Shutdown MUST NOT
+cancel an in-flight connection acquisition merely to interrupt the interval
+wait.
+
+#### Scenario: Cache poll is acquiring a SQLite connection during shutdown
+
+- **GIVEN** the cache-invalidation poller is inside a database iteration
+- **WHEN** application shutdown requests the poller to stop
+- **THEN** the current iteration finishes and closes its session before the poller exits
+- **AND** no aiosqlite worker attempts to report completion to a closed event loop
+
+#### Scenario: Ring heartbeat is reading membership during shutdown
+
+- **GIVEN** the bridge-ring heartbeat task is registering, heartbeating, or refreshing membership
+- **WHEN** application shutdown requests the heartbeat task to stop
+- **THEN** the current database operation finishes before the heartbeat task exits
+- **AND** the periodic interval wait wakes immediately from the stop signal
 

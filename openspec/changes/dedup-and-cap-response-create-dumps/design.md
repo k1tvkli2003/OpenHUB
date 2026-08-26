@@ -32,7 +32,7 @@ incident in #1345.
 5. **Hardcoded bound, not a setting.** `_RESPONSE_CREATE_DUMP_MAX_PAIRS = 20`
    is a module constant reachable through the existing `_service_global_or`
    indirection, matching `_OVERSIZED_RESPONSE_CREATE_LARGEST_ITEMS`. Per
-   simplicity rules P1/P2 this needs no `CODEX_LB_*` setting: it is an
+   simplicity rules P1/P2 this needs no `OPENHUB_*` setting: it is an
    internals-only debug bound and the base install path stays zero-config.
 6. **Count only, not bytes or age.** Deduplication removes the amplifier that
    produced 154 near-identical files; the count cap bounds the residual tail of

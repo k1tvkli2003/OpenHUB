@@ -15,5 +15,5 @@
 - [x] 3.1 Add route-level regression coverage for both aliases, including Codex JSON data-URL edits.
 - [x] 3.2 Run focused image compatibility tests and lint (`35 passed`; Ruff and `git diff --check` clean).
 - [x] 3.3 Run strict OpenSpec validation (`openspec validate add-codex-images-route-alias --strict` — valid).
-- [x] 3.4 Restart the local LaunchAgent-backed codex-lb service and verify the live aliases return their handlers' 400 validation responses rather than `405`.
+- [x] 3.4 Restart the local LaunchAgent-backed openhub service and verify the live aliases return their handlers' 400 validation responses rather than `405`.
 - [x] 3.5 Cover trailing-slash behavior: the slashed variants 405 identically on the `/v1` canonical and Codex-base alias surfaces.

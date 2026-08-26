@@ -2581,7 +2581,7 @@ async def test_authoritative_catalog_controls_quota_exempt_plan_evidence_require
     )
     selection = await balancer.select_account(model="gpt-5.3-codex-spark")
 
-    if catalog_supports_account:
+    if catalog_supports_account and plan_type != "free":
         assert selection.account is not None
         assert selection.account.id == account.id
     else:

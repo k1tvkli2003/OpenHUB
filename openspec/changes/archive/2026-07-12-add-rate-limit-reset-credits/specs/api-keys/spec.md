@@ -47,6 +47,6 @@ On a successful `POST /v1/reset-credit` redemption, the system SHALL invalidate 
 - **GIVEN** an eligible account has a redeemable reset credit and persisted usage/account state that still reflects a blocked window
 - **WHEN** a client successfully calls `POST /v1/reset-credit` for that account
 - **THEN** the redeemed account's cached reset-credit snapshot is invalidated
-- **AND** codex-lb forces a usage refresh for that account before returning
+- **AND** openhub forces a usage refresh for that account before returning
 - **AND** any account-selection cache entry derived from the stale usage state is invalidated when the refresh writes updated usage
 - **AND** the response still returns the upstream `{code, windows_reset, redeemed_at}` success payload

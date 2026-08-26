@@ -45,7 +45,7 @@ The helper will reject a valid declared `Content-Length` above the route budget,
 
 Image file counts are additionally classified by field: `image` and `image[]` share a maximum of 16, `mask` has a maximum of one, and unknown file fields are invalid. The mask participates in both per-file and aggregate binary limits.
 
-Fixed defaults avoid growing the `CODEX_LB_*` configuration surface. The audio cap uses an inclusive 25,000,000-byte local interpretation of the public 25 MB upload contract. The image cap implements the public “less than 50 MB” wording literally and applies the same strict ceiling to the aggregate because codex-lb retains all binaries and base64 copies simultaneously.
+Fixed defaults avoid growing the `OPENHUB_*` configuration surface. The audio cap uses an inclusive 25,000,000-byte local interpretation of the public 25 MB upload contract. The image cap implements the public “less than 50 MB” wording literally and applies the same strict ceiling to the aggregate because openhub retains all binaries and base64 copies simultaneously.
 
 The image aggregate is a resource-safety ceiling, not a promise that every payload below it fits the default 15 MiB internal `response.create` transport. The existing downstream size guard remains authoritative after base64/JSON expansion and can reject a smaller admitted upload with its established `payload_too_large` behavior.
 

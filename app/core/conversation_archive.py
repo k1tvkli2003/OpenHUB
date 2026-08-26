@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config.settings import get_settings
+from app.core.utils.paths import expand_user_path
 from app.core.utils.request_id import get_request_id
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,7 @@ def _redact_headers(headers: Mapping[str, str] | None) -> dict[str, str] | None:
 
 def _archive_path() -> Path:
     settings = get_settings()
-    directory = Path(getattr(settings, "conversation_archive_dir")).expanduser()
+    directory = expand_user_path(Path(getattr(settings, "conversation_archive_dir")))
     filename = f"{datetime.now(UTC).strftime('%Y-%m-%dT%H')}.jsonl.gz"
     return directory / filename
 

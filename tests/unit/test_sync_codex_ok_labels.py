@@ -22,7 +22,7 @@ def load_sync_module() -> ModuleType:
 
 def decision(module: ModuleType, **overrides: Any) -> Any:
     values = {
-        "repo": "Soju06/codex-lb",
+        "repo": "k1tvkli2003/OpenHUB",
         "number": 714,
         "head_sha": "a" * 40,
         "has_ok_label": True,
@@ -91,7 +91,7 @@ def test_apply_decision_adds_needs_rebase_label(monkeypatch: pytest.MonkeyPatch)
     assert calls == [
         (
             "POST",
-            "/repos/Soju06/codex-lb/issues/714/labels",
+            "/repos/k1tvkli2003/OpenHUB/issues/714/labels",
             {"labels": ["needs rebase"]},
         )
     ]
@@ -120,7 +120,7 @@ def test_apply_decision_removes_stale_needs_rebase_label(monkeypatch: pytest.Mon
     assert calls == [
         (
             "DELETE",
-            "/repos/Soju06/codex-lb/issues/714/labels/needs%20rebase",
+            "/repos/k1tvkli2003/OpenHUB/issues/714/labels/needs%20rebase",
             None,
         )
     ]
@@ -227,7 +227,7 @@ def test_classify_check_state_ignores_unique_failure_from_superseded_ci_run() ->
             "conclusion": "failure",
             "started_at": "2026-07-10T06:00:37Z",
             "completed_at": "2026-07-10T06:00:37Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/100/job/1",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/100/job/1",
             "_github_actions_workflow_id": "ci",
         },
         {
@@ -236,7 +236,7 @@ def test_classify_check_state_ignores_unique_failure_from_superseded_ci_run() ->
             "conclusion": "failure",
             "started_at": "2026-07-10T06:00:38Z",
             "completed_at": "2026-07-10T06:00:41Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/100/job/2",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/100/job/2",
             "_github_actions_workflow_id": "ci",
         },
         {
@@ -245,7 +245,7 @@ def test_classify_check_state_ignores_unique_failure_from_superseded_ci_run() ->
             "conclusion": "success",
             "started_at": "2026-07-10T06:01:00Z",
             "completed_at": "2026-07-10T06:05:00Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/3",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/3",
             "_github_actions_workflow_id": "ci",
         },
         {
@@ -254,7 +254,7 @@ def test_classify_check_state_ignores_unique_failure_from_superseded_ci_run() ->
             "conclusion": "success",
             "started_at": "2026-07-10T06:09:01Z",
             "completed_at": "2026-07-10T06:09:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
         },
     ]
@@ -279,7 +279,7 @@ def test_classify_check_state_keeps_optional_failure_from_authoritative_ci_run()
             "conclusion": "failure",
             "started_at": "2026-07-10T06:09:00Z",
             "completed_at": "2026-07-10T06:09:04Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/3",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/3",
             "_github_actions_workflow_id": "ci",
         },
         {
@@ -288,7 +288,7 @@ def test_classify_check_state_keeps_optional_failure_from_authoritative_ci_run()
             "conclusion": "success",
             "started_at": "2026-07-10T06:09:01Z",
             "completed_at": "2026-07-10T06:09:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
         },
     ]
@@ -313,7 +313,7 @@ def test_classify_check_state_keeps_newer_same_workflow_run_pending_before_requi
             "conclusion": "success",
             "started_at": "2026-07-10T06:09:01Z",
             "completed_at": "2026-07-10T06:09:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:00:43Z",
         },
@@ -322,7 +322,7 @@ def test_classify_check_state_keeps_newer_same_workflow_run_pending_before_requi
             "status": "in_progress",
             "conclusion": None,
             "started_at": "2026-07-10T06:50:20Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/300/job/1",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/300/job/1",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:50:20Z",
         },
@@ -348,7 +348,7 @@ def test_classify_check_state_keeps_manual_rerun_of_older_run_pending() -> None:
             "conclusion": "success",
             "started_at": "2026-07-10T06:50:20Z",
             "completed_at": "2026-07-10T06:59:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:50:00Z",
             "_github_actions_run_started_at": "2026-07-10T06:50:00Z",
@@ -358,7 +358,7 @@ def test_classify_check_state_keeps_manual_rerun_of_older_run_pending() -> None:
             "status": "in_progress",
             "conclusion": None,
             "started_at": "2026-07-10T07:10:20Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/100/job/1",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/100/job/1",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:00:00Z",
             "_github_actions_run_started_at": "2026-07-10T07:10:00Z",
@@ -385,7 +385,7 @@ def test_classify_check_state_keeps_failure_from_manual_rerun_of_older_run() -> 
             "conclusion": "success",
             "started_at": "2026-07-10T06:50:20Z",
             "completed_at": "2026-07-10T06:59:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:50:00Z",
             "_github_actions_run_started_at": "2026-07-10T06:50:00Z",
@@ -396,7 +396,7 @@ def test_classify_check_state_keeps_failure_from_manual_rerun_of_older_run() -> 
             "conclusion": "failure",
             "started_at": "2026-07-10T07:10:20Z",
             "completed_at": "2026-07-10T07:15:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/100/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/100/job/4",
             "_github_actions_workflow_id": "ci",
             "_github_actions_run_created_at": "2026-07-10T06:00:00Z",
             "_github_actions_run_started_at": "2026-07-10T07:10:00Z",
@@ -423,7 +423,7 @@ def test_classify_check_state_keeps_failure_from_independent_workflow_run() -> N
             "conclusion": "failure",
             "started_at": "2026-07-10T06:08:00Z",
             "completed_at": "2026-07-10T06:08:30Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/300/job/1",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/300/job/1",
             "_github_actions_workflow_id": "security",
         },
         {
@@ -432,7 +432,7 @@ def test_classify_check_state_keeps_failure_from_independent_workflow_run() -> N
             "conclusion": "success",
             "started_at": "2026-07-10T06:09:01Z",
             "completed_at": "2026-07-10T06:09:05Z",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
             "_github_actions_workflow_id": "ci",
         },
     ]
@@ -454,11 +454,11 @@ def test_annotate_github_actions_workflow_ids_is_conservative_when_metadata_look
     check_runs = [
         {
             "name": "CI Required",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/200/job/4",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/200/job/4",
         },
         {
             "name": "independent scan",
-            "details_url": "https://github.com/Soju06/codex-lb/actions/runs/300/job/1",
+            "details_url": "https://github.com/k1tvkli2003/OpenHUB/actions/runs/300/job/1",
         },
     ]
 
@@ -473,7 +473,7 @@ def test_annotate_github_actions_workflow_ids_is_conservative_when_metadata_look
 
     monkeypatch.setattr(module, "gh_api", workflow_run)
 
-    annotated = module.annotate_github_actions_workflow_ids("Soju06/codex-lb", check_runs)
+    annotated = module.annotate_github_actions_workflow_ids("k1tvkli2003/OpenHUB", check_runs)
 
     assert annotated[0]["_github_actions_workflow_id"] == "10"
     assert annotated[0]["_github_actions_run_started_at"] == "2026-07-10T07:10:00Z"
@@ -491,7 +491,7 @@ def test_apply_decision_tolerates_github_app_write_denial(monkeypatch: pytest.Mo
     warnings = module.apply_decision(decision(module), tolerate_permission_errors=True)
 
     assert len(warnings) == 1
-    assert "remove 🤖 codex: ok from Soju06/codex-lb#714" in warnings[0]
+    assert "remove 🤖 codex: ok from k1tvkli2003/OpenHUB#714" in warnings[0]
     assert "Resource not accessible by integration" in warnings[0]
 
 
@@ -524,7 +524,7 @@ def test_apply_decision_treats_missing_label_delete_as_done(monkeypatch: pytest.
     assert calls == [
         (
             "DELETE",
-            "/repos/Soju06/codex-lb/issues/714/labels/%F0%9F%A4%96%20codex%3A%20ok",
+            "/repos/k1tvkli2003/OpenHUB/issues/714/labels/%F0%9F%A4%96%20codex%3A%20ok",
         )
     ]
 
@@ -557,7 +557,7 @@ def test_trigger_codex_review_tolerates_github_app_write_denial(monkeypatch: pyt
     )
 
     assert len(warnings) == 1
-    assert "request Codex review on Soju06/codex-lb#714" in warnings[0]
+    assert "request Codex review on k1tvkli2003/OpenHUB#714" in warnings[0]
 
 
 def test_workflow_prefers_privileged_token_and_enables_tolerant_apply() -> None:
@@ -587,12 +587,12 @@ def test_main_tolerates_read_errors_when_requested(
 
     monkeypatch.setattr(module, "decide_pr", fake_decide_pr)
 
-    result = module.main(["--repo", "Soju06/codex-lb", "--all-open", "--tolerate-read-errors"])
+    result = module.main(["--repo", "k1tvkli2003/OpenHUB", "--all-open", "--tolerate-read-errors"])
 
     captured = capsys.readouterr()
     assert result == 0
-    assert "Soju06/codex-lb#710: gh: HTTP 502" in captured.err
-    assert "dry-run Soju06/codex-lb#714" in captured.out
+    assert "k1tvkli2003/OpenHUB#710: gh: HTTP 502" in captured.err
+    assert "dry-run k1tvkli2003/OpenHUB#714" in captured.out
 
 
 def test_main_fails_tolerant_run_when_every_pr_read_fails(
@@ -609,7 +609,7 @@ def test_main_fails_tolerant_run_when_every_pr_read_fails(
         lambda *_args, **_kwargs: (_ for _ in ()).throw(module.GhError("gh: HTTP 502")),
     )
 
-    result = module.main(["--repo", "Soju06/codex-lb", "--all-open", "--tolerate-read-errors"])
+    result = module.main(["--repo", "k1tvkli2003/OpenHUB", "--all-open", "--tolerate-read-errors"])
 
     captured = capsys.readouterr()
     assert result == 1
@@ -627,7 +627,7 @@ def test_main_fails_read_errors_without_tolerance(monkeypatch: pytest.MonkeyPatc
         lambda *_args, **_kwargs: (_ for _ in ()).throw(module.GhError("gh: HTTP 502")),
     )
 
-    assert module.main(["--repo", "Soju06/codex-lb", "--all-open"]) == 1
+    assert module.main(["--repo", "k1tvkli2003/OpenHUB", "--all-open"]) == 1
 
 
 def test_main_fails_apply_errors_even_with_read_error_tolerance(
@@ -645,11 +645,11 @@ def test_main_fails_apply_errors_even_with_read_error_tolerance(
 
     monkeypatch.setattr(module, "apply_decision", fail_apply)
 
-    result = module.main(["--repo", "Soju06/codex-lb", "--all-open", "--apply", "--tolerate-read-errors"])
+    result = module.main(["--repo", "k1tvkli2003/OpenHUB", "--all-open", "--apply", "--tolerate-read-errors"])
 
     captured = capsys.readouterr()
     assert result == 1
-    assert "Soju06/codex-lb#714: gh: HTTP 500 while writing labels" in captured.err
+    assert "k1tvkli2003/OpenHUB#714: gh: HTTP 500 while writing labels" in captured.err
 
 
 def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -663,7 +663,7 @@ def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkey
             "original_commit_id": old_sha,
             "pull_request_review_id": 1,
             "created_at": "2026-06-11T00:00:00Z",
-            "html_url": "https://github.com/Soju06/codex-lb/pull/714#discussion_r1",
+            "html_url": "https://github.com/k1tvkli2003/OpenHUB/pull/714#discussion_r1",
             "user": {"login": "openai-codex"},
         },
         {
@@ -672,7 +672,7 @@ def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkey
             "original_commit_id": old_sha,
             "pull_request_review_id": 2,
             "created_at": "2026-06-11T00:00:00Z",
-            "html_url": "https://github.com/Soju06/codex-lb/pull/714#discussion_r2",
+            "html_url": "https://github.com/k1tvkli2003/OpenHUB/pull/714#discussion_r2",
             "user": {"login": "openai-codex"},
         },
         {
@@ -681,7 +681,7 @@ def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkey
             "original_commit_id": head_sha,
             "pull_request_review_id": 3,
             "created_at": "2026-06-11T00:00:00Z",
-            "html_url": "https://github.com/Soju06/codex-lb/pull/714#discussion_r3",
+            "html_url": "https://github.com/k1tvkli2003/OpenHUB/pull/714#discussion_r3",
             "user": {"login": "openai-codex"},
         },
         {
@@ -690,7 +690,7 @@ def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkey
             "original_commit_id": old_sha,
             "pull_request_review_id": 4,
             "created_at": "2026-06-11T00:00:00Z",
-            "html_url": "https://github.com/Soju06/codex-lb/pull/714#discussion_r4",
+            "html_url": "https://github.com/k1tvkli2003/OpenHUB/pull/714#discussion_r4",
             "user": {"login": "openai-codex"},
         },
     ]
@@ -698,7 +698,7 @@ def test_pull_review_comment_nodes_uses_original_commit_or_head_reference(monkey
     monkeypatch.setattr(module, "paged_api", lambda _path: comment_data)
     monkeypatch.setattr(module, "unresolved_review_comment_urls", lambda *_args: set())
 
-    nodes = module.pull_review_comment_nodes("Soju06/codex-lb", 714, head_sha=head_sha)
+    nodes = module.pull_review_comment_nodes("k1tvkli2003/OpenHUB", 714, head_sha=head_sha)
 
     assert [node.get("commit", {}).get("oid") for node in nodes] == [head_sha, head_sha, head_sha]
     assert [node.get("pullRequestReviewDatabaseId") for node in nodes] == [None, None, 3]
@@ -857,7 +857,7 @@ def test_unresolved_codex_threads_filter_to_current_head(monkeypatch: pytest.Mon
     monkeypatch.setattr(module, "graphql", lambda *_args, **_kwargs: pages[0])
 
     urls = module.unresolved_codex_finding_thread_urls(
-        "Soju06/codex-lb",
+        "k1tvkli2003/OpenHUB",
         714,
         head_sha=head_sha,
         allowed_authors={"openai-codex"},
@@ -892,7 +892,7 @@ def test_resolved_inline_codex_finding_does_not_count_as_review_news(
     )
     monkeypatch.setattr(module, "unresolved_review_comment_urls", lambda *_args: set())
 
-    assert module.pull_review_comment_nodes("Soju06/codex-lb", 714, head_sha="a" * 40) == []
+    assert module.pull_review_comment_nodes("k1tvkli2003/OpenHUB", 714, head_sha="a" * 40) == []
 
 
 def test_unresolved_inline_codex_finding_counts_as_review_news(
@@ -918,7 +918,7 @@ def test_unresolved_inline_codex_finding_counts_as_review_news(
     )
     monkeypatch.setattr(module, "unresolved_review_comment_urls", lambda *_args: {url})
 
-    nodes = module.pull_review_comment_nodes("Soju06/codex-lb", 714, head_sha="a" * 40)
+    nodes = module.pull_review_comment_nodes("k1tvkli2003/OpenHUB", 714, head_sha="a" * 40)
 
     assert len(nodes) == 1
     assert nodes[0]["url"] == url

@@ -1,10 +1,10 @@
 ## Why
 
 Recent Codex clients can show earned usage limit reset credits in `/usage` and
-offer an action to redeem one. codex-lb currently mirrors usage windows but
+offer an action to redeem one. openhub currently mirrors usage windows but
 drops the upstream reset-credit summary and has no endpoint for the redemption
 request, so Codex can tell the user resets exist without being able to consume
-one through codex-lb.
+one through openhub.
 
 ## What Changes
 
@@ -17,7 +17,7 @@ one through codex-lb.
 - Forward redemption to upstream using the caller's ChatGPT bearer token,
   `chatgpt-account-id`, existing upstream proxy routing, and the caller-provided
   `redeem_request_id`.
-- After a successful or idempotently successful reset, force-refresh codex-lb's
+- After a successful or idempotently successful reset, force-refresh openhub's
   persisted usage snapshot for the matching account.
 
 ## Impact

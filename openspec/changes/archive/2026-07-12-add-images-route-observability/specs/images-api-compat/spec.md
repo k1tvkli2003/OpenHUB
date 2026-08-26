@@ -14,8 +14,8 @@ or raw upstream payloads.
   successfully
 - **THEN** the service emits an `images_route_complete` log line with the public
   image route, public model, stream flag, status, outcome, and duration
-- **AND** increments `codex_lb_image_requests_total` and observes
-  `codex_lb_image_request_duration_seconds` with the same bounded labels
+- **AND** increments `openhub_image_requests_total` and observes
+  `openhub_image_request_duration_seconds` with the same bounded labels
 
 #### Scenario: Failed image request records completion telemetry
 

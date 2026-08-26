@@ -100,6 +100,7 @@ class AccountSummary(DashboardModel):
     window_minutes_secondary: int | None = None
     window_minutes_monthly: int | None = None
     last_refresh_at: datetime | None = None
+    usage_sample_at: datetime | None = None
     capacity_credits_primary: float | None = None
     remaining_credits_primary: float | None = None
     capacity_credits_secondary: float | None = None
@@ -122,7 +123,7 @@ class AccountSummary(DashboardModel):
     # older row keeps a revoked token and keeps generating 401s through the
     # load balancer. Flagging the dupes in /accounts lets the dashboard
     # surface a "delete older" action without requiring the operator to
-    # group rows by email themselves. See codex-lb #787 (B).
+    # group rows by email themselves. See openhub #787 (B).
     is_email_duplicate: bool = False
     # Banked rate-limit reset credits from the in-memory snapshot when cached,
     # otherwise the latest persisted primary usage_history count from /wham/usage.

@@ -1,6 +1,6 @@
 ## Why
 
-After deploying codex-lb 1.20.0-beta.3 to a Postgres-backed host (10.0.0.113),
+After deploying openhub 1.20.0-beta.3 to a Postgres-backed host (10.0.0.113),
 the quota planner tick fails with:
 
 ```

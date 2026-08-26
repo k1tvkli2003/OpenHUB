@@ -1,7 +1,7 @@
 ## Why
 
 Issue #1086 reports that after upgrading a ChatGPT account from Plus to Pro,
-codex-lb keeps showing the account as Plus. The usage refresh payload carries
+openhub keeps showing the account as Plus. The usage refresh payload carries
 the correct new plan, but the account mutation is skipped with:
 
 ```text

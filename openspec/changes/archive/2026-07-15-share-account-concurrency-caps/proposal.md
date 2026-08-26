@@ -11,7 +11,7 @@ Per-account concurrency caps (`proxy_account_response_create_limit` default 4, `
 - Lifespan wiring in `app/main.py`: the partition refreshes from `RingMembershipService.list_active` after ring registration and after every 10s ring heartbeat. A failed membership read retains the last-known partition instead of falling open to the full caps. The observing replica always counts itself.
 - `effective_account_concurrency_caps` partitions the dashboard/env-configured caps; every existing admission call site (selection filter, lease acquisition, opportunistic admission, cap waits) inherits the partitioned values. `proxy_account_caps_scope=replica` restores legacy per-replica semantics.
 - Account-cap local overload messages state the replica's share, the configured cluster-wide limit, and the replica count when more than one replica is active; the stable reasons `account_response_create_cap` / `account_stream_cap` are unchanged.
-- New gauge `codex_lb_cap_partition_replicas` and an info-level rebalance log (old count, new count, rank).
+- New gauge `openhub_cap_partition_replicas` and an info-level rebalance log (old count, new count, rank).
 - No DB migration: partitioning only reads the existing `bridge_ring_members` table.
 
 ## Non-goals

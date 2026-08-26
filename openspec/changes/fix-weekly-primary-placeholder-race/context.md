@@ -3,7 +3,7 @@
 ## Purpose and scope
 
 This change fixes a display- and routing-relevant correctness bug in how
-codex-lb picks between a weekly window reported in the `primary` slot and a
+openhub picks between a weekly window reported in the `primary` slot and a
 competing `secondary`-slot row. It does not change quota capacity, plan types,
 status derivation, or storage schema.
 

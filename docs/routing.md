@@ -19,4 +19,4 @@ Change the strategy live in the dashboard under **Settings → Routing** — no 
 
 ---
 
-*Spec: [account-routing](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/account-routing)*
+*Spec: [account-routing](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/account-routing)*

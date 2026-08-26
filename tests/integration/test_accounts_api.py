@@ -675,11 +675,11 @@ async def test_set_and_clear_account_alias(async_client):
     response = await async_client.post("/api/accounts/import", files=files)
     assert response.status_code == 200
 
-    # Default summary uses the email since no alias is set yet.
+    # Default summary derives a compact label from the email local part.
     listing = await async_client.get("/api/accounts")
     matched = next(a for a in listing.json()["accounts"] if a["accountId"] == expected_account_id)
     assert matched["alias"] is None
-    assert matched["displayName"] == email
+    assert matched["displayName"] == "Alias"
 
     # Setting an alias updates both `alias` and `displayName`.
     set_response = await async_client.put(
@@ -704,12 +704,12 @@ async def test_set_and_clear_account_alias(async_client):
     listing = await async_client.get("/api/accounts")
     matched = next(a for a in listing.json()["accounts"] if a["accountId"] == expected_account_id)
     assert matched["alias"] is None
-    assert matched["displayName"] == email
+    assert matched["displayName"] == "Alias"
 
 
 @pytest.mark.asyncio
 async def test_list_accounts_flags_email_duplicates(async_client):
-    """Pin codex-lb #787 (B): after a token-invalidation cascade, the
+    """Pin openhub #787 (B): after a token-invalidation cascade, the
     re-add OAuth flow creates a second account row with the same email
     but a fresh accountId for the same ChatGPT account identity and workspace
     slot. /api/accounts surfaces that pair via isEmailDuplicate=true on both

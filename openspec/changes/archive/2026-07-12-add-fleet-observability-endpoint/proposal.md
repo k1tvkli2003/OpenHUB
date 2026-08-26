@@ -1,7 +1,7 @@
 ## Why
 
-`claude-balances` can read codex-lb fleet summary data, but its Codex pressure
-and continuity cards currently degrade because codex-lb does not expose a
+`claude-balances` can read openhub fleet summary data, but its Codex pressure
+and continuity cards currently degrade because openhub does not expose a
 read-only observability feed through the fleet API-key surface.
 
 ## What Changes

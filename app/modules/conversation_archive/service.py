@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config.settings import get_settings
+from app.core.utils.paths import expand_user_path
 
 _JSONL_SUFFIX = ".jsonl"
 _GZIP_JSONL_SUFFIX = ".jsonl.gz"
@@ -137,7 +138,7 @@ def _archive_paths_for_lookup(
 
 
 def _archive_dir() -> Path:
-    return Path(getattr(get_settings(), "conversation_archive_dir")).expanduser()
+    return expand_user_path(Path(getattr(get_settings(), "conversation_archive_dir")))
 
 
 def _iter_archive_paths(directory: Path) -> Iterator[Path]:

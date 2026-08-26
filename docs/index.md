@@ -1,4 +1,4 @@
-# codex-lb
+# openhub
 
 Load balancer for ChatGPT accounts. Pool multiple accounts, track usage, manage API keys, view everything in a dashboard.
 
@@ -38,4 +38,4 @@ Load balancer for ChatGPT accounts. Pool multiple accounts, track usage, manage 
 
 ---
 
-codex-lb is spec-driven: normative behavior lives in [OpenSpec capabilities](https://github.com/Soju06/codex-lb/tree/main/openspec/specs) in the repository. Docs pages describe how to use the project and link back to the specs that govern them.
+openhub is spec-driven: normative behavior lives in [OpenSpec capabilities](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs) in the repository. Docs pages describe how to use the project and link back to the specs that govern them.

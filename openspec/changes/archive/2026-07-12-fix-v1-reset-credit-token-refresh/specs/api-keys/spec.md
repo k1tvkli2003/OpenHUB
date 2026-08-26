@@ -51,7 +51,7 @@ On a successful `POST /v1/reset-credit` redemption, the system SHALL invalidate 
 - **GIVEN** an eligible account has a redeemable reset credit
 - **AND** the persisted access token for that account is stale but refreshable
 - **WHEN** a client successfully calls `POST /v1/reset-credit` for that account
-- **THEN** codex-lb refreshes the account before decrypting the consume bearer token
+- **THEN** openhub refreshes the account before decrypting the consume bearer token
 - **AND** the upstream reset-credit consume call uses the refreshed account credentials
 
 #### Scenario: Self-service redemption surfaces refresh failures as conflicts
@@ -59,14 +59,14 @@ On a successful `POST /v1/reset-credit` redemption, the system SHALL invalidate 
 - **GIVEN** an eligible account has a redeemable reset credit
 - **AND** that account's credential refresh fails before the upstream consume call
 - **WHEN** a client calls `POST /v1/reset-credit` for that account
-- **THEN** codex-lb returns a conflict response in the standard `/v1/*` OpenAI error envelope
-- **AND** codex-lb does not call upstream reset-credit consume for that request
+- **THEN** openhub returns a conflict response in the standard `/v1/*` OpenAI error envelope
+- **AND** openhub does not call upstream reset-credit consume for that request
 
 #### Scenario: Successful self-service redemption refreshes usage for immediate follow-up traffic
 
 - **GIVEN** an eligible account has a redeemable reset credit and persisted usage/account state that still reflects a blocked window
 - **WHEN** a client successfully calls `POST /v1/reset-credit` for that account
 - **THEN** the redeemed account's cached reset-credit snapshot is invalidated
-- **AND** codex-lb forces a usage refresh for that account before returning
+- **AND** openhub forces a usage refresh for that account before returning
 - **AND** any account-selection cache entry derived from the stale usage state is invalidated when the refresh writes updated usage
 - **AND** the response still returns the upstream `{code, windows_reset, redeemed_at}` success payload

@@ -85,7 +85,7 @@ def _resolve_hostname_ipv4(hostname: str) -> str | None:
 
 
 def _resolve_runtime_connect_address(request: Request) -> str:
-    override = os.getenv("CODEX_LB_CONNECT_ADDRESS", "").strip()
+    override = os.getenv("OPENHUB_CONNECT_ADDRESS", "").strip()
     if override:
         return override
 
@@ -99,7 +99,7 @@ def _resolve_runtime_connect_address(request: Request) -> str:
         if resolved_host:
             return resolved_host
         return request_host
-    return "<codex-lb-ip-or-dns>"
+    return "<openhub-ip-or-dns>"
 
 
 router = APIRouter(

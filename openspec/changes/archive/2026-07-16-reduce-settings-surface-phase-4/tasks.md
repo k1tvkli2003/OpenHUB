@@ -14,14 +14,14 @@
       flag alone (no bucket/cohort plumbing, no `canary_miss` path); update
       the `app/modules/proxy/service.py` re-export
 - [x] 1.3 Drop the cohort/bucket observability dimensions: the
-      `codex_lb_http_bridge_prewarm_total` counter is labelled by `outcome`
+      `openhub_http_bridge_prewarm_total` counter is labelled by `outcome`
       only; remove `prewarm_canary_bucket` / `prewarm_eligible_reason` from
       the request state and request-log write plumbing. The `RequestLog`
       columns stay declared (deprecated, unwritten) for one release so old
       replicas keep inserting safely during rolling upgrades; the Alembic
       drop revision ships in the next release
 - [x] 1.3b Ship every `dashboards/*.json` in the Helm Grafana ConfigMap
-      (previously only `codex-lb.json`), so the updated TTFT dashboard
+      (previously only `openhub.json`), so the updated TTFT dashboard
       actually reaches chart operators
 - [x] 1.4 Add the three phase-4 env names to `_REMOVED_SETTINGS`
       (grouped and commented per phase, at the end of the tuple)

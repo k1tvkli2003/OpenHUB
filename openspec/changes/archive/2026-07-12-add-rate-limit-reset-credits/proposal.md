@@ -1,6 +1,6 @@
 ## Why
 
-OpenAI rolled out savable ("banked") rate-limit reset credits for Codex on 2026-06-12. Eligible ChatGPT plans receive credits that can be redeemed to reset rate-limit windows, but the redeem affordance only ships in the desktop app and VS Code/Cursor/Windsurf extension — not in the Codex CLI, and not in any operator surface. codex-lb operators managing many accounts have no way to see how many banked resets an account has, when they expire, or to redeem one without leaving the dashboard. We need first-class visibility and a one-click redeem action that reuses each account's existing OAuth bearer token.
+OpenAI rolled out savable ("banked") rate-limit reset credits for Codex on 2026-06-12. Eligible ChatGPT plans receive credits that can be redeemed to reset rate-limit windows, but the redeem affordance only ships in the desktop app and VS Code/Cursor/Windsurf extension — not in the Codex CLI, and not in any operator surface. openhub operators managing many accounts have no way to see how many banked resets an account has, when they expire, or to redeem one without leaving the dashboard. We need first-class visibility and a one-click redeem action that reuses each account's existing OAuth bearer token.
 
 ## What Changes
 

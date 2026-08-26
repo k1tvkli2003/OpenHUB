@@ -54,6 +54,46 @@ def test_select_account_picks_lowest_used_percent():
     assert result.account.account_id == "b"
 
 
+def test_select_account_hard_excludes_free_plan_before_ranking():
+    states = [
+        AccountState(
+            "free",
+            AccountStatus.ACTIVE,
+            used_percent=0.0,
+            secondary_used_percent=0.0,
+            plan_type="free",
+        ),
+        AccountState(
+            "paid",
+            AccountStatus.ACTIVE,
+            used_percent=90.0,
+            secondary_used_percent=90.0,
+            plan_type="plus",
+        ),
+    ]
+
+    result = select_account(
+        states,
+        routing_strategy="usage_weighted",
+        ignore_standard_quota=True,
+        allow_backoff_fallback=True,
+    )
+
+    assert result.account is not None
+    assert result.account.account_id == "paid"
+
+
+def test_select_account_free_only_pool_has_no_candidate():
+    result = select_account(
+        [AccountState("free", AccountStatus.ACTIVE, plan_type="free")],
+        routing_strategy="single_account",
+        ignore_standard_quota=True,
+    )
+
+    assert result.account is None
+    assert result.error_message == "No available accounts"
+
+
 def test_select_account_applies_planner_cold_start_penalty():
     states = [
         AccountState("cold", AccountStatus.ACTIVE, used_percent=0.0),
@@ -4331,7 +4371,7 @@ def test_select_account_capacity_weighted_education_alias_uses_edu_capacity():
     assert 0.45 <= education_ratio <= 0.55
 
 
-def test_select_account_capacity_weighted_three_tiers_distribution_matches_capacity():
+def test_select_account_capacity_weighted_excludes_free_tier_from_distribution():
     random.seed(44)
     n = 2000
     pro = AccountState(
@@ -4368,11 +4408,11 @@ def test_select_account_capacity_weighted_three_tiers_distribution_matches_capac
     pro_ratio = counts["pro"] / n
     plus_ratio = counts["plus"] / n
     free_ratio = counts["free"] / n
-    total_capacity = 50400.0 + 7560.0 + 1134.0
+    total_capacity = 50400.0 + 7560.0
 
     assert abs(pro_ratio - (50400.0 / total_capacity)) <= 0.05
     assert abs(plus_ratio - (7560.0 / total_capacity)) <= 0.05
-    assert abs(free_ratio - (1134.0 / total_capacity)) <= 0.05
+    assert free_ratio == 0
     assert pro_ratio > plus_ratio > free_ratio
 
 

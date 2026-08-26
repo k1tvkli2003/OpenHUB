@@ -5,7 +5,7 @@
 - 2026-07-12 (~18:00 UTC): OpenAI announced a **temporary** removal of the 5-hour Codex usage limit for Plus, Business, and Pro plans, together with a one-time usage reset. Weekly limits remain in force. No end date was stated; official pricing docs still describe the 5-hour window as of 2026-07-13. Source: @thsottiaux announcement on X (tweet id 2076365965915467978); corroborated by BleepingComputer coverage.
 - Upstream `openai/codex` stopped hardcoding the 5h/weekly window pair in PR #22929 (merged 2026-05-19): window kinds are derived from server-reported `window_minutes` at display time, and `RateLimitSnapshot.primary`/`secondary` are both optional. Codex clients tolerate any window shape the backend reports.
 
-Because the removal is explicitly temporary, codex-lb must not delete 5h code paths. The design goal is upstream parity: derive behavior from the windows actually observed in `/backend-api/wham/usage`, and degrade cleanly when the short window is absent — while continuing to work unchanged if it returns.
+Because the removal is explicitly temporary, openhub must not delete 5h code paths. The design goal is upstream parity: derive behavior from the windows actually observed in `/backend-api/wham/usage`, and degrade cleanly when the short window is absent — while continuing to work unchanged if it returns.
 
 ## Key design decisions
 

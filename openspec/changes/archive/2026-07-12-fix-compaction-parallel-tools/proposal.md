@@ -1,7 +1,7 @@
 ## Why
 
 The upstream compact endpoint now rejects compact payloads when
-`parallel_tool_calls` is missing. codex-lb previously removed that field along
+`parallel_tool_calls` is missing. openhub previously removed that field along
 with tool-only request fields, which breaks compaction for clients that rely on
 the proxy's request normalization.
 

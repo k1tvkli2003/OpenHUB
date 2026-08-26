@@ -1,6 +1,6 @@
 ## Why
 
-External local dashboards need a truthful way to distinguish a fresh read of codex-lb state from an upstream usage refresh attempt. The current live fleet view can read a summary, but upstream usage refresh remains background-only, so a manual refresh button in a sibling dashboard cannot ask codex-lb to refresh and report what happened.
+External local dashboards need a truthful way to distinguish a fresh read of openhub state from an upstream usage refresh attempt. The current live fleet view can read a summary, but upstream usage refresh remains background-only, so a manual refresh button in a sibling dashboard cannot ask openhub to refresh and report what happened.
 
 ## What Changes
 

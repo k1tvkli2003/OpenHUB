@@ -9,8 +9,8 @@ source with dashboard-first precedence: a non-NULL
 `dashboard_settings.request_log_retention_days` /
 `dashboard_settings.usage_history_retention_days` value MUST win; when the
 dashboard value is NULL the corresponding deprecated env alias
-(`CODEX_LB_REQUEST_LOG_RETENTION_DAYS` /
-`CODEX_LB_USAGE_HISTORY_RETENTION_DAYS`) MUST apply; when neither is set
+(`OPENHUB_REQUEST_LOG_RETENTION_DAYS` /
+`OPENHUB_USAGE_HISTORY_RETENTION_DAYS`) MUST apply; when neither is set
 retention MUST be disabled. At every layer the value `0` means disabled.
 
 The dashboard settings API MUST expose, per retention window, the read-only
@@ -57,31 +57,31 @@ for dashboard API updates.
 
 #### Scenario: An explicit override equal to the env alias is stored
 
-- **GIVEN** `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=90` and no dashboard override
+- **GIVEN** `OPENHUB_REQUEST_LOG_RETENTION_DAYS=90` and no dashboard override
 - **WHEN** a client PUTs `requestLogRetentionOverrideDays: 90`
 - **THEN** the override MUST be stored (the effective value stays 90 but no longer tracks the env alias)
 
 #### Scenario: Present-null clears an override back to inherit
 
-- **GIVEN** a stored dashboard override and `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=90`
+- **GIVEN** a stored dashboard override and `OPENHUB_REQUEST_LOG_RETENTION_DAYS=90`
 - **WHEN** a client PUTs `requestLogRetentionOverrideDays: null`
 - **THEN** the stored value MUST return to `NULL = inherit` and the effective value MUST fall back to 90
 
 #### Scenario: Dashboard value overrides the env alias
 
-- **GIVEN** `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=90` and a dashboard value of `30`
+- **GIVEN** `OPENHUB_REQUEST_LOG_RETENTION_DAYS=90` and a dashboard value of `30`
 - **WHEN** the retention job runs
 - **THEN** the request-log cutoff MUST be computed from 30 days
 
 #### Scenario: Dashboard zero disables retention despite the env alias
 
-- **GIVEN** `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS=45` and a dashboard value of `0`
+- **GIVEN** `OPENHUB_USAGE_HISTORY_RETENTION_DAYS=45` and a dashboard value of `0`
 - **WHEN** the retention job runs
 - **THEN** no `usage_history` rows are deleted
 
 #### Scenario: Env alias applies while the dashboard value is unset
 
-- **GIVEN** a NULL dashboard value and `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=30`
+- **GIVEN** a NULL dashboard value and `OPENHUB_REQUEST_LOG_RETENTION_DAYS=30`
 - **WHEN** the retention job runs
 - **THEN** the request-log cutoff MUST be computed from 30 days
 

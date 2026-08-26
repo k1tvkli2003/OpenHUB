@@ -45,7 +45,7 @@ def test_documented_direct_launchers_disable_server_proxy_projection(
         ("scripts/docker-entrypoint.sh", "exec python -m app.cli"),
         ("Dockerfile.distroless", 'CMD ["python", "/app/scripts/distroless-entrypoint.py"]'),
         ("scripts/distroless-entrypoint.py", '[sys.executable, "-m", "app.cli"'),
-        ("deploy/helm/codex-lb/templates/deployment.yaml", "            - app.cli\n"),
+        ("deploy/helm/openhub/templates/deployment.yaml", "            - app.cli\n"),
     ],
 )
 def test_production_launchers_delegate_to_app_cli(relative_path: str, contract: str) -> None:

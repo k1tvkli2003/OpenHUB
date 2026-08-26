@@ -8,7 +8,7 @@ This change closes a server-startup foot-gun at the public CLI boundary. Its nor
 
 Uvicorn starts the ASGI lifespan before it binds the listener socket. Letting the socket layer reject an impossible port is therefore too late: migrations and runtime-state creation can already have occurred, and the final platform-specific bind error does not identify the bad `--port` or `PORT` input. Validating in the existing `_parse_server_port` helper is the earliest server-only seam and avoids a second configuration path.
 
-The accepted range is `0..65535` inclusive. The upper bound is the operating-system port limit. The lower bound remains `0`, rather than `1`, because Uvicorn deliberately supports port zero as a request for an ephemeral listener and codex-lb already forwards it.
+The accepted range is `0..65535` inclusive. The upper bound is the operating-system port limit. The lower bound remains `0`, rather than `1`, because Uvicorn deliberately supports port zero as a request for an ephemeral listener and openhub already forwards it.
 
 ## Constraints and non-goals
 

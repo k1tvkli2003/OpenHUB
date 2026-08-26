@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Collection, Iterable, Literal
 
 from app.core.balancer.types import FailureClass, UpstreamError
+from app.core.plan_types import is_free_account_plan
 from app.core.usage import PLAN_CAPACITY_CREDITS_SECONDARY
 from app.core.utils.retry import backoff_seconds, parse_retry_after
 from app.db.models import AccountStatus
@@ -449,6 +450,11 @@ def select_account(
     bypass_account_ids = None if bypass_quota_exceeded_account_ids is None else set(bypass_quota_exceeded_account_ids)
 
     for state in all_states:
+        # Free subscriptions remain stored and refreshable, but they are never
+        # eligible to serve routed traffic. This gate intentionally precedes
+        # every quota/status bypass and transient-backoff fallback.
+        if is_free_account_plan(state.plan_type):
+            continue
         bypass_standard_quota = (
             ignore_standard_quota
             or state.ignore_standard_quota
@@ -963,7 +969,7 @@ def _default_replica_salt() -> str:
     global _process_replica_salt
     if _process_replica_salt is None:
         hostname = socket.gethostname().strip()
-        _process_replica_salt = hostname or "codex-lb"
+        _process_replica_salt = hostname or "openhub"
     return _process_replica_salt
 
 
@@ -1142,7 +1148,7 @@ QUOTA_EXCEEDED_COOLDOWN_SECONDS = 120.0
 # ``select_account`` surfaces when zero candidates are selectable. The clamp
 # protects clients from waiting the worst-case persisted ``reset_at`` after
 # OpenAI-side reset events that propagate lazily through ``/wham/usage`` (see
-# https://github.com/Soju06/codex-lb/issues/676). codex-lb's background usage
+# https://github.com/k1tvkli2003/OpenHUB/issues/676). openhub's background usage
 # refresh runs every ``usage_refresh_interval_seconds`` (default 60s) and the
 # per-status cooldowns are 120s, so a 300s ceiling lets clients reattempt
 # inside the auto-recovery window. The underlying ``AccountState.reset_at``

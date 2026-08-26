@@ -26,7 +26,10 @@ async def test_health_ready_endpoint_db_ok(async_client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert data["checks"] == {"database": "ok"}
+    assert data["checks"] == {
+        "database": "ok",
+        "openhub_managed_route_protocol": "2",
+    }
 
 
 @pytest.mark.asyncio

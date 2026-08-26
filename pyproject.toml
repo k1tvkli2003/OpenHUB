@@ -1,17 +1,16 @@
 [project]
-name = "codex-lb"
-version = "1.22.0"
-description = "Codex load balancer and proxy for ChatGPT accounts with usage dashboard"
+name = "openhub"
+version = "2.0.0"
+description = "Provider-neutral local control plane for Codex, Hermes, OpenCode, and OpenAI account routing"
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ name = "Soju06", email = "qlskssk@gmail.com" }]
-maintainers = [
-    { name = "Soju06", email = "qlskssk@gmail.com" },
-    { name = "choi138", email = "kidjustinchoi@gmail.com" },
-    { name = "aaiyer", email = "aaiyer0@proton.me" },
-]
+authors = [{ name = "Keyvan" }]
+maintainers = [{ name = "Keyvan" }]
 keywords = [
     "codex",
+    "hermes-agent",
+    "opencode",
+    "openai",
     "load-balancer",
     "proxy",
     "fastapi",
@@ -53,6 +52,7 @@ dependencies = [
     "pyotp>=2.9.0",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.27",
+    "pyyaml>=6.0.3",
     "psycopg[binary]>=3.2.12",
     "segno>=1.6.6",
     "sqlalchemy>=2.0.45",
@@ -121,8 +121,8 @@ exclude = [".agents/hooks/"]
 python-version = "3.13"
 
 [project.scripts]
-codex-lb = "app.cli:main"
-codex-lb-db = "app.db.migrate:main"
+openhub = "app.cli:main"
+openhub-db = "app.db.migrate:main"
 
 [build-system]
 requires = ["hatchling==1.31.0"]

@@ -1,0 +1,24 @@
+apiVersion: v2
+name: openhub
+description: >-
+  Production-grade Helm chart for OpenHUB — provider-neutral runtime control,
+  OpenAI account routing, usage tracking, and observability
+type: application
+version: 2.0.0
+appVersion: 2.0.0
+kubeVersion: '>=1.32.0-0'
+home: https://github.com/k1tvkli2003/OpenHUB
+sources:
+  - https://github.com/k1tvkli2003/OpenHUB
+keywords:
+  - load-balancer
+  - openai
+  - proxy
+  - codex
+maintainers:
+  - name: Keyvan
+dependencies:
+  - name: postgresql
+    version: 18.6.7
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled

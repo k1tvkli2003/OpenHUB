@@ -69,9 +69,9 @@ once — idempotent and harmless.
 
 A bump that exhausts retries does not fail the mutation (local invalidation already happened; peers
 converge via the existing TTL fallback) but is now observable: ERROR log +
-`codex_lb_cache_invalidation_bump_failures_total{namespace}`. Poll failures escalate from debug to
+`openhub_cache_invalidation_bump_failures_total{namespace}`. Poll failures escalate from debug to
 WARNING after 3 consecutive failures and ERROR after 10, with
-`codex_lb_cache_invalidation_poll_failures_total`. The query-caching spec states TTL-as-fallback
+`openhub_cache_invalidation_poll_failures_total`. The query-caching spec states TTL-as-fallback
 normatively so the bound is a documented contract.
 
 ### Testability

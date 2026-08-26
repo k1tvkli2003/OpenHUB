@@ -1,6 +1,6 @@
 ## Why
 
-The dashboard's first uncached load ships ~1.7 MB of JavaScript on the critical path, uncompressed: codex-lb serves the SPA with no response compression anywhere, the 572 KB recharts chunk is modulepreloaded and statically imported by the entry chunk even though every chart component is lazy (the forced `vendor-charts` manual chunk swallowed shared helper modules), and content-hashed assets are served with no `Cache-Control`, so even repeat visits renegotiate or re-download everything.
+The dashboard's first uncached load ships ~1.7 MB of JavaScript on the critical path, uncompressed: openhub serves the SPA with no response compression anywhere, the 572 KB recharts chunk is modulepreloaded and statically imported by the entry chunk even though every chart component is lazy (the forced `vendor-charts` manual chunk swallowed shared helper modules), and content-hashed assets are served with no `Cache-Control`, so even repeat visits renegotiate or re-download everything.
 
 ## What Changes
 

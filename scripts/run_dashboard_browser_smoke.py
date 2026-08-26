@@ -24,7 +24,7 @@ def _run_backend(listener_fd: int) -> None:
     # repository-local .env or .env.local database/auth configuration.
     from app.core.config import settings as settings_module
 
-    empty_env_file = Path(os.environ["CODEX_LB_DATA_DIR"]) / ".dashboard-browser-smoke.env"
+    empty_env_file = Path(os.environ["OPENHUB_DATA_DIR"]) / ".dashboard-browser-smoke.env"
     settings_module.ENV_FILES = (empty_env_file, empty_env_file)
     settings_module.Settings.model_config["env_file"] = None
 
@@ -34,28 +34,28 @@ def _run_backend(listener_fd: int) -> None:
 
 
 def _smoke_environment(data_dir: Path) -> dict[str, str]:
-    environment = {key: value for key, value in os.environ.items() if not key.startswith("CODEX_LB_")}
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("OPENHUB_")}
     environment.update(
         {
-            "CODEX_LB_DATA_DIR": str(data_dir),
-            "CODEX_LB_UPSTREAM_BASE_URL": "http://127.0.0.1:9/backend-api",
-            "CODEX_LB_UPSTREAM_WEBSOCKET_TRUST_ENV": "false",
-            "CODEX_LB_USAGE_REFRESH_ENABLED": "false",
-            "CODEX_LB_LIVE_USAGE_INGESTION_ENABLED": "false",
-            "CODEX_LB_MODEL_REGISTRY_ENABLED": "false",
-            "CODEX_LB_STICKY_SESSION_CLEANUP_ENABLED": "false",
-            "CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_ENABLED": "false",
-            "CODEX_LB_QUOTA_PLANNER_SCHEDULER_ENABLED": "false",
-            "CODEX_LB_AUTOMATIONS_SCHEDULER_ENABLED": "false",
-            "CODEX_LB_AUTH_GUARDIAN_ENABLED": "false",
-            "CODEX_LB_METRICS_ENABLED": "false",
-            "CODEX_LB_OTEL_ENABLED": "false",
+            "OPENHUB_DATA_DIR": str(data_dir),
+            "OPENHUB_UPSTREAM_BASE_URL": "http://127.0.0.1:9/backend-api",
+            "OPENHUB_UPSTREAM_WEBSOCKET_TRUST_ENV": "false",
+            "OPENHUB_USAGE_REFRESH_ENABLED": "false",
+            "OPENHUB_LIVE_USAGE_INGESTION_ENABLED": "false",
+            "OPENHUB_MODEL_REGISTRY_ENABLED": "false",
+            "OPENHUB_STICKY_SESSION_CLEANUP_ENABLED": "false",
+            "OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_ENABLED": "false",
+            "OPENHUB_QUOTA_PLANNER_SCHEDULER_ENABLED": "false",
+            "OPENHUB_AUTOMATIONS_SCHEDULER_ENABLED": "false",
+            "OPENHUB_AUTH_GUARDIAN_ENABLED": "false",
+            "OPENHUB_METRICS_ENABLED": "false",
+            "OPENHUB_OTEL_ENABLED": "false",
             # Always-on database maintenance loops remain harmless because the
             # isolated database starts empty; every configurable external loop
             # is disabled above.
             # Suppress first-run token logging while keeping standard localhost
             # authentication active. The generated value never leaves this process tree.
-            "CODEX_LB_DASHBOARD_BOOTSTRAP_TOKEN": secrets.token_urlsafe(32),
+            "OPENHUB_DASHBOARD_BOOTSTRAP_TOKEN": secrets.token_urlsafe(32),
         }
     )
     return environment
@@ -101,7 +101,7 @@ def _stop_server(server: subprocess.Popen[bytes]) -> None:
 
 
 def run() -> int:
-    with tempfile.TemporaryDirectory(prefix="codex-lb-dashboard-browser-smoke-") as temporary_dir:
+    with tempfile.TemporaryDirectory(prefix="openhub-dashboard-browser-smoke-") as temporary_dir:
         data_dir = Path(temporary_dir)
         listener = _reserve_loopback_socket()
         port = listener.getsockname()[1]
@@ -125,10 +125,10 @@ def run() -> int:
         try:
             _wait_until_ready(server, base_url)
             playwright_environment = environment | {
-                "CODEX_LB_BROWSER_SMOKE_BASE_URL": base_url,
-                "CODEX_LB_BROWSER_SMOKE_OUTPUT_DIR": str(data_dir / "playwright-output"),
+                "OPENHUB_BROWSER_SMOKE_BASE_URL": base_url,
+                "OPENHUB_BROWSER_SMOKE_OUTPUT_DIR": str(data_dir / "playwright-output"),
             }
-            playwright_environment.pop("CODEX_LB_DASHBOARD_BOOTSTRAP_TOKEN")
+            playwright_environment.pop("OPENHUB_DASHBOARD_BOOTSTRAP_TOKEN")
             completed = subprocess.run(
                 ["bun", "run", "test:browser-smoke"],
                 cwd=FRONTEND_ROOT,

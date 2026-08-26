@@ -11,7 +11,7 @@ language switcher SHALL let users choose Korean without reloading the page.
 
 - **WHEN** a user opens the dashboard for the first time with `navigator.language = "ko-KR"` and no persisted preference
 - **THEN** the dashboard renders the translated in-scope surface in Korean
-- **AND** `localStorage` contains `codex-lb-language=ko`
+- **AND** `localStorage` contains `openhub-language=ko`
 - **AND** `document.documentElement.lang` is set to `ko`
 
 #### Scenario: User toggles Korean

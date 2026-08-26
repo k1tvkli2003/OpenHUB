@@ -192,7 +192,7 @@ _HTTP_BRIDGE_EVENTLESS_RESPONSE_CREATED_MAX_SECONDS = 240.0
 _HTTP_BRIDGE_MISSING_RESPONSE_CREATED_TIMEOUT_DETAIL = "missing_response_created_timeout"
 T = TypeVar("T")
 
-_HTTP_BRIDGE_INFLIGHT_STARTED_AT_ATTR = "_codex_lb_started_at"
+_HTTP_BRIDGE_INFLIGHT_STARTED_AT_ATTR = "_openhub_started_at"
 _HTTP_BRIDGE_STALE_INFLIGHT_MIN_SECONDS = 120.0
 _HTTP_BRIDGE_STALE_INFLIGHT_TIMEOUT_MULTIPLIER = 6.0
 
@@ -277,7 +277,7 @@ def _http_bridge_startup_wait_timeout_error(
     *,
     code: str = "global_admission_timeout",
 ) -> ProxyResponseError:
-    message = f"codex-lb is temporarily overloaded during {stage}"
+    message = f"openhub is temporarily overloaded during {stage}"
     return ProxyResponseError(429, local_overload_error(message, code=code))
 
 
@@ -2113,7 +2113,7 @@ def _http_bridge_should_attempt_local_bootstrap_rebind(
 def _normalized_http_bridge_instance_ring(settings: Settings) -> tuple[str, tuple[str, ...]]:
     instance_id = settings.http_responses_session_bridge_instance_id.strip()
     if not instance_id:
-        instance_id = "codex-lb"
+        instance_id = "openhub"
     ring_entries: list[str] = []
     for entry in settings.http_responses_session_bridge_instance_ring:
         stripped = entry.strip()

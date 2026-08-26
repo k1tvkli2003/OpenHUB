@@ -21,7 +21,7 @@ Official client behavior (verified against `openai/codex` codex-rs @ main 2026-0
 **Non-Goals**
 
 - No change to the upstream (proxy→chatgpt.com) websocket budget (16 MiB event/frame budget, 15 MiB `response.create` cap) — that reflects upstream's observed ceiling and stays as-is.
-- No change to the request-decompression middleware's HTTP `413` for compressed-body overflow (transport-level concern; the official client only zstd-compresses against the built-in OpenAI provider, so this path is not exercised by codex-lb clients).
+- No change to the request-decompression middleware's HTTP `413` for compressed-body overflow (transport-level concern; the official client only zstd-compresses against the built-in OpenAI provider, so this path is not exercised by openhub clients).
 - No image re-compression, externalization, or upload-reference mechanism.
 
 ## Decisions
@@ -40,7 +40,7 @@ Official client behavior (verified against `openai/codex` codex-rs @ main 2026-0
 
 ### D3: Reverse-proxy guidance in ops.md
 
-Even with websocket transport healthy, the client's sticky HTTP fallback and remote-compaction POSTs mean large HTTP bodies still occur. Ops guidance: front proxies should allow request bodies up to codex-lb's own cap (`client_max_body_size 128m` for nginx) and pass websocket upgrades (`proxy_http_version 1.1`, `Upgrade`/`Connection` headers).
+Even with websocket transport healthy, the client's sticky HTTP fallback and remote-compaction POSTs mean large HTTP bodies still occur. Ops guidance: front proxies should allow request bodies up to openhub's own cap (`client_max_body_size 128m` for nginx) and pass websocket upgrades (`proxy_http_version 1.1`, `Upgrade`/`Connection` headers).
 
 ## Risks / Trade-offs
 

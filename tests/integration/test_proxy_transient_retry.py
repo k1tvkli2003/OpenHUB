@@ -736,6 +736,45 @@ async def test_stream_connect_phase_429_usage_limit_transparent_failover(async_c
 
 
 @pytest.mark.asyncio
+async def test_stream_previsible_quota_traverses_beyond_legacy_three_account_cap(async_client, monkeypatch):
+    """A healthy fourth account remains reachable after three pre-visible quota failures."""
+    for index in range(4):
+        await _import_account(
+            async_client,
+            f"acc_stream_pool_{index}",
+            f"stream-pool-{index}@example.com",
+        )
+
+    seen_account_ids: list[str | None] = []
+    failed_account_ids: set[str] = set()
+
+    async def fake_stream(payload, headers, access_token, account_id, base_url=None, raise_for_status=False):
+        seen_account_ids.append(account_id)
+        assert account_id is not None
+        if account_id not in failed_account_ids and len(failed_account_ids) < 3:
+            failed_account_ids.add(account_id)
+            raise ProxyResponseError(
+                429,
+                openai_error("usage_limit_reached", "usage limit reached"),
+                failure_phase="status",
+            )
+        yield _success_sse_event("resp_stream_pool_ok")
+
+    monkeypatch.setattr(proxy_module, "core_stream_responses", fake_stream)
+
+    payload = {"model": "gpt-5.1", "instructions": "hi", "input": [], "stream": True}
+    async with async_client.stream("POST", "/backend-api/codex/responses", json=payload) as resp:
+        assert resp.status_code == 200
+        lines = [line async for line in resp.aiter_lines() if line]
+
+    events = _extract_events(lines)
+    assert [event.get("type") for event in events].count("response.completed") == 1
+    assert all(event.get("type") != "response.failed" for event in events)
+    assert len(failed_account_ids) == 3
+    assert len({account_id for account_id in seen_account_ids if account_id is not None}) == 4
+
+
+@pytest.mark.asyncio
 async def test_stream_http_502_unknown_code_fails_over_to_second_account(async_client, monkeypatch):
     await _import_account(async_client, "acc_h502_a", "h502_a@example.com")
     await _import_account(async_client, "acc_h502_b", "h502_b@example.com")
@@ -1119,6 +1158,42 @@ async def test_compact_quota_exceeded_transparent_failover(async_client, monkeyp
         assert account_a is not None
         await session.refresh(account_a)
         assert account_a.status == AccountStatus.QUOTA_EXCEEDED
+
+
+@pytest.mark.asyncio
+async def test_compact_quota_traverses_beyond_legacy_two_account_cap(async_client, monkeypatch):
+    """Compact failover reaches a healthy fourth account without exposing quota failures."""
+    for index in range(4):
+        await _import_account(
+            async_client,
+            f"acc_compact_pool_{index}",
+            f"compact-pool-{index}@example.com",
+        )
+
+    seen_account_ids: list[str | None] = []
+    failed_account_ids: set[str] = set()
+
+    async def fake_compact(payload, headers, access_token, account_id):
+        seen_account_ids.append(account_id)
+        assert account_id is not None
+        if account_id not in failed_account_ids and len(failed_account_ids) < 3:
+            failed_account_ids.add(account_id)
+            raise ProxyResponseError(
+                429,
+                openai_error("quota_exceeded", "quota exceeded"),
+                failure_phase="status",
+            )
+        return CompactResponsePayload.model_validate({"object": "response.compaction", "output": []})
+
+    monkeypatch.setattr(proxy_module, "core_compact_responses", fake_compact)
+
+    payload = {"model": "gpt-5.1", "instructions": "hi", "input": []}
+    response = await async_client.post("/backend-api/codex/responses/compact", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["object"] == "response.compaction"
+    assert len(failed_account_ids) == 3
+    assert len({account_id for account_id in seen_account_ids if account_id is not None}) == 4
 
 
 @pytest.mark.asyncio

@@ -26,7 +26,7 @@ from app.core.multipart import (
 
 pytestmark = pytest.mark.unit
 
-_BOUNDARY = "codex-lb-boundary"
+_BOUNDARY = "openhub-boundary"
 _MIB = 1024 * 1024
 
 

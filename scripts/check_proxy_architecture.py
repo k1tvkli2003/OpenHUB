@@ -109,11 +109,12 @@ ALLOWED_SERVICE_IMPORT_DOMAINS_BY_DOMAIN = {
 ArchitectureCheck = Callable[[], None]
 
 
-def _relative_path(path: Path) -> Path:
+def _relative_path(path: Path) -> str:
     try:
-        return path.relative_to(ROOT)
+        relative = path.relative_to(ROOT)
     except ValueError:
-        return path
+        relative = path
+    return relative.as_posix()
 
 
 def _parse(path: Path) -> ast.Module:
@@ -176,11 +177,11 @@ def _assert_shim_only(path: Path) -> None:
             continue
         if not isinstance(node, allowed):
             raise AssertionError(
-                f"{path.relative_to(ROOT)} must remain a compatibility shim; found {type(node).__name__}"
+                f"{_relative_path(path)} must remain a compatibility shim; found {type(node).__name__}"
             )
         if isinstance(node, ast.ImportFrom) and not (node.module or "").startswith("app.modules.proxy._service."):
             raise AssertionError(
-                f"{path.relative_to(ROOT)} may only re-export from app.modules.proxy._service.*, found {node.module}"
+                f"{_relative_path(path)} may only re-export from app.modules.proxy._service.*, found {node.module}"
             )
 
 
@@ -285,7 +286,7 @@ def _check_no_cross_domain_service_imports() -> None:
             if imported_module in ALLOWED_SERVICE_INTERNAL_IMPORTS or imported_domain in allowed_domains:
                 continue
             raise AssertionError(
-                f"{path.relative_to(ROOT)} imports cross-domain module {imported_module}; "
+                f"{_relative_path(path)} imports cross-domain module {imported_module}; "
                 f"allowed domains for {current_domain}: {', '.join(sorted(allowed_domains))}"
             )
 

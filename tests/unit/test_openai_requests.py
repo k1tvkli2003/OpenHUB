@@ -1191,7 +1191,7 @@ def test_compact_trims_oversized_input_by_estimated_tokens_with_head_tail_and_ma
     assert marker_text.startswith("[compact trim] Omitted 1 input items")
     assert "estimated tokens" in marker_text
     assert "initial context, most recent context, and compact state anchors were preserved" in marker_text
-    assert "codex-lb" not in marker_text
+    assert "openhub" not in marker_text
 
 
 def test_compact_trimming_preserves_oversized_responses_lite_prefix():

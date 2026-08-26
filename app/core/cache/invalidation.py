@@ -16,6 +16,7 @@ from app.core.metrics.prometheus import (
     cache_invalidation_bump_failures_total,
     cache_invalidation_poll_failures_total,
 )
+from app.core.utils.async_tasks import stop_periodic_task
 from app.db.models import CacheInvalidation
 from app.db.session import close_session
 
@@ -133,15 +134,21 @@ class CacheInvalidationPoller:
         self._task = asyncio.create_task(self._run())
 
     async def stop(self) -> None:
-        if not self._task:
+        task = self._task
+        if task is None:
             return
-        self._stop.set()
-        self._task.cancel()
         try:
-            await self._task
-        except asyncio.CancelledError:
-            pass
-        self._task = None
+            # Stop cooperatively instead of cancelling a poll that may be in
+            # the middle of opening an aiosqlite connection. Cancelling that
+            # acquisition can strand its worker thread after the event loop
+            # closes because the AsyncSession never receives the connection it
+            # would otherwise close. Setting the event wakes the interval wait
+            # immediately; an in-flight poll is allowed to finish and release
+            # its session first.
+            await stop_periodic_task(task, self._stop)
+        finally:
+            if self._task is task:
+                self._task = None
 
     def request_bump(self, namespace: str) -> None:
         """Enqueue a coalesced bump flushed at the start of the next poll cycle.

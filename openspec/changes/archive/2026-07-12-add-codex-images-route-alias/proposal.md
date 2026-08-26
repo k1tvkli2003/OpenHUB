@@ -2,10 +2,10 @@
 
 ## Why
 
-Codex clients configured with codex-lb use `/backend-api/codex` as their base
+Codex clients configured with openhub use `/backend-api/codex` as their base
 URL. When Codex invokes image generation with reference images, it submits a
 JSON request containing `images[].image_url` data URLs to
-`/backend-api/codex/images/edits`. codex-lb currently registers the existing
+`/backend-api/codex/images/edits`. openhub currently registers the existing
 Images API adapter only under `/v1/images/edits`, so the Codex-base request
 reaches no POST handler and returns `405 Method Not Allowed`.
 
@@ -22,6 +22,6 @@ reaches no POST handler and returns `405 Method Not Allowed`.
 ## Impact
 
 - Codex can use image generation and reference-image editing through its
-  configured codex-lb provider without changing `base_url`.
+  configured openhub provider without changing `base_url`.
 - The change is limited to routing aliases and regression coverage; it does
   not introduce a new upstream API or alter model selection.

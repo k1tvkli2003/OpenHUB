@@ -2,7 +2,7 @@
 
 ### Requirement: Documentation site builds strictly and deploys from main
 
-The repository SHALL contain a mkdocs-material documentation site (`mkdocs.yml` with `docs_dir: docs`) published at https://soju06.github.io/codex-lb/. A dedicated GitHub Actions workflow SHALL build the site with `mkdocs build --strict` on every pull request that touches docs inputs and on pushes to `main`, and SHALL deploy to GitHub Pages only for non-pull-request events on `main`. The deploy job MUST use least-privilege permissions (`pages: write`, `id-token: write` scoped to the deploy job) and MUST NOT cancel in-flight deploys.
+The repository SHALL contain a mkdocs-material documentation site (`mkdocs.yml` with `docs_dir: docs`) published at https://k1tvkli2003.github.io/OpenHUB/. A dedicated GitHub Actions workflow SHALL build the site with `mkdocs build --strict` on every pull request that touches docs inputs and on pushes to `main`, and SHALL deploy to GitHub Pages only for non-pull-request events on `main`. The deploy job MUST use least-privilege permissions (`pages: write`, `id-token: write` scoped to the deploy job) and MUST NOT cancel in-flight deploys.
 
 #### Scenario: PR with a broken internal docs link fails the build
 
@@ -41,7 +41,7 @@ OpenSpec remains the normative source of truth. Every docs page that documents s
 
 ### Requirement: .env.example is a commented zero-drift sample
 
-`.env.example` SHALL contain only commented-out values, SHALL NOT state values that contradict the code defaults in `app/core/config/settings.py`, and SHALL retain the commented `# CODEX_LB_LEADER_ELECTION_ENABLED=false` single-instance escape hatch. Copying the file verbatim MUST yield the same behavior as running with no configuration.
+`.env.example` SHALL contain only commented-out values, SHALL NOT state values that contradict the code defaults in `app/core/config/settings.py`, and SHALL retain the commented `# OPENHUB_LEADER_ELECTION_ENABLED=false` single-instance escape hatch. Copying the file verbatim MUST yield the same behavior as running with no configuration.
 
 #### Scenario: Copying the sample changes nothing
 
@@ -53,5 +53,5 @@ OpenSpec remains the normative source of truth. Every docs page that documents s
 #### Scenario: Leader-election escape hatch stays documented
 
 - **WHEN** `.env.example` is read
-- **THEN** it contains the commented line `# CODEX_LB_LEADER_ELECTION_ENABLED=false`
+- **THEN** it contains the commented line `# OPENHUB_LEADER_ELECTION_ENABLED=false`
 - **AND** no active (uncommented) assignment disables leader election

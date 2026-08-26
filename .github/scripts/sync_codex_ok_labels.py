@@ -35,7 +35,7 @@ PENDING_CHECK_STATES = {"EXPECTED", "IN_PROGRESS", "PENDING", "QUEUED", "REQUEST
 UNMERGEABLE_STATES = {"DIRTY", "BLOCKED"}
 NEEDS_REBASE_STATES = {"CONFLICTING", "DIRTY"}
 NO_REBASE_STATES = {"BEHIND", "BLOCKED", "CLEAN", "DRAFT", "HAS_HOOKS", "UNSTABLE"}
-CODEX_LB_REQUIRED_CHECKS = frozenset(
+OPENHUB_REQUIRED_CHECKS = frozenset(
     {
         "Frontend lint (eslint)",
         "Frontend type check (tsc)",
@@ -58,7 +58,7 @@ CODEX_LB_REQUIRED_CHECKS = frozenset(
     }
 )
 REQUIRED_CHECKS_BY_REPO = {
-    "Soju06/codex-lb": CODEX_LB_REQUIRED_CHECKS,
+    "k1tvkli2003/OpenHUB": OPENHUB_REQUIRED_CHECKS,
 }
 PR_TIMELINE_QUERY = """
 query($owner: String!, $name: String!, $number: Int!, $before: String) {

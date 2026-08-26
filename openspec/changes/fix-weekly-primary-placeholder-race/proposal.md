@@ -5,7 +5,7 @@ masking the real weekly usage that is actually climbing. On a live account the
 weekly window is returned by upstream in the `primary_window` slot (with
 `limit_window_seconds == 604800`) while `secondary_window` carries an empty
 no-data placeholder (`window_minutes` falsy, `reset_at` null, `used_percent`
-`0.0`, no credit metadata). codex-lb is supposed to remap that weekly
+`0.0`, no credit metadata). openhub is supposed to remap that weekly
 `primary` row into the `secondary` slot via `should_use_weekly_primary`, but
 the tiebreak in `_should_prefer_primary_row` decides the winner by which row's
 `recorded_at` is a few milliseconds later. Both rows are written in the same
@@ -58,6 +58,6 @@ None.
 - No database migration, schema change, API change, or configuration change is
   required. Existing stored rows are reinterpreted in place by the corrected
   tiebreak on the next read.
-- No new `CODEX_LB_*` setting is introduced; the existing
+- No new `OPENHUB_*` setting is introduced; the existing
   `SIBLING_FETCH_MARGIN_SECONDS` constant (already used by the updater for
   sibling-row freshness) is reused as the same-fetch threshold.

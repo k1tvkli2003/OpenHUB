@@ -11,7 +11,7 @@ replacing the chart-managed HTTPRoute.
 
 - Add an optional `gatewayApi.rules` list for per-rule Gateway API `matches`
   and `filters`.
-- Keep the codex-lb Service as the backend for every configured rule.
+- Keep the openhub Service as the backend for every configured rule.
 - Preserve the existing catch-all rule when no custom rules are configured.
 - Document and test a direct API path plus filtered dashboard catch-all.
 

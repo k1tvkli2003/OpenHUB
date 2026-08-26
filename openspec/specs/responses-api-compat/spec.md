@@ -1112,16 +1112,16 @@ When serving or consuming the Codex-native `/backend-api/codex/responses` WebSoc
 - **AND** the client-side recovery path retries once using full conversation history without `previous_response_id` before surfacing a turn-ending error
 - **AND** the downstream/user-visible error path does not expose raw `previous_response_not_found` or the missing upstream response id
 
-#### Scenario: codex-lb sanitizes stale-anchor errors for client classification
+#### Scenario: openhub sanitizes stale-anchor errors for client classification
 - **WHEN** upstream emits a direct WebSocket stale-anchor error
-- **THEN** codex-lb MUST NOT forward raw `previous_response_not_found`
-- **AND** codex-lb MUST NOT expose the missing upstream response id downstream
-- **AND** codex-lb MUST preserve a stable sanitized classifier that lets a compatible Codex client distinguish stale-anchor continuity loss from quota, policy, auth, and generic invalid-request failures
+- **THEN** openhub MUST NOT forward raw `previous_response_not_found`
+- **AND** openhub MUST NOT expose the missing upstream response id downstream
+- **AND** openhub MUST preserve a stable sanitized classifier that lets a compatible Codex client distinguish stale-anchor continuity loss from quota, policy, auth, and generic invalid-request failures
 
 #### Scenario: Non-stale-anchor failures do not trigger full-context retry
 - **WHEN** the upstream failure is quota, policy, auth, context-window, or another non-continuity error
 - **THEN** the client MUST NOT convert it into a stale-anchor full-context retry
-- **AND** codex-lb MUST preserve the original error class as much as safely possible
+- **AND** openhub MUST preserve the original error class as much as safely possible
 
 ### Requirement: Codex WebSocket continuity source of truth is centralized
 The behavior for Codex-native WebSocket previous-response continuity MUST be specified in this OpenSpec change rather than route-local or branch-local ad hoc patches. Future changes to this behavior MUST update the OpenSpec requirements before modifying code.
@@ -1408,32 +1408,32 @@ error semantics. The bridge MUST NOT hold image requests waiting for
 
 ### Requirement: Security-work authorization errors can route to authorized accounts
 
-When an upstream Responses request fails because the work requires cybersecurity authorization, codex-lb MUST retry the request on an account marked as security-work-authorized when the request can be safely replayed on a different account. The retry MUST exclude the account that produced the authorization error.
+When an upstream Responses request fails because the work requires cybersecurity authorization, openhub MUST retry the request on an account marked as security-work-authorized when the request can be safely replayed on a different account. The retry MUST exclude the account that produced the authorization error.
 
 #### Scenario: Unpinned stream request retries on an authorized account
 
 - **WHEN** an unpinned streamed Responses request fails with a security-work authorization error on an account that is not security-work-authorized
 - **AND** at least one eligible security-work-authorized account is available
-- **THEN** codex-lb emits a non-terminal `codex_lb.warning` with `code="security_work_authorization_required"` and `action="retry_security_work_authorized"`
-- **AND** codex-lb retries the request with account selection restricted to security-work-authorized accounts
+- **THEN** openhub emits a non-terminal `openhub.warning` with `code="security_work_authorization_required"` and `action="retry_security_work_authorized"`
+- **AND** openhub retries the request with account selection restricted to security-work-authorized accounts
 
 #### Scenario: No authorized account is available
 
-- **WHEN** codex-lb attempts a security-work-authorized retry
+- **WHEN** openhub attempts a security-work-authorized retry
 - **AND** no security-work-authorized accounts are available
-- **THEN** codex-lb emits a non-terminal `codex_lb.warning` with `code="no_security_work_authorized_accounts"`
-- **AND** codex-lb either continues normal account failover when safe or returns the original security-work authorization error when normal failover is exhausted or unsafe
+- **THEN** openhub emits a non-terminal `openhub.warning` with `code="no_security_work_authorized_accounts"`
+- **AND** openhub either continues normal account failover when safe or returns the original security-work authorization error when normal failover is exhausted or unsafe
 
 #### Scenario: Pinned requests are not moved to another account
 
 - **WHEN** a security-work authorization error occurs for a request pinned by file ownership or previous-response ownership
-- **THEN** codex-lb MUST NOT replay the request on a different account
+- **THEN** openhub MUST NOT replay the request on a different account
 - **AND** the client receives the original security-work authorization failure.
 
 #### Scenario: WebSocket replay releases the response-create gate
 
 - **WHEN** a downstream websocket request is eligible for security-work replay
-- **THEN** codex-lb releases the request's response-create gate before scheduling the replay
+- **THEN** openhub releases the request's response-create gate before scheduling the replay
 - **AND** the replay can acquire the gate instead of blocking behind the failed first attempt
 
 ### Requirement: HTTP bridge security retries fail closed after an anchor or output
@@ -1480,13 +1480,13 @@ The system SHALL accept OpenAI-compatible Responses request controls that client
 #### Scenario: Truncation auto is accepted and stripped
 
 - **WHEN** a client sends a Responses request with `truncation: "auto"`
-- **THEN** codex-lb accepts the request
+- **THEN** openhub accepts the request
 - **AND** the upstream payload does not include `truncation`
 
 #### Scenario: Truncation disabled is accepted and stripped
 
 - **WHEN** a client sends a Responses request with `truncation: "disabled"`
-- **THEN** codex-lb accepts the request
+- **THEN** openhub accepts the request
 - **AND** the upstream payload does not include `truncation`
 
 ### Requirement: HTTP bridge stale-session cleanup is bounded
@@ -1674,7 +1674,7 @@ Streaming Responses proxy requests MUST emit a low-cardinality Prometheus counte
 
 #### Scenario: transport decision counter labels are bounded
 - **WHEN** a streaming Responses request completes or terminates with an error
-- **THEN** `codex_lb_upstream_transport_decisions_total` is incremented once
+- **THEN** `openhub_upstream_transport_decisions_total` is incremented once
 - **AND** its labels include only `downstream_transport`, `upstream_transport`, `policy`, `sticky`, and `status`
 - **AND** `status` is `"success"` or `"error"`
 
@@ -2529,7 +2529,7 @@ For direct Responses WebSocket requests, the proxy MUST NOT transparently replay
 
 - **WHEN** a direct WebSocket request has emitted `response.created` or another frame with a finite integer `sequence_number`
 - **AND** upstream closes before a terminal response event
-- **THEN** codex-lb does not transparently replay that request under the existing downstream response id
+- **THEN** openhub does not transparently replay that request under the existing downstream response id
 - **AND** no lower replay sequence is emitted downstream
 - **AND** the downstream WebSocket closes with code 1011
 
@@ -2543,18 +2543,18 @@ For direct Responses WebSocket requests, the proxy MUST NOT transparently replay
 
 - **WHEN** a direct WebSocket request has successfully emitted a finite integer `sequence_number`
 - **AND** upstream emits a terminal error that would ordinarily trigger transparent quota, authentication, or security-work replay
-- **THEN** codex-lb does not reconnect or resend the request
+- **THEN** openhub does not reconnect or resend the request
 - **AND** the terminal error is finalized and remains client-visible under the existing error contract
 
 #### Scenario: Sequence-free startup remains replayable
 
 - **WHEN** upstream closes before any numeric sequence-bearing frame has been successfully sent downstream
 - **AND** the request otherwise satisfies the existing one-shot replay guard
-- **THEN** codex-lb MAY transparently replay the request on a fresh upstream connection
+- **THEN** openhub MAY transparently replay the request on a fresh upstream connection
 
 #### Scenario: Suppressed frame does not establish exposure
 
-- **WHEN** codex-lb suppresses an upstream frame before downstream emission
+- **WHEN** openhub suppresses an upstream frame before downstream emission
 - **AND** the suppressed frame contains a numeric `sequence_number`
 - **THEN** that frame does not establish the downstream sequence watermark
 
@@ -2853,7 +2853,7 @@ Flat legacy side-effect calls MAY continue to use argument-based replay identity
 
 ### Requirement: Compact requests preserve scoped turn-state ownership
 
-When a compact request contains a real client-supplied `x-codex-turn-state`, the system MUST resolve the token only in the requesting API key scope and select only that owner account. If the owner cannot be resolved or selected, the request MUST fail closed and MUST NOT fall back to a generic sticky or load-balanced account. Proxy-synthesized first-turn placeholders (the `turn_*` / `http_turn_*` values codex-lb injects when the client did not supply one) are not real continuity tokens until registered as bridge aliases; an unregistered placeholder MUST NOT block file-owner routing, but a registered placeholder MUST still resolve to its owner account.
+When a compact request contains a real client-supplied `x-codex-turn-state`, the system MUST resolve the token only in the requesting API key scope and select only that owner account. If the owner cannot be resolved or selected, the request MUST fail closed and MUST NOT fall back to a generic sticky or load-balanced account. Proxy-synthesized first-turn placeholders (the `turn_*` / `http_turn_*` values openhub injects when the client did not supply one) are not real continuity tokens until registered as bridge aliases; an unregistered placeholder MUST NOT block file-owner routing, but a registered placeholder MUST still resolve to its owner account.
 
 #### Scenario: Token belongs to the requesting API key
 

@@ -3,7 +3,7 @@
 ## Why
 
 Codex runtime 0.144.1 sends standalone web searches to
-`POST /backend-api/codex/alpha/search`. codex-lb does not register that route,
+`POST /backend-api/codex/alpha/search`. openhub does not register that route,
 so the request reaches the application fallback and returns HTTP 405 before an
 upstream account can be selected. Model-driven `web_search` calls inside the
 Responses API use a different path and do not cover this client contract.
@@ -28,6 +28,6 @@ Responses API use a different path and do not cover this client contract.
 ## Impact
 
 - **Spec**: `responses-api-compat`
-- **Behavior**: standalone Codex web search works through codex-lb instead of
+- **Behavior**: standalone Codex web search works through openhub instead of
   returning HTTP 405.
 - **Persistence/UI**: no database, migration, configuration, or dashboard changes.

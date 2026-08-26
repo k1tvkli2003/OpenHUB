@@ -677,16 +677,9 @@ async def test_connect_responses_websocket_uses_all_proxy_fallback(monkeypatch):
             upstream_connect_timeout_seconds=7.0,
             max_sse_event_bytes=4321,
             upstream_websocket_trust_env=True,
+            upstream_websocket_proxy_env=lambda: {"all_proxy": "socks5://127.0.0.1:7890"},
         ),
     )
-    monkeypatch.delenv("no_proxy", raising=False)
-    monkeypatch.delenv("NO_PROXY", raising=False)
-    monkeypatch.delenv("https_proxy", raising=False)
-    monkeypatch.delenv("HTTPS_PROXY", raising=False)
-    monkeypatch.delenv("socks_proxy", raising=False)
-    monkeypatch.delenv("SOCKS_PROXY", raising=False)
-    monkeypatch.setenv("all_proxy", "socks5://127.0.0.1:7890")
-    monkeypatch.delenv("ALL_PROXY", raising=False)
 
     await connect_responses_websocket(
         {"openai-beta": "responses_websockets=2026-02-06"},
@@ -719,18 +712,12 @@ async def test_connect_responses_websocket_uses_socks_proxy_before_all_proxy(mon
             upstream_connect_timeout_seconds=7.0,
             max_sse_event_bytes=4321,
             upstream_websocket_trust_env=True,
+            upstream_websocket_proxy_env=lambda: {
+                "socks_proxy": "socks5://127.0.0.1:7890",
+                "all_proxy": "socks5://127.0.0.1:7891",
+            },
         ),
     )
-    monkeypatch.delenv("no_proxy", raising=False)
-    monkeypatch.delenv("NO_PROXY", raising=False)
-    monkeypatch.delenv("wss_proxy", raising=False)
-    monkeypatch.delenv("WSS_PROXY", raising=False)
-    monkeypatch.delenv("https_proxy", raising=False)
-    monkeypatch.delenv("HTTPS_PROXY", raising=False)
-    monkeypatch.setenv("socks_proxy", "socks5://127.0.0.1:7890")
-    monkeypatch.delenv("SOCKS_PROXY", raising=False)
-    monkeypatch.setenv("all_proxy", "socks5://127.0.0.1:7891")
-    monkeypatch.delenv("ALL_PROXY", raising=False)
 
     await connect_responses_websocket(
         {"openai-beta": "responses_websockets=2026-02-06"},
@@ -763,18 +750,13 @@ async def test_connect_responses_websocket_uses_socks_proxy_before_https_proxy(m
             upstream_connect_timeout_seconds=7.0,
             max_sse_event_bytes=4321,
             upstream_websocket_trust_env=True,
+            upstream_websocket_proxy_env=lambda: {
+                "https_proxy": "http://127.0.0.1:7890",
+                "socks_proxy": "socks5://127.0.0.1:7891",
+                "all_proxy": "socks5://127.0.0.1:7892",
+            },
         ),
     )
-    monkeypatch.delenv("no_proxy", raising=False)
-    monkeypatch.delenv("NO_PROXY", raising=False)
-    monkeypatch.delenv("wss_proxy", raising=False)
-    monkeypatch.delenv("WSS_PROXY", raising=False)
-    monkeypatch.setenv("https_proxy", "http://127.0.0.1:7890")
-    monkeypatch.delenv("HTTPS_PROXY", raising=False)
-    monkeypatch.setenv("socks_proxy", "socks5://127.0.0.1:7891")
-    monkeypatch.delenv("SOCKS_PROXY", raising=False)
-    monkeypatch.setenv("all_proxy", "socks5://127.0.0.1:7892")
-    monkeypatch.delenv("ALL_PROXY", raising=False)
 
     await connect_responses_websocket(
         {"openai-beta": "responses_websockets=2026-02-06"},
@@ -807,12 +789,9 @@ async def test_connect_responses_websocket_normalizes_http_socks_env_proxy(monke
             upstream_connect_timeout_seconds=7.0,
             max_sse_event_bytes=4321,
             upstream_websocket_trust_env=True,
+            upstream_websocket_proxy_env=lambda: {"socks_proxy": "http://127.0.0.1:7891"},
         ),
     )
-    monkeypatch.delenv("no_proxy", raising=False)
-    monkeypatch.delenv("NO_PROXY", raising=False)
-    monkeypatch.setenv("socks_proxy", "http://127.0.0.1:7891")
-    monkeypatch.delenv("SOCKS_PROXY", raising=False)
 
     await connect_responses_websocket(
         {"openai-beta": "responses_websockets=2026-02-06"},

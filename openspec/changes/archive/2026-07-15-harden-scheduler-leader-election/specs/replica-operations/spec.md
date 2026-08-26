@@ -4,12 +4,12 @@
 
 ### Requirement: Multi-replica deployments require shared PostgreSQL coordination
 
-Running more than one application replica SHALL require: a shared PostgreSQL database through which all cross-replica coordination flows (`scheduler_leader` lease, `bridge_ring_members`, `http_bridge_sessions`, `cache_invalidation`, `sticky_sessions`, `runtime_sentinels`); leader election enabled (`CODEX_LB_LEADER_ELECTION_ENABLED`, which defaults to `true`) so singleton schedulers run on exactly one replica; a unique instance id and a reachable replica-specific advertise URL per replica for bridge owner forwarding; and identical encryption key material mounted on every replica. Explicitly setting `CODEX_LB_LEADER_ELECTION_ENABLED=false` is the single-instance escape hatch that makes every replica treat itself as leader and MUST NOT be used with more than one replica.
+Running more than one application replica SHALL require: a shared PostgreSQL database through which all cross-replica coordination flows (`scheduler_leader` lease, `bridge_ring_members`, `http_bridge_sessions`, `cache_invalidation`, `sticky_sessions`, `runtime_sentinels`); leader election enabled (`OPENHUB_LEADER_ELECTION_ENABLED`, which defaults to `true`) so singleton schedulers run on exactly one replica; a unique instance id and a reachable replica-specific advertise URL per replica for bridge owner forwarding; and identical encryption key material mounted on every replica. Explicitly setting `OPENHUB_LEADER_ELECTION_ENABLED=false` is the single-instance escape hatch that makes every replica treat itself as leader and MUST NOT be used with more than one replica.
 
 #### Scenario: Supported two-replica topology
 
-- **GIVEN** two replicas configured with the same PostgreSQL `CODEX_LB_DATABASE_URL`
-- **AND** `CODEX_LB_LEADER_ELECTION_ENABLED` at its default (`true`) on both replicas
+- **GIVEN** two replicas configured with the same PostgreSQL `OPENHUB_DATABASE_URL`
+- **AND** `OPENHUB_LEADER_ELECTION_ENABLED` at its default (`true`) on both replicas
 - **AND** each replica has a unique bridge instance id with a reachable replica-specific advertise URL
 - **AND** both replicas mount the same encryption key file
 - **WHEN** both replicas start
@@ -19,11 +19,11 @@ Running more than one application replica SHALL require: a shared PostgreSQL dat
 #### Scenario: Leader election left at its default preserves the singleton guarantee
 
 - **GIVEN** two replicas sharing one PostgreSQL database
-- **AND** `CODEX_LB_LEADER_ELECTION_ENABLED` is left at its default (enabled)
+- **AND** `OPENHUB_LEADER_ELECTION_ENABLED` is left at its default (enabled)
 - **WHEN** both replicas start
 - **THEN** exactly one replica acquires the lease and runs singleton schedulers
 - **AND** the operator observes no duplicate upstream polling (usage refresh, automations, retention)
-- **AND** explicitly setting `CODEX_LB_LEADER_ELECTION_ENABLED=false` is the single-instance escape hatch that makes every replica treat itself as leader and run singleton schedulers N-fold
+- **AND** explicitly setting `OPENHUB_LEADER_ELECTION_ENABLED=false` is the single-instance escape hatch that makes every replica treat itself as leader and run singleton schedulers N-fold
 
 ### Requirement: SQLite deployments are single-process
 
@@ -38,6 +38,6 @@ SQLite database backends SHALL be operated with exactly one application process;
 
 #### Scenario: Operator scales a SQLite deployment
 
-- **GIVEN** a deployment using a SQLite `CODEX_LB_DATABASE_URL`
+- **GIVEN** a deployment using a SQLite `OPENHUB_DATABASE_URL`
 - **WHEN** the operator wants more than one application process or replica
 - **THEN** the supported path is migrating to a shared PostgreSQL database, not sharing the SQLite file

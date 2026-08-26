@@ -6,7 +6,7 @@ Add operator-facing diagnostics for direct WebSocket `previous_response_not_foun
 
 ## Why
 
-Recent production stale-anchor incidents were ambiguous even after matching request-log rows: codex-lb could prove owner lookup hit and selected the preferred account, but logs did not say whether the rejected `previous_response_id` came from the client payload or from proxy session-continuity injection, whether a fresh no-anchor replay was available, or whether the anchor crossed Codex turn sessions.
+Recent production stale-anchor incidents were ambiguous even after matching request-log rows: openhub could prove owner lookup hit and selected the preferred account, but logs did not say whether the rejected `previous_response_id` came from the client payload or from proxy session-continuity injection, whether a fresh no-anchor replay was available, or whether the anchor crossed Codex turn sessions.
 
 ## What Changes
 

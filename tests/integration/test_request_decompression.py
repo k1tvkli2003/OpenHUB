@@ -30,7 +30,7 @@ async def test_zstd_request_decompression(async_client, monkeypatch):
     body = json.dumps(payload).encode("utf-8")
 
     compressed = zstd.ZstdCompressor().compress(body)
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", str(max(len(body), len(compressed)) + 8))
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", str(max(len(body), len(compressed)) + 8))
     get_settings.cache_clear()
 
     response = await async_client.put(
@@ -53,7 +53,7 @@ async def test_zstd_request_decompression_rejects_large_payload(async_client, mo
     }
     body = json.dumps(payload).encode("utf-8")
 
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "128")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "128")
     get_settings.cache_clear()
 
     compressed = zstd.ZstdCompressor().compress(body)
@@ -69,7 +69,7 @@ async def test_zstd_request_decompression_rejects_large_payload(async_client, mo
 
 @pytest.mark.asyncio
 async def test_uncompressed_chunked_typed_body_is_bounded(async_client, monkeypatch):
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "128")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "128")
     get_settings.cache_clear()
     body = json.dumps(
         {
@@ -94,7 +94,7 @@ async def test_uncompressed_chunked_typed_body_is_bounded(async_client, monkeypa
 
 @pytest.mark.asyncio
 async def test_proxy_raw_overflow_uses_openai_envelope_before_auth(async_client, monkeypatch):
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "32")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "32")
     get_settings.cache_clear()
 
     response = await async_client.post(
@@ -115,7 +115,7 @@ async def test_proxy_raw_overflow_uses_openai_envelope_before_auth(async_client,
 
 @pytest.mark.asyncio
 async def test_proxy_malformed_compression_uses_openai_envelope(async_client, monkeypatch):
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "128")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "128")
     get_settings.cache_clear()
 
     response = await async_client.post(
@@ -134,8 +134,8 @@ async def test_proxy_malformed_compression_uses_openai_envelope(async_client, mo
 
 @pytest.mark.asyncio
 async def test_trailing_slash_responses_route_bounds_chunked_body_without_redirect(async_client, monkeypatch):
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "8")
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "32")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "8")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "32")
     get_settings.cache_clear()
 
     response = await async_client.post(
@@ -152,8 +152,8 @@ async def test_trailing_slash_responses_route_bounds_chunked_body_without_redire
 
 @pytest.mark.asyncio
 async def test_aliased_responses_budget_preserves_real_proxy_authorization(app_instance, monkeypatch):
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "8")
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "256")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "8")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "256")
     get_settings.cache_clear()
     body = json.dumps(
         {

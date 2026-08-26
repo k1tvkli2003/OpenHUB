@@ -1,6 +1,6 @@
 ## Why
 
-codex-lb learns account quota state exclusively by polling `/backend-api/wham/usage` (default every 60s, one account per scheduler tick). Upstream codex clients have long consumed fresher signals that ride on the traffic itself: `x-codex-{primary,secondary}-*` response headers and `codex.rate_limits` stream events carry the same windows on every proxied turn. Because codex-lb discards them, selection state lags real usage by up to a refresh interval, in-flight pressure is approximated with a synthetic penalty, and bursty traffic can exhaust a window well before the poller notices. With the 5h window temporarily removed upstream, per-turn signals are also the fastest way to observe when short windows disappear or return.
+openhub learns account quota state exclusively by polling `/backend-api/wham/usage` (default every 60s, one account per scheduler tick). Upstream codex clients have long consumed fresher signals that ride on the traffic itself: `x-codex-{primary,secondary}-*` response headers and `codex.rate_limits` stream events carry the same windows on every proxied turn. Because openhub discards them, selection state lags real usage by up to a refresh interval, in-flight pressure is approximated with a synthetic penalty, and bursty traffic can exhaust a window well before the poller notices. With the 5h window temporarily removed upstream, per-turn signals are also the fastest way to observe when short windows disappear or return.
 
 ## What Changes
 

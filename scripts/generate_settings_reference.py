@@ -26,13 +26,13 @@ from app.core.config.settings import _REMOVED_SETTINGS, Settings
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_PATH = REPO_ROOT / "docs" / "reference" / "settings.md"
 
-ENV_PREFIX = "CODEX_LB_"
+ENV_PREFIX = "OPENHUB_"
 
 # Defaults computed from the runtime environment (home directory, container
 # detection, hostname, outbound proxy env vars). Rendered symbolically so the
 # generated page is machine-independent and deterministic.
 _SYMBOLIC_DEFAULTS: dict[str, str] = {
-    "data_dir": "`~/.codex-lb` (host) / `/var/lib/codex-lb` (container)",
+    "data_dir": "`~/.openhub` (host) / `/var/lib/openhub` (container)",
     "database_url": "`sqlite+aiosqlite:///<data_dir>/store.db`",
     "encryption_key_file": "`<data_dir>/encryption.key`",
     "conversation_archive_dir": "`<data_dir>/conversation-archive`",
@@ -209,7 +209,7 @@ def render_settings_reference() -> str:
         "`tests/unit/test_settings_reference.py` fails when this page drifts from",
         "`app/core/config/settings.py`.",
         "",
-        f"codex-lb currently exposes {len(fields)} settings. Every setting is an environment",
+        f"openhub currently exposes {len(fields)} settings. Every setting is an environment",
         f"variable with the `{ENV_PREFIX}` prefix (process environment or `.env` /",
         "`.env.local` next to the process). All defaults work with zero configuration —",
         "start from [Configuration](../configuration.md) for the handful that matter,",
@@ -248,7 +248,7 @@ def render_settings_reference() -> str:
         [
             "",
             "Removed settings (ignored; values are now fixed — see PRINCIPLES.md P2 /",
-            "issue [#1340](https://github.com/Soju06/codex-lb/issues/1340)):",
+            "issue [#1340](https://github.com/k1tvkli2003/OpenHUB/issues/1340)):",
             "",
         ]
     )
@@ -259,9 +259,9 @@ def render_settings_reference() -> str:
             "---",
             "",
             "*Specs: [user-documentation]"
-            "(https://github.com/Soju06/codex-lb/tree/main/openspec/specs/user-documentation) · "
+            "(https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/user-documentation) · "
             "[deployment-installation]"
-            "(https://github.com/Soju06/codex-lb/tree/main/openspec/specs/deployment-installation)*",
+            "(https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/deployment-installation)*",
             "",
         ]
     )

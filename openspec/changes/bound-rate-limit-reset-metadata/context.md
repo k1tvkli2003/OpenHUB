@@ -2,19 +2,19 @@
 
 ## Purpose and scope
 
-This change hardens the existing durable rate-limit cooldown contract against malformed or wrong-unit metadata from the OpenAI service that codex-lb proxies. It does not change normal quota accounting or introduce a manual account-state override.
+This change hardens the existing durable rate-limit cooldown contract against malformed or wrong-unit metadata from the OpenAI service that openhub proxies. It does not change normal quota accounting or introduce a manual account-state override.
 
 ## Incident shape
 
 A live account was persisted as `rate_limited` with `blocked_at=1784146959` and `reset_at=15023672358`. The latter maps to January 2446, while fresh usage snapshots repeatedly reported `used_percent=0.0`. Because the reset deadline remained in the future, the normal recovery path correctly—but indefinitely—preserved the block.
 
-The exact OpenAI service payload was not retained, so the malformed value may have originated in that service or during a runtime response-normalization layer. The codex-lb application boundary must be safe in either case.
+The exact OpenAI service payload was not retained, so the malformed value may have originated in that service or during a runtime response-normalization layer. The openhub application boundary must be safe in either case.
 
 ## Decision rationale
 
-Reset metadata is an untrusted hint, not an authorization or billing record. codex-lb should honor plausible explicit metadata for cross-replica correctness but should never let one numeric field disable an account for centuries. A fixed 366-day horizon is intentionally much larger than the currently supported monthly quota window while still rejecting obvious unit/domain errors.
+Reset metadata is an untrusted hint, not an authorization or billing record. openhub should honor plausible explicit metadata for cross-replica correctness but should never let one numeric field disable an account for centuries. A fixed 366-day horizon is intentionally much larger than the currently supported monthly quota window while still rejecting obvious unit/domain errors.
 
-Invalid metadata is not converted heuristically. Treating `15023672358` as milliseconds or nanoseconds would guess at the OpenAI service's intent. Instead, codex-lb uses the already-defined Retry-After/message/backoff chain.
+Invalid metadata is not converted heuristically. Treating `15023672358` as milliseconds or nanoseconds would guess at the OpenAI service's intent. Instead, openhub uses the already-defined Retry-After/message/backoff chain.
 
 ## Constraints and failure modes
 

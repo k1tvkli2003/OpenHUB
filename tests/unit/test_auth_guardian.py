@@ -176,7 +176,7 @@ def test_build_auth_guardian_scheduler_warns_when_self_disabling_without_leader_
     assert len(warnings) == 1
     message = warnings[0].getMessage()
     assert "Auth Guardian disabled" in message
-    assert "CODEX_LB_LEADER_ELECTION_ENABLED" in message
+    assert "OPENHUB_LEADER_ELECTION_ENABLED" in message
 
 
 def test_build_auth_guardian_scheduler_does_not_warn_when_leader_election_enabled(
@@ -270,7 +270,7 @@ async def test_auth_guardian_skips_pass_when_dynamic_ring_shows_multiple_replica
     warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
     assert len(warnings) == 1
     message = warnings[0].getMessage()
-    assert "CODEX_LB_LEADER_ELECTION_ENABLED" in message
+    assert "OPENHUB_LEADER_ELECTION_ENABLED" in message
 
 
 @pytest.mark.asyncio

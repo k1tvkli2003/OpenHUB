@@ -352,7 +352,7 @@ async def test_sticky_fallback_applies_planner_costs():
 
 
 @pytest.mark.asyncio
-async def test_capacity_weighted_pool_health_check_prefers_budget_safe_candidate():
+async def test_capacity_weighted_pool_health_check_excludes_free_and_retains_paid_owner():
     acc_a = AccountState(
         "a",
         AccountStatus.ACTIVE,
@@ -388,9 +388,11 @@ async def test_capacity_weighted_pool_health_check_prefers_budget_safe_candidate
     )
 
     assert result.account is not None
-    assert result.account.account_id == "b"
+    assert result.account.account_id == "a"
     repo.delete.assert_not_called()
-    repo.upsert.assert_called_once_with("key-capacity-weighted", "b", kind=StickySessionKind.PROMPT_CACHE)
+    repo.upsert.assert_called_once_with(
+        "key-capacity-weighted", "a", kind=StickySessionKind.PROMPT_CACHE
+    )
 
 
 @pytest.mark.asyncio

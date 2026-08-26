@@ -30,7 +30,7 @@ stays, default off, mid-rollout):
   are unchanged.
 - **Observability contract (MODIFIED)**: prewarm outcomes remain observable
   (request-log `prewarm_status` and `prewarm_latency_ms`, plus the
-  `codex_lb_http_bridge_prewarm_total` counter), but the canary bucket and
+  `openhub_http_bridge_prewarm_total` counter), but the canary bucket and
   eligibility-cohort dimensions are removed along with the sampling. The
   counter is labelled by `outcome` only, the request-log columns
   `prewarm_canary_bucket` and `prewarm_eligible_reason` stop being written

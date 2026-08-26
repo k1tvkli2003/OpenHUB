@@ -10,7 +10,7 @@ thread via `to_thread`) and the container entrypoint
 (`python -m app.db.migrate upgrade`). The racy steps outside `command.upgrade`
 — `_bootstrap_legacy_history`'s stamp, `_ensure_alembic_version_table_capacity`'s
 check-then-CREATE, `_remap_legacy_alembic_revisions`' DELETE+INSERT, and the
-`state_before` inspection that computes `codex_lb_fresh_install` — each open
+`state_before` inspection that computes `openhub_fresh_install` — each open
 their own engine/connection, so an `env.py`-level lock would cover only
 `command.upgrade` and miss them all. Critically, we must NOT also lock in
 `env.py`: `run_upgrade` holds the session advisory lock on a dedicated
@@ -22,7 +22,7 @@ acquire there would self-deadlock.
 
 ### PostgreSQL: session-level advisory lock on a dedicated connection
 
-`SELECT pg_try_advisory_lock(hashtext('codex_lb:migrations'))` — the same
+`SELECT pg_try_advisory_lock(hashtext('openhub:migrations'))` — the same
 `hashtext` idiom as `pg_advisory_xact_lock(hashtext(:key))` in
 `app/core/rate_limiter/db_rate_limiter.py`, but session-scoped, because
 `run_upgrade` spans many transactions across several short-lived engines (each
@@ -133,7 +133,7 @@ loser waits up to the timeout (default 300s, matching `wait-for-head`).
 
 - PgBouncer/transaction-pooled endpoints break session advisory locks;
   migrations open their own direct sync engine, but operators pointing
-  `CODEX_LB_DATABASE_URL` at a transaction-pooling proxy lose the guarantee
+  `OPENHUB_DATABASE_URL` at a transaction-pooling proxy lose the guarantee
   (documented in context.md).
 - Advisory-lock key collision via `hashtext` with rate-limiter keys would only
   cause spurious brief serialization (namespaced key; rate-limiter locks are

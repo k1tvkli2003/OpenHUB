@@ -1,6 +1,6 @@
 # Client Setup
 
-Point any OpenAI-compatible client at codex-lb. If [API key auth](api-keys.md) is enabled, pass a key from the dashboard as a Bearer token.
+Point any OpenAI-compatible client at openhub. If [API key auth](api-keys.md) is enabled, pass a key from the dashboard as a Bearer token.
 
 Model availability is discovered from the upstream Codex model catalog and can vary by account plan, workspace, rollout, and upstream deprecation state. Prefer the live `GET /v1/models` or `GET /backend-api/codex/models` response over a copied static table when configuring clients or API-key model allowlists.
 
@@ -21,9 +21,9 @@ The examples below use the current frontier lineup: **`gpt-5.6-sol`** (strongest
 ```toml
 model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
-model_provider = "codex-lb"
+model_provider = "openhub"
 
-[model_providers.codex-lb]
+[model_providers.openhub]
 name = "openai"  # required — enables remote /responses/compact. Lowercase since Codex 2026-05-23; older "OpenAI" stops resolving gpt-5.5
 base_url = "http://127.0.0.1:2455/backend-api/codex"
 wire_api = "responses"
@@ -31,14 +31,14 @@ supports_websockets = true
 requires_openai_auth = true # required for codex app
 ```
 
-This documented `requires_openai_auth = true` setup uses Codex-backed authentication and does not need an `x-openai-actor-authorization` marker to be eligible for Codex's built-in `$imagegen` tool. Provider configurations that intentionally skip OpenAI login have a different eligibility path; see the [Images compatibility context](https://github.com/Soju06/codex-lb/blob/main/openspec/specs/images-api-compat/context.md#codex-provider-eligibility).
+This documented `requires_openai_auth = true` setup uses Codex-backed authentication and does not need an `x-openai-actor-authorization` marker to be eligible for Codex's built-in `$imagegen` tool. Provider configurations that intentionally skip OpenAI login have a different eligibility path; see the [Images compatibility context](https://github.com/k1tvkli2003/OpenHUB/blob/main/openspec/specs/images-api-compat/context.md#codex-provider-eligibility).
 
 ### WebSocket transport
 
-Optional: enable native upstream WebSockets for Codex streaming while keeping `codex-lb` pooling:
+Optional: enable native upstream WebSockets for Codex streaming while keeping `openhub` pooling:
 
 ```bash
-export CODEX_LB_UPSTREAM_STREAM_TRANSPORT=websocket
+export OPENHUB_UPSTREAM_STREAM_TRANSPORT=websocket
 ```
 
 `auto` is the default and uses native WebSockets for native Codex headers or models that prefer them.
@@ -59,7 +59,7 @@ These flags are experimental and do not replace `wire_api = "responses"`.
 Upstream websocket handshakes automatically honor standard proxy environment variables when they are
 present. `wss://` handshakes check `wss_proxy`, `socks_proxy`, `https_proxy`, and `all_proxy`;
 plain `ws://` handshakes also check `ws_proxy` and `http_proxy`. Set
-`CODEX_LB_UPSTREAM_WEBSOCKET_TRUST_ENV=false` only when websocket handshakes must bypass those
+`OPENHUB_UPSTREAM_WEBSOCKET_TRUST_ENV=false` only when websocket handshakes must bypass those
 environment proxies and connect directly.
 
 ### With API key auth
@@ -67,17 +67,17 @@ environment proxies and connect directly.
 When [API key auth](api-keys.md) is enabled:
 
 ```toml
-[model_providers.codex-lb]
+[model_providers.openhub]
 name = "openai"
 base_url = "http://127.0.0.1:2455/backend-api/codex"
 wire_api = "responses"
-env_key = "CODEX_LB_API_KEY"
+env_key = "OPENHUB_API_KEY"
 supports_websockets = true
 requires_openai_auth = true # required for codex app
 ```
 
 ```bash
-export CODEX_LB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
 codex
 ```
 
@@ -92,21 +92,21 @@ RUST_LOG=debug codex exec "Reply with OK only."
 Healthy websocket signals:
 
 - CLI logs contain `connecting to websocket` and `successfully connected to websocket`
-- `codex-lb` logs show `WebSocket /backend-api/codex/responses`
-- `codex-lb` logs do **not** show fallback `POST /backend-api/codex/responses` for the same run
+- `openhub` logs show `WebSocket /backend-api/codex/responses`
+- `openhub` logs do **not** show fallback `POST /backend-api/codex/responses` for the same run
 
-If you run `codex-lb` behind a reverse proxy, make sure it forwards WebSocket upgrades — see [Remote Access](deployment/remote.md).
+If you run `openhub` behind a reverse proxy, make sure it forwards WebSocket upgrades — see [Remote Access](deployment/remote.md).
 
 ### Migrating from direct OpenAI (session retagging)
 
-`codex resume` filters by `model_provider`; old sessions won't appear until you re-tag them. Use the built-in retag command instead of editing Codex files by hand; see [Codex session retagging](https://github.com/Soju06/codex-lb/blob/main/openspec/specs/runtime-portability/context.md#codex-session-retagging) for backups, Docker, WSL, and rollback details.
+`codex resume` filters by `model_provider`; old sessions won't appear until you re-tag them. Use the built-in retag command instead of editing Codex files by hand; see [Codex session retagging](https://github.com/k1tvkli2003/OpenHUB/blob/main/openspec/specs/runtime-portability/context.md#codex-session-retagging) for backups, Docker, WSL, and rollback details.
 
 ```bash
 # Preview what will change first.
-codex-lb codex-sessions retag --from openai --to codex-lb --dry-run
+openhub codex-sessions retag --from openai --to openhub --dry-run
 
 # Then close Codex/Codex CLI and apply the retag.
-codex-lb codex-sessions retag --from openai --to codex-lb --yes
+openhub codex-sessions retag --from openai --to openhub --yes
 ```
 
 | Dry run (Docker) | Apply (Docker) |
@@ -138,7 +138,7 @@ jq 'del(.openai)' ~/.local/share/opencode/auth.json > auth.json.tmp && mv auth.j
     "openai": {
       "options": {
         "baseURL": "http://127.0.0.1:2455/v1",
-        "apiKey": "{env:CODEX_LB_API_KEY}"
+        "apiKey": "{env:OPENHUB_API_KEY}"
       },
       "models": {
         "gpt-5.6-sol": {
@@ -172,10 +172,10 @@ jq 'del(.openai)' ~/.local/share/opencode/auth.json > auth.json.tmp && mv auth.j
 }
 ```
 
-This overrides the built-in `openai` provider's endpoint to point at codex-lb while keeping the Responses API code path that handles reasoning properly.
+This overrides the built-in `openai` provider's endpoint to point at openhub while keeping the Responses API code path that handles reasoning properly.
 
 ```bash
-export CODEX_LB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
 opencode
 ```
 
@@ -187,25 +187,25 @@ opencode
 {
   "agents": {
     "defaults": {
-      "model": { "primary": "codex-lb/gpt-5.6-sol" },
+      "model": { "primary": "openhub/gpt-5.6-sol" },
       "models": {
-        "codex-lb/gpt-5.6-sol": { "params": { "cacheRetention": "short" } },
-        "codex-lb/gpt-5.6-terra": { "params": { "cacheRetention": "short" } },
-        "codex-lb/gpt-5.6-luna": { "params": { "cacheRetention": "short" } }
+        "openhub/gpt-5.6-sol": { "params": { "cacheRetention": "short" } },
+        "openhub/gpt-5.6-terra": { "params": { "cacheRetention": "short" } },
+        "openhub/gpt-5.6-luna": { "params": { "cacheRetention": "short" } }
       }
     }
   },
   "models": {
     "mode": "merge",
     "providers": {
-      "codex-lb": {
+      "openhub": {
         "baseUrl": "http://127.0.0.1:2455/v1",
-        "apiKey": "${CODEX_LB_API_KEY}",   // or "dummy" if API key auth is disabled
+        "apiKey": "${OPENHUB_API_KEY}",   // or "dummy" if API key auth is disabled
         "api": "openai-responses",
         "models": [
           {
             "id": "gpt-5.6-sol",
-            "name": "gpt-5.6-sol (codex-lb)",
+            "name": "gpt-5.6-sol (openhub)",
             "contextWindow": 372000,
             "contextTokens": 372000,
             "maxTokens": 4096,
@@ -214,7 +214,7 @@ opencode
           },
           {
             "id": "gpt-5.6-terra",
-            "name": "gpt-5.6-terra (codex-lb)",
+            "name": "gpt-5.6-terra (openhub)",
             "contextWindow": 372000,
             "contextTokens": 372000,
             "maxTokens": 4096,
@@ -223,7 +223,7 @@ opencode
           },
           {
             "id": "gpt-5.6-luna",
-            "name": "gpt-5.6-luna (codex-lb)",
+            "name": "gpt-5.6-luna (openhub)",
             "contextWindow": 372000,
             "contextTokens": 372000,
             "maxTokens": 4096,
@@ -237,33 +237,33 @@ opencode
 }
 ```
 
-Set the env var or replace `${CODEX_LB_API_KEY}` with a key from the dashboard. If API key auth is disabled,
+Set the env var or replace `${OPENHUB_API_KEY}` with a key from the dashboard. If API key auth is disabled,
 local requests can omit the key, but non-local requests are still rejected until proxy authentication is configured.
 
 The `/v1` route is the simplest OpenAI-compatible setup. If your OpenClaw build uses a Codex-native provider path such as `openai-codex-responses` and needs Codex-style usage/accounting behavior, point that provider at `http://127.0.0.1:2455/backend-api/codex` instead. For third-party Codex-compatible backends, the client must allow opaque bearer-token passthrough and should only send `chatgpt-account-id` when it actually decoded one from an official ChatGPT/Codex token.
 
 ## Hermes Agent
 
-[Hermes Agent](https://github.com/NousResearch/hermes-agent) works with any model provider; point a named custom provider at codex-lb with the `codex_responses` API mode so multi-turn reasoning state is preserved over the Responses API (the plain `chat_completions` mode drops reasoning content, same caveat as OpenCode).
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) works with any model provider; point a named custom provider at openhub with the `codex_responses` API mode so multi-turn reasoning state is preserved over the Responses API (the plain `chat_completions` mode drops reasoning content, same caveat as OpenCode).
 
 `~/.hermes/config.yaml`:
 
 ```yaml
 custom_providers:
-  - name: codex-lb
+  - name: openhub
     base_url: http://127.0.0.1:2455/v1
-    key_env: CODEX_LB_API_KEY   # omit for local runs without API key auth
+    key_env: OPENHUB_API_KEY   # omit for local runs without API key auth
     api_mode: codex_responses
 ```
 
 Then select the model interactively with `hermes model`, or in a session:
 
 ```text
-/model custom:codex-lb:gpt-5.6-sol
+/model custom:openhub:gpt-5.6-sol
 ```
 
 ```bash
-export CODEX_LB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
 hermes
 ```
 
@@ -286,4 +286,4 @@ print(response.choices[0].message.content)
 
 ---
 
-*Specs: [responses-api-compat](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/responses-api-compat) · [chat-completions-compat](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/chat-completions-compat) · [model-catalog-compat](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/model-catalog-compat) · [runtime-portability](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/runtime-portability)*
+*Specs: [responses-api-compat](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/responses-api-compat) · [chat-completions-compat](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/chat-completions-compat) · [model-catalog-compat](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/model-catalog-compat) · [runtime-portability](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/runtime-portability)*

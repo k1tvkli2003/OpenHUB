@@ -1,6 +1,6 @@
 ## Context
 
-codex-lb already derives Responses Lite signaling from a normalized
+openhub already derives Responses Lite signaling from a normalized
 `additional_tools` input prefix and preserves that signal through HTTP,
 compact, direct websocket, HTTP bridge, fallback, prewarm, and trusted
 incremental continuity. It does not currently couple that signal to the
@@ -25,7 +25,7 @@ trusted by itself.
 **Goals:**
 
 - Guarantee exact `reasoning.context = "all_turns"` in every final upstream
-  payload that codex-lb canonically advertises as Responses Lite.
+  payload that openhub canonically advertises as Responses Lite.
 - Preserve `effort`, `summary`, and unknown reasoning members while repairing
   missing or incompatible context values.
 - Cover body-derived, bridge-preserved, and continuity-trusted signaling on

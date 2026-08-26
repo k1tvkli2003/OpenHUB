@@ -1706,14 +1706,32 @@ class LoadBalancer:
         states: list[AccountState],
     ) -> set[str]:
         stale_account_ids: set[str] = set()
+        committed_state_change = False
         for state in states:
             if state.ignore_standard_quota:
                 continue
             account = account_map.get(state.account_id)
             if account is not None:
+                reset_at_int = int(state.reset_at) if state.reset_at else None
+                blocked_at_int = int(state.blocked_at) if state.blocked_at else None
+                state_requires_write = (
+                    account.status != state.status
+                    or account.deactivation_reason != state.deactivation_reason
+                    or account.reset_at != reset_at_int
+                    or account.blocked_at != blocked_at_int
+                )
                 persisted = await self._persist_state_if_current(accounts_repo, account, state)
                 if not persisted:
                     stale_account_ids.add(account.id)
+                elif state_requires_write:
+                    committed_state_change = True
+        # A committed recovery transition makes every cached account snapshot
+        # older than the database row. A CAS miss proves the same thing from
+        # the losing request's perspective. Invalidate in both cases so the
+        # bounded selection retry reloads fresh rows instead of consuming the
+        # same five-second snapshot until it returns a false no_accounts/503.
+        if committed_state_change or stale_account_ids:
+            self._selection_inputs_cache.invalidate()
         return stale_account_ids
 
     async def _persist_state(

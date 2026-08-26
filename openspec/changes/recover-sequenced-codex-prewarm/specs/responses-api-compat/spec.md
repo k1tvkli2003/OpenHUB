@@ -78,7 +78,7 @@ emit no synthetic terminal frame, and close downstream with code 1011.
 - **WHEN** a direct WebSocket model-generating request has emitted
   `response.created` or another frame with a finite integer `sequence_number`
 - **AND** upstream closes before a terminal response event
-- **THEN** codex-lb does not transparently replay that request under the
+- **THEN** openhub does not transparently replay that request under the
   existing downstream response id
 - **AND** no lower replay sequence is emitted downstream
 - **AND** the downstream WebSocket closes with code 1011
@@ -88,14 +88,14 @@ emit no synthetic terminal frame, and close downstream with code 1011.
 - **WHEN** a direct WebSocket request claims `request_kind = "prewarm"`
 - **BUT** its normalized body does not contain the literal `generate = false`
 - **AND** a numeric sequence has been sent downstream
-- **THEN** codex-lb does not transparently replay the request
+- **THEN** openhub does not transparently replay the request
 
 #### Scenario: Progressed prewarm is not replayed
 
 - **WHEN** a verified no-generation prewarm has emitted `response.created` and
   any additional `response.*` progress event
 - **AND** upstream closes before completion
-- **THEN** codex-lb does not transparently replay the request
+- **THEN** openhub does not transparently replay the request
 - **AND** the downstream WebSocket closes with code 1011
 
 #### Scenario: Replayed prewarm sequence must advance
@@ -104,7 +104,7 @@ emit no synthetic terminal frame, and close downstream with code 1011.
   `response.created` at sequence `0`
 - **WHEN** a non-suppressed replay frame has a finite integer
   `sequence_number <= 0`
-- **THEN** codex-lb emits no frame from that replay generation downstream
+- **THEN** openhub emits no frame from that replay generation downstream
 - **AND** it settles the request as `stream_incomplete`
 - **AND** it closes the downstream WebSocket with code 1011
 
@@ -122,7 +122,7 @@ emit no synthetic terminal frame, and close downstream with code 1011.
   `sequence_number`
 - **AND** upstream emits a terminal error that would ordinarily trigger
   transparent quota, authentication, or security-work replay
-- **THEN** codex-lb does not reconnect or resend the request
+- **THEN** openhub does not reconnect or resend the request
 - **AND** the terminal error is finalized and remains client-visible under the
   existing error contract
 
@@ -131,11 +131,11 @@ emit no synthetic terminal frame, and close downstream with code 1011.
 - **WHEN** upstream closes before any numeric sequence-bearing frame has been
   successfully sent downstream
 - **AND** the request otherwise satisfies the existing one-shot replay guard
-- **THEN** codex-lb MAY transparently replay the request on a fresh upstream
+- **THEN** openhub MAY transparently replay the request on a fresh upstream
   connection
 
 #### Scenario: Suppressed frame does not establish exposure
 
-- **WHEN** codex-lb suppresses an upstream frame before downstream emission
+- **WHEN** openhub suppresses an upstream frame before downstream emission
 - **AND** the suppressed frame contains a numeric `sequence_number`
 - **THEN** that frame does not establish the downstream sequence watermark

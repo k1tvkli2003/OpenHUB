@@ -1535,7 +1535,7 @@ async def test_http_bridge_activity_snapshot_cleans_completed_stale_inflight_ses
     service = proxy_service.ProxyService(cast(Any, SimpleNamespace()))
     key = proxy_service._HTTPBridgeSessionKey("session_header", "stale-inflight-drain-status", None)
     inflight_future: asyncio.Future[proxy_service._HTTPBridgeSession] = asyncio.get_running_loop().create_future()
-    setattr(inflight_future, "_codex_lb_started_at", -1000.0)
+    setattr(inflight_future, "_openhub_started_at", -1000.0)
     inflight_future.set_result(_make_bridge_session())
     service._http_bridge_inflight_sessions[key] = inflight_future
 
@@ -1560,7 +1560,7 @@ async def test_http_bridge_activity_snapshot_does_not_expire_live_inflight_sessi
     service = proxy_service.ProxyService(cast(Any, SimpleNamespace()))
     key = proxy_service._HTTPBridgeSessionKey("session_header", "live-stale-inflight-drain-status", None)
     inflight_future: asyncio.Future[proxy_service._HTTPBridgeSession] = asyncio.get_running_loop().create_future()
-    setattr(inflight_future, "_codex_lb_started_at", -1000.0)
+    setattr(inflight_future, "_openhub_started_at", -1000.0)
     service._http_bridge_inflight_sessions[key] = inflight_future
 
     monkeypatch.setattr(proxy_service, "_proxy_admission_wait_timeout_seconds", lambda settings=None: 0.001)
@@ -1583,7 +1583,7 @@ async def test_http_bridge_activity_snapshot_skips_inflight_cleanup_when_registr
     service = proxy_service.ProxyService(cast(Any, SimpleNamespace()))
     key = proxy_service._HTTPBridgeSessionKey("session_header", "locked-stale-inflight-drain-status", None)
     inflight_future: asyncio.Future[proxy_service._HTTPBridgeSession] = asyncio.get_running_loop().create_future()
-    setattr(inflight_future, "_codex_lb_started_at", -1000.0)
+    setattr(inflight_future, "_openhub_started_at", -1000.0)
     service._http_bridge_inflight_sessions[key] = inflight_future
 
     monkeypatch.setattr(proxy_service, "_proxy_admission_wait_timeout_seconds", lambda settings=None: 0.001)
@@ -5683,7 +5683,7 @@ def test_make_http_bridge_session_key_ignores_forwarded_affinity_headers_on_publ
 def test_http_bridge_requires_cluster_registration_for_non_loopback_advertise_url() -> None:
     settings = Settings(
         http_responses_session_bridge_instance_id="instance-a",
-        http_responses_session_bridge_advertise_base_url="http://instance-a.codex-lb-bridge.default.svc.cluster.local:2455",
+        http_responses_session_bridge_advertise_base_url="http://instance-a.openhub-bridge.default.svc.cluster.local:2455",
     )
 
     assert proxy_service._http_bridge_requires_cluster_registration(settings) is True

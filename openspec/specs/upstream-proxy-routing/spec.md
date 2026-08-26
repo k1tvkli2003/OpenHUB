@@ -51,8 +51,8 @@ Codex `response.create` requests sent through account-scoped bridge or websocket
 
 #### Scenario: Client-supplied installation id is replaced
 - **GIVEN** a client sends `client_metadata.x-codex-installation-id`
-- **AND** codex-lb selects account `A`
-- **WHEN** codex-lb sends the upstream `response.create` request
+- **AND** openhub selects account `A`
+- **WHEN** openhub sends the upstream `response.create` request
 - **THEN** the upstream `client_metadata.x-codex-installation-id` MUST equal account `A`'s stored installation id
 - **AND** it MUST NOT equal the client-supplied value.
 

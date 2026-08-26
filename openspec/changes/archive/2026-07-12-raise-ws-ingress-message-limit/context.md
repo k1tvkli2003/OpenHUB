@@ -2,9 +2,9 @@
 
 ## Incident (2026-07-12)
 
-A Codex Desktop remote session (`codex_chatgpt_ios_remote`, client 0.144.1) running a visual-QA workflow hit `413 Request Entity Too Large` (nginx HTML) on `POST /backend-api/codex/responses`. Reverse-proxy access logs and codex-lb container logs showed the full chain:
+A Codex Desktop remote session (`codex_chatgpt_ios_remote`, client 0.144.1) running a visual-QA workflow hit `413 Request Entity Too Large` (nginx HTML) on `POST /backend-api/codex/responses`. Reverse-proxy access logs and openhub container logs showed the full chain:
 
-1. `11:45:29–48Z` — six websocket upgrades to `/backend-api/codex/responses`, each `101` then closed after 2–3 s with ~4 bytes returned. codex-lb logged only `[accepted] → connection open → connection closed`; no application log, no `request_logs` row. The client's reconnect resend of full history (inline screenshots) exceeded uvicorn's default `ws_max_size` of 16 MiB, so the protocol layer closed with `1009` before the app saw the message.
+1. `11:45:29–48Z` — six websocket upgrades to `/backend-api/codex/responses`, each `101` then closed after 2–3 s with ~4 bytes returned. openhub logged only `[accepted] → connection open → connection closed`; no application log, no `request_logs` row. The client's reconnect resend of full history (inline screenshots) exceeded uvicorn's default `ws_max_size` of 16 MiB, so the protocol layer closed with `1009` before the app saw the message.
 2. `11:45:48–57Z` — the client exhausted its 5-retry budget, downgraded the session to HTTP (`Falling back from WebSockets to HTTPS transport`), and re-POSTed the same body six times; nginx `client_max_body_size 20m` rejected each with `413`.
 3. `11:49Z` — a fresh client session reconnected over websocket and worked (new session ⇒ websocket re-enabled ⇒ incremental sends fit again).
 
@@ -25,4 +25,4 @@ The archived change `2026-04-14-guard-oversized-response-create` picked `413` fo
 
 - Default ingress budget 128 MiB = parity with `max_decompressed_responses_body_bytes`; deployments with tight memory can lower `--ws-max-size` / `UVICORN_WS_MAX_SIZE`.
 - Front proxies should raise HTTP body limits to match (nginx `client_max_body_size 128m`) because the client's HTTP fallback and remote-compaction POSTs carry full history.
-- The request-decompression middleware's HTTP `413` for compressed-body overflow is intentionally unchanged: the official client only zstd-compresses request bodies against the built-in OpenAI provider, so codex-lb deployments do not exercise it; revisit if that changes.
+- The request-decompression middleware's HTTP `413` for compressed-body overflow is intentionally unchanged: the official client only zstd-compresses request bodies against the built-in OpenAI provider, so openhub deployments do not exercise it; revisit if that changes.

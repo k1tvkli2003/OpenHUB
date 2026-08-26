@@ -232,6 +232,23 @@ class AccountsService:
             encryptor=self._encryptor,
         )
 
+    async def refresh_usage_for_codex_launch(self) -> list[AccountSummary]:
+        """Refresh stale canonical usage samples, then return scored-source rows."""
+        if self._usage_repo is None or self._usage_updater is None:
+            return await self.list_accounts()
+        accounts = await self._repo.list_accounts()
+        latest_primary = await self._usage_repo.latest_by_account(window="primary")
+        await self._usage_updater.refresh_accounts(
+            accounts,
+            latest_primary,
+            own_singleflight_sessions=True,
+        )
+        # Owned refresh sessions may update plan/workspace metadata as well as
+        # quota rows. Refresh the request session's identity map before mapping
+        # the response so the launch decision and UI see those committed values.
+        await self._repo.list_accounts(refresh_existing=True)
+        return await self.list_accounts()
+
     async def get_account_trends(self, account_id: str) -> AccountTrendsResponse | None:
         account = await self._repo.get_by_id(account_id)
         if not account or not self._usage_repo:

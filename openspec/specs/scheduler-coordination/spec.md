@@ -281,14 +281,14 @@ The Auth Guardian scheduler is the one exception to the escape hatch: because it
 
 #### Scenario: TTL below the minimum
 
-- **GIVEN** `CODEX_LB_LEADER_ELECTION_TTL_SECONDS=2`
+- **GIVEN** `OPENHUB_LEADER_ELECTION_TTL_SECONDS=2`
 - **WHEN** settings are loaded
 - **THEN** validation fails
 
 #### Scenario: Multi-replica ring with leader election disabled
 
-- **GIVEN** an instance ring with two replicas and `CODEX_LB_LEADER_ELECTION_ENABLED=false`
-- **AND** `CODEX_LB_AUTH_GUARDIAN_ENABLED=true`
+- **GIVEN** an instance ring with two replicas and `OPENHUB_LEADER_ELECTION_ENABLED=false`
+- **AND** `OPENHUB_AUTH_GUARDIAN_ENABLED=true`
 - **WHEN** the Auth Guardian scheduler is built
 - **THEN** the scheduler is disabled
 - **AND** a warning log states that the guardian is disabled because the ring runs without leader election

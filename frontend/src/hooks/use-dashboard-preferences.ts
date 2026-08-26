@@ -2,9 +2,9 @@ import { create } from "zustand";
 
 import type { AccountListSort, AccountListSortKey } from "@/features/dashboard/components/account-list";
 
-const ACCOUNT_BURNRATE_STORAGE_KEY = "codex-lb-account-burnrate-enabled";
-const ACCOUNT_VIEW_MODE_STORAGE_KEY = "codex-lb-dashboard-account-view-mode";
-const ACCOUNT_LIST_SORT_STORAGE_KEY = "codex-lb-dashboard-account-list-sort";
+const ACCOUNT_BURNRATE_STORAGE_KEY = "openhub-account-burnrate-enabled";
+const ACCOUNT_VIEW_MODE_STORAGE_KEY = "openhub-dashboard-account-view-mode";
+const ACCOUNT_LIST_SORT_STORAGE_KEY = "openhub-dashboard-account-list-sort";
 
 export type DashboardAccountViewMode = "cards" | "list";
 

@@ -4,7 +4,7 @@ The README has grown to 650+ lines and `.env.example` to 115 lines with ~45 acti
 
 ## What Changes
 
-- Add a mkdocs-material documentation site (`mkdocs.yml`, pages under `docs/`, existing `docs/screenshots/` reused) published to https://soju06.github.io/codex-lb/ via a new `.github/workflows/docs.yml` (strict build on PRs, GitHub Pages deploy on pushes to `main`).
+- Add a mkdocs-material documentation site (`mkdocs.yml`, pages under `docs/`, existing `docs/screenshots/` reused) published to https://k1tvkli2003.github.io/OpenHUB/ via a new `.github/workflows/docs.yml` (strict build on PRs, GitHub Pages deploy on pushes to `main`).
 - Add a `docs` uv dependency group (`mkdocs-material`) and regenerate `uv.lock`; ignore the `site/` build output.
 - Diet README.md to a ~120-hand-written-line quickstart (hero, features, Quick Start, one Codex CLI config block plus a client table, configuration pointer, data table, docs links, development). All moved content lands on docs pages; the all-contributors block stays.
 - Add a banner to README.zh-CN.md pointing at the English docs site as canonical.

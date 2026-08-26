@@ -82,31 +82,31 @@ The chart MUST declare a minimum supported Kubernetes version of `1.32`, and CI 
 
 ### Requirement: Application data directory resolution is configurable and container-aware
 
-The application MUST resolve its default data directory from operator intent before container heuristics. A non-empty `CODEX_LB_DATA_DIR` value MUST be the highest-priority data directory override. When no override is configured, an existing `$HOME/.codex-lb` directory MUST remain preferred even if the process detects that it is running inside a container. The container data directory (`/var/lib/codex-lb`) MUST be used only when no override is configured, the home data directory does not already exist, and container detection is true.
+The application MUST resolve its default data directory from operator intent before container heuristics. A non-empty `OPENHUB_DATA_DIR` value MUST be the highest-priority data directory override. When no override is configured, an existing `$HOME/.openhub` directory MUST remain preferred even if the process detects that it is running inside a container. The container data directory (`/var/lib/openhub`) MUST be used only when no override is configured, the home data directory does not already exist, and container detection is true.
 
 #### Scenario: Explicit data directory override wins
 
-- **GIVEN** `CODEX_LB_DATA_DIR` is configured to a non-empty path
+- **GIVEN** `OPENHUB_DATA_DIR` is configured to a non-empty path
 - **WHEN** application settings are loaded
 - **THEN** the configured path is used as the data directory
 - **AND** the container detection result does not override it
 
 #### Scenario: Existing home data is reused inside an interactive container
 
-- **GIVEN** `CODEX_LB_DATA_DIR` is not configured
-- **AND** `$HOME/.codex-lb` already exists
+- **GIVEN** `OPENHUB_DATA_DIR` is not configured
+- **AND** `$HOME/.openhub` already exists
 - **AND** container detection is true
 - **WHEN** application settings are loaded
-- **THEN** `$HOME/.codex-lb` is used as the data directory
-- **AND** `/var/lib/codex-lb` is not selected
+- **THEN** `$HOME/.openhub` is used as the data directory
+- **AND** `/var/lib/openhub` is not selected
 
 #### Scenario: Container default is preserved when no home data exists
 
-- **GIVEN** `CODEX_LB_DATA_DIR` is not configured
-- **AND** `$HOME/.codex-lb` does not exist
+- **GIVEN** `OPENHUB_DATA_DIR` is not configured
+- **AND** `$HOME/.openhub` does not exist
 - **AND** container detection is true
 - **WHEN** application settings are loaded
-- **THEN** `/var/lib/codex-lb` is used as the data directory
+- **THEN** `/var/lib/openhub` is used as the data directory
 
 #### Scenario: Related default paths follow the resolved data directory
 
@@ -120,8 +120,8 @@ The application MUST resolve its default data directory from operator intent bef
 
 #### Scenario: Explicit related path overrides are preserved
 
-- **GIVEN** `CODEX_LB_DATA_DIR` is configured
-- **AND** one or more related paths such as `CODEX_LB_DATABASE_URL`, `CODEX_LB_ENCRYPTION_KEY_FILE`, or `CODEX_LB_CONVERSATION_ARCHIVE_DIR` are explicitly configured
+- **GIVEN** `OPENHUB_DATA_DIR` is configured
+- **AND** one or more related paths such as `OPENHUB_DATABASE_URL`, `OPENHUB_ENCRYPTION_KEY_FILE`, or `OPENHUB_CONVERSATION_ARCHIVE_DIR` are explicitly configured
 - **WHEN** application settings are loaded
 - **THEN** each explicitly configured related path keeps its configured value
 - **AND** only omitted related paths derive from the resolved data directory
@@ -187,7 +187,7 @@ WHEN `config.sessionBridgeInstanceRing` is non-empty, chart rendering MUST fail 
 
 #### Scenario: Static ring with correct count but wrong values fails to render
 
-- **WHEN** the chart is rendered with `replicaCount=2` and a `config.sessionBridgeInstanceRing` listing 2 entries that are not the expected StatefulSet pod names (for example FQDN-style entries or `codex-lb-0,codex-lb-1`)
+- **WHEN** the chart is rendered with `replicaCount=2` and a `config.sessionBridgeInstanceRing` listing 2 entries that are not the expected StatefulSet pod names (for example FQDN-style entries or `openhub-0,openhub-1`)
 - **THEN** `helm template` fails with an error naming the missing expected pod names and the exact ring the chart requires
 
 #### Scenario: Static ring with an unexpected extra entry fails to render
@@ -242,7 +242,7 @@ Every project-owned launch path for the main application MUST disable server-lev
 ### Requirement: Removed tunables are fixed constants or derived values
 
 Values that are protocol constants or internal tuning details SHALL NOT be
-operator-configurable. When a previously supported `CODEX_LB_*` setting is
+operator-configurable. When a previously supported `OPENHUB_*` setting is
 removed from the configuration surface, its environment variable MUST be
 ignored without failing startup, and for at least one release after removal,
 startup MUST emit a single warning log listing every removed setting name
@@ -255,7 +255,7 @@ The following values MUST be fixed at their previously documented defaults:
 
 - The OAuth protocol identity values (authorization base URL, client id,
   originator, scope, redirect URI, and callback port): they identify
-  codex-lb to OpenAI exactly like the Codex CLI, and changing any of them
+  openhub to OpenAI exactly like the Codex CLI, and changing any of them
   breaks login.
 - Background scheduler cadences (quota planner tick, automations poll,
   model registry refresh, sticky-session cleanup).
@@ -274,16 +274,16 @@ The following values MUST be fixed at their previously documented defaults:
 The following values MUST be derived rather than configured:
 
 - The memory-pressure warning threshold: 80% of the configurable reject
-  threshold (`CODEX_LB_MEMORY_REJECT_THRESHOLD_MB`), with both disabled
+  threshold (`OPENHUB_MEMORY_REJECT_THRESHOLD_MB`), with both disabled
   when the reject threshold is 0.
 - The background-task database engine's pool size and max overflow: always
   taken from `database_pool_size` and `database_max_overflow`.
 
 Incident-debugging trace logging SHALL be controlled by the single
-`CODEX_LB_TRACE` comma-separated channel list, whose empty default disables
+`OPENHUB_TRACE` comma-separated channel list, whose empty default disables
 all trace channels. The Codex HTTP-bridge prewarm rollout scoping SHALL NOT
 be operator-configurable: prewarm eligibility MUST be the
-`CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ENABLED` flag alone,
+`OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ENABLED` flag alone,
 with no canary sampling percent and no API-key allow/deny cohort lists (the
 removed `..._PREWARM_CANARY_PERCENT`, `..._PREWARM_ALLOW_API_KEY_IDS`, and
 `..._PREWARM_DENY_API_KEY_IDS` variables are covered by the
@@ -295,7 +295,7 @@ enable switches.
 #### Scenario: Removed env vars are ignored with one startup warning
 
 - **GIVEN** a deployment whose environment still sets removed settings such
-  as `CODEX_LB_AUTH_BASE_URL` and `CODEX_LB_TOKEN_REFRESH_CLAIM_WAIT_SECONDS`
+  as `OPENHUB_AUTH_BASE_URL` and `OPENHUB_TOKEN_REFRESH_CLAIM_WAIT_SECONDS`
 - **WHEN** the application starts
 - **THEN** startup succeeds and the fixed built-in values are used
 - **AND** exactly one warning log lists both removed names without their
@@ -309,14 +309,14 @@ enable switches.
 
 #### Scenario: Trace channels default to off
 
-- **GIVEN** a default install with `CODEX_LB_TRACE` unset
+- **GIVEN** a default install with `OPENHUB_TRACE` unset
 - **WHEN** the proxy serves requests
 - **THEN** no request-shape, payload, service-tier, or upstream trace logs
   are emitted
 
 #### Scenario: A trace channel can be enabled for an incident
 
-- **GIVEN** `CODEX_LB_TRACE=shape,upstream_payload`
+- **GIVEN** `OPENHUB_TRACE=shape,upstream_payload`
 - **WHEN** the proxy serves requests
 - **THEN** request-shape and upstream-payload trace logs are emitted while
   all other trace channels stay off
@@ -324,7 +324,7 @@ enable switches.
 #### Scenario: Removed scheduler and images env vars are ignored with one startup warning
 
 - **GIVEN** a deployment whose environment still sets removed settings such
-  as `CODEX_LB_QUOTA_PLANNER_TICK_SECONDS` and `CODEX_LB_IMAGES_HOST_MODEL`
+  as `OPENHUB_QUOTA_PLANNER_TICK_SECONDS` and `OPENHUB_IMAGES_HOST_MODEL`
 - **WHEN** the application starts
 - **THEN** startup succeeds and the fixed built-in values are used
 - **AND** exactly one warning log lists both removed names without their
@@ -332,14 +332,14 @@ enable switches.
 
 #### Scenario: Memory warning threshold derives from the reject threshold
 
-- **GIVEN** `CODEX_LB_MEMORY_REJECT_THRESHOLD_MB=100`
+- **GIVEN** `OPENHUB_MEMORY_REJECT_THRESHOLD_MB=100`
 - **WHEN** process RSS reaches 80 MiB
 - **THEN** a memory warning is logged while requests continue to be served
 - **AND** requests are rejected with 503 only once RSS reaches 100 MiB
 
 #### Scenario: Memory guard stays fully disabled by default
 
-- **GIVEN** a default install with `CODEX_LB_MEMORY_REJECT_THRESHOLD_MB`
+- **GIVEN** a default install with `OPENHUB_MEMORY_REJECT_THRESHOLD_MB`
   unset (0)
 - **WHEN** the proxy serves requests under any memory usage
 - **THEN** no memory warning is logged and no request is rejected for
@@ -349,16 +349,16 @@ enable switches.
 
 - **GIVEN** a Helm install using the chart's default values
 - **WHEN** the config map is rendered
-- **THEN** it contains no `CODEX_LB_CIRCUIT_BREAKER_FAILURE_THRESHOLD`,
-  `CODEX_LB_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS`, or
-  `CODEX_LB_STICKY_SESSION_CLEANUP_INTERVAL_SECONDS` entries
+- **THEN** it contains no `OPENHUB_CIRCUIT_BREAKER_FAILURE_THRESHOLD`,
+  `OPENHUB_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS`, or
+  `OPENHUB_STICKY_SESSION_CLEANUP_INTERVAL_SECONDS` entries
 - **AND** startup emits no removed-settings warning
 
 #### Scenario: Removed pool and drain env vars are ignored with one startup warning
 
 - **GIVEN** a deployment whose environment still sets removed settings such
-  as `CODEX_LB_DATABASE_POOL_RECYCLE_SECONDS` and
-  `CODEX_LB_DRAIN_PRIMARY_THRESHOLD_PCT`
+  as `OPENHUB_DATABASE_POOL_RECYCLE_SECONDS` and
+  `OPENHUB_DRAIN_PRIMARY_THRESHOLD_PCT`
 - **WHEN** the application starts
 - **THEN** startup succeeds and the fixed built-in values are used
 - **AND** exactly one warning log lists both removed names without their
@@ -366,8 +366,8 @@ enable switches.
 
 #### Scenario: Background pool sizing derives from the main pool settings
 
-- **GIVEN** `CODEX_LB_DATABASE_POOL_SIZE=12` and
-  `CODEX_LB_DATABASE_MAX_OVERFLOW=4` on a PostgreSQL deployment
+- **GIVEN** `OPENHUB_DATABASE_POOL_SIZE=12` and
+  `OPENHUB_DATABASE_MAX_OVERFLOW=4` on a PostgreSQL deployment
 - **WHEN** the application creates the background-task database engine
 - **THEN** the background engine uses pool size 12 and max overflow 4
 - **AND** no separate background pool sizing can be configured
@@ -378,13 +378,13 @@ enable switches.
 - **WHEN** an account's primary window usage reaches 85%
 - **THEN** the account enters the draining health tier
 - **AND** a drained account enters the probing tier only after the fixed
-  60-second quiet window, regardless of any `CODEX_LB_PROBE_QUIET_SECONDS`
+  60-second quiet window, regardless of any `OPENHUB_PROBE_QUIET_SECONDS`
   value still present in the environment
 
 #### Scenario: Removed prewarm canary env vars are ignored with one startup warning
 
 - **GIVEN** a deployment whose environment still sets
-  `CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_CANARY_PERCENT` or
+  `OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_CANARY_PERCENT` or
   the allow/deny list variables
 - **WHEN** the application starts
 - **THEN** startup succeeds and the values are ignored
@@ -393,7 +393,7 @@ enable switches.
 
 #### Scenario: Prewarm eligibility is the enabled flag alone
 
-- **GIVEN** `CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ENABLED=true`
+- **GIVEN** `OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ENABLED=true`
 - **WHEN** a first-turn Codex bridge request arrives on a session that has
   not been prewarmed
 - **THEN** the session prewarm is attempted for that request

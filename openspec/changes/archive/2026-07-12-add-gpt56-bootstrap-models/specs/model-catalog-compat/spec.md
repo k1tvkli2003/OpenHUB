@@ -35,7 +35,7 @@ upstream backend still serves them.
 
 ### Requirement: GPT-5.6 bootstrap metadata matches the upstream bundled catalog
 
-The GPT-5.6 bootstrap catalog entries (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) MUST mirror the upstream bundled catalog (`codex-rs/models-manager/models.json` at codex release rust-v0.144.1) field-for-field for every metadata field codex-lb serves. In particular each
+The GPT-5.6 bootstrap catalog entries (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) MUST mirror the upstream bundled catalog (`codex-rs/models-manager/models.json` at codex release rust-v0.144.1) field-for-field for every metadata field openhub serves. In particular each
 entry MUST carry: `context_window` and `max_context_window` of `372000`;
 `minimal_client_version` `"0.144.0"`; `tool_mode` `"code_mode_only"`;
 `use_responses_lite` `true`; `apply_patch_tool_type` `"freeform"`;

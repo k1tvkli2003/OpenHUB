@@ -31,4 +31,4 @@ The oversized response-create dump directory under `<data-dir>/debug/response-cr
 - **GIVEN** a default installation with no dump-related configuration
 - **WHEN** oversized response-create dumps are captured over time
 - **THEN** duplicate suppression and pruning apply
-- **AND** no `CODEX_LB_*` setting is required to bound the directory
+- **AND** no `OPENHUB_*` setting is required to bound the directory

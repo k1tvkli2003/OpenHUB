@@ -1,4 +1,4 @@
-const REPORTS_TIMEZONE_STORAGE_KEY = "codex-lb-reports-timezone";
+const REPORTS_TIMEZONE_STORAGE_KEY = "openhub-reports-timezone";
 
 function isValidTimeZone(timeZone: string | undefined): timeZone is string {
   if (!timeZone) {

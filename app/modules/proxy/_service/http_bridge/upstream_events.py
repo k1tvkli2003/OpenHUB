@@ -190,7 +190,7 @@ _MODEL_OUTPUT_EVENT_TYPES = frozenset(
 _SECURITY_WORK_AUTHORIZATION_REQUIRED_CODE = "security_work_authorization_required"
 _SECURITY_WORK_RETRY_MESSAGE = (
     "Upstream flagged this request as possible cybersecurity work. "
-    "codex-lb is retrying on an account marked as authorized for security work."
+    "openhub is retrying on an account marked as authorized for security work."
 )
 
 
@@ -1223,7 +1223,7 @@ class _HTTPBridgeUpstreamEventsMixin:
                                     _SECURITY_WORK_RETRY_MESSAGE
                                     if can_retry_security_work
                                     else "Upstream flagged this request as possible cybersecurity work. "
-                                    "codex-lb cannot safely switch accounts after this response has already started, "
+                                    "openhub cannot safely switch accounts after this response has already started, "
                                     "so the original upstream error is being forwarded."
                                 ),
                                 request_id=terminal_request_state.request_log_id or terminal_request_state.request_id,

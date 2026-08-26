@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
@@ -47,7 +48,7 @@ def test_parse_args_rejects_explicit_empty_database_url(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setattr(sys, "argv", ["codex-lb-db", "--db-url", "", "current"])
+    monkeypatch.setattr(sys, "argv", ["openhub-db", "--db-url", "", "current"])
 
     with pytest.raises(SystemExit) as exc_info:
         migrate_module._parse_args()
@@ -57,7 +58,7 @@ def test_parse_args_rejects_explicit_empty_database_url(
 
 
 def test_parse_args_preserves_omitted_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(sys, "argv", ["codex-lb-db", "current"])
+    monkeypatch.setattr(sys, "argv", ["openhub-db", "current"])
 
     args = migrate_module._parse_args()
 
@@ -1628,7 +1629,7 @@ def test_run_upgrade_backfills_additional_usage_quota_key_from_configured_regist
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("CODEX_LB_ADDITIONAL_QUOTA_REGISTRY_FILE", str(registry_path))
+    monkeypatch.setenv("OPENHUB_ADDITIONAL_QUOTA_REGISTRY_FILE", str(registry_path))
     clear_additional_quota_registry_cache()
 
     run_upgrade(url, "20260309_000000_add_additional_usage_history", bootstrap_legacy=False)
@@ -1750,7 +1751,7 @@ def test_run_upgrade_rejects_duplicate_additional_quota_aliases_in_registry(
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("CODEX_LB_ADDITIONAL_QUOTA_REGISTRY_FILE", str(registry_path))
+    monkeypatch.setenv("OPENHUB_ADDITIONAL_QUOTA_REGISTRY_FILE", str(registry_path))
     clear_additional_quota_registry_cache()
 
     run_upgrade(url, "20260309_000000_add_additional_usage_history", bootstrap_legacy=False)
@@ -1864,7 +1865,12 @@ def test_create_sqlite_pre_migration_backup_preserves_source_mode(tmp_path: Path
         now=datetime(2026, 2, 13, 12, 0, 0, tzinfo=timezone.utc),
     )
 
-    assert backup.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert backup.stat().st_mode & 0o777 == 0o600
+    else:
+        # Windows preserves the source ACL inheritance; its stat mode cannot
+        # encode POSIX owner/group/other permissions exactly.
+        assert backup.is_file()
 
 
 class _FakeStringType:

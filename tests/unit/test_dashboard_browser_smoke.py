@@ -24,12 +24,12 @@ def test_smoke_backend_disables_dotenv_sources_before_importing_the_app(
 ) -> None:
     dotenv = tmp_path / ".env.local"
     dotenv.write_text(
-        "CODEX_LB_DATABASE_URL=sqlite+aiosqlite:////must-not-load.db\nCODEX_LB_DASHBOARD_AUTH_MODE=trusted_header\n",
+        "OPENHUB_DATABASE_URL=sqlite+aiosqlite:////must-not-load.db\nOPENHUB_DASHBOARD_AUTH_MODE=trusted_header\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("CODEX_LB_DATA_DIR", str(tmp_path))
-    monkeypatch.delenv("CODEX_LB_DATABASE_URL", raising=False)
-    monkeypatch.delenv("CODEX_LB_DASHBOARD_AUTH_MODE", raising=False)
+    monkeypatch.setenv("OPENHUB_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHUB_DATABASE_URL", raising=False)
+    monkeypatch.delenv("OPENHUB_DASHBOARD_AUTH_MODE", raising=False)
     monkeypatch.setattr(settings_module, "ENV_FILES", (dotenv,))
     monkeypatch.setitem(cast(dict[str, object], Settings.model_config), "env_file", (dotenv,))
 
@@ -47,6 +47,6 @@ def test_smoke_backend_disables_dotenv_sources_before_importing_the_app(
     assert settings.data_dir == tmp_path
     assert settings.database_url == f"sqlite+aiosqlite:///{tmp_path / 'store.db'}"
     assert settings.dashboard_auth_mode == DashboardAuthMode.STANDARD
-    assert "CODEX_LB_DATABASE_URL" not in settings_module._effective_environ()
-    assert "CODEX_LB_DASHBOARD_AUTH_MODE" not in settings_module._effective_environ()
+    assert "OPENHUB_DATABASE_URL" not in settings_module._effective_environ()
+    assert "OPENHUB_DASHBOARD_AUTH_MODE" not in settings_module._effective_environ()
     assert captured == {"app": "app.main:app", "fd": 123, "log_level": "warning"}

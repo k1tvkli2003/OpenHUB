@@ -32,8 +32,8 @@ describe("useDashboardPreferencesStore", () => {
 
     expect(useDashboardPreferencesStore.getState().accountViewMode).toBe("cards");
     expect(useDashboardPreferencesStore.getState().accountListSort).toBeNull();
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-view-mode")).toBe("cards");
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-list-sort")).toBeNull();
+    expect(window.localStorage.getItem("openhub-dashboard-account-view-mode")).toBe("cards");
+    expect(window.localStorage.getItem("openhub-dashboard-account-list-sort")).toBeNull();
   });
 
   it("persists account view mode updates", async () => {
@@ -42,7 +42,7 @@ describe("useDashboardPreferencesStore", () => {
     useDashboardPreferencesStore.getState().setAccountViewMode("list");
 
     expect(useDashboardPreferencesStore.getState().accountViewMode).toBe("list");
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-view-mode")).toBe("list");
+    expect(window.localStorage.getItem("openhub-dashboard-account-view-mode")).toBe("list");
   });
 
   it("persists account list sort updates", async () => {
@@ -51,14 +51,14 @@ describe("useDashboardPreferencesStore", () => {
     useDashboardPreferencesStore.getState().setAccountListSort({ key: "quota", direction: "asc" });
 
     expect(useDashboardPreferencesStore.getState().accountListSort).toEqual({ key: "quota", direction: "asc" });
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-list-sort")).toBe(
+    expect(window.localStorage.getItem("openhub-dashboard-account-list-sort")).toBe(
       JSON.stringify({ key: "quota", direction: "asc" }),
     );
   });
 
   it("restores stored account list sort on initialization", async () => {
     window.localStorage.setItem(
-      "codex-lb-dashboard-account-list-sort",
+      "openhub-dashboard-account-list-sort",
       JSON.stringify({ key: "credits", direction: "desc" }),
     );
     const { useDashboardPreferencesStore } = await import("@/hooks/use-dashboard-preferences");
@@ -66,14 +66,14 @@ describe("useDashboardPreferencesStore", () => {
     useDashboardPreferencesStore.getState().initializePreferences();
 
     expect(useDashboardPreferencesStore.getState().accountListSort).toEqual({ key: "credits", direction: "desc" });
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-list-sort")).toBe(
+    expect(window.localStorage.getItem("openhub-dashboard-account-list-sort")).toBe(
       JSON.stringify({ key: "credits", direction: "desc" }),
     );
   });
 
   it("ignores invalid stored account list sort", async () => {
     window.localStorage.setItem(
-      "codex-lb-dashboard-account-list-sort",
+      "openhub-dashboard-account-list-sort",
       JSON.stringify({ key: "invalid", direction: "desc" }),
     );
     const { useDashboardPreferencesStore } = await import("@/hooks/use-dashboard-preferences");
@@ -81,6 +81,6 @@ describe("useDashboardPreferencesStore", () => {
     useDashboardPreferencesStore.getState().initializePreferences();
 
     expect(useDashboardPreferencesStore.getState().accountListSort).toBeNull();
-    expect(window.localStorage.getItem("codex-lb-dashboard-account-list-sort")).toBeNull();
+    expect(window.localStorage.getItem("openhub-dashboard-account-list-sort")).toBeNull();
   });
 });

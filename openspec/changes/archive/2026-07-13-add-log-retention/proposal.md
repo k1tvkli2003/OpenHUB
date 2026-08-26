@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Add opt-in retention settings (env): `CODEX_LB_REQUEST_LOG_RETENTION_DAYS` and `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS` (the latter covers both usage-history tables). `0` (default) disables retention entirely — no behavior change unless an operator opts in. Non-zero values are validated against safe minimums (request logs ≥ 30 days; usage history ≥ 45 days, exceeding the monthly window).
+- Add opt-in retention settings (env): `OPENHUB_REQUEST_LOG_RETENTION_DAYS` and `OPENHUB_USAGE_HISTORY_RETENTION_DAYS` (the latter covers both usage-history tables). `0` (default) disables retention entirely — no behavior change unless an operator opts in. Non-zero values are validated against safe minimums (request logs ≥ 30 days; usage history ≥ 45 days, exceeding the monthly window).
 - Add a leader-gated background retention job that hard-deletes, in bounded batches:
   - `request_logs` rows older than the cutoff **and** at or below the account-usage-rollup watermark — unfolded rows are never pruned, so lifetime account totals survive pruning by construction. If the rollup watermark does not exist yet, request-log pruning is skipped.
   - `usage_history` / `additional_usage_history` rows older than the cutoff, **always retaining the latest row per (account, window[, quota_key])** so paused/idle accounts keep their last-known usage on the dashboard.

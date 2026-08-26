@@ -1,0 +1,20 @@
+# Synthetic credential embedded in the backend diagnostic redaction test.
+native_windows/test/backend_supervisor_test.dart:generic-api-key:15
+
+# One eight-character, alphabetic fixture repeated by the upstream API-key tests
+# and contract examples in the preserved MIT history; it has no provider prefix.
+4c0dbc9ceb2b5d70204ea7603cf1b4bef83db234:openspec/changes/archive/2026-02-12-admin-auth-and-api-keys/specs/api-keys/spec.md:generic-api-key:10
+4c0dbc9ceb2b5d70204ea7603cf1b4bef83db234:tests/unit/test_helm_external_secrets.py:generic-api-key:715
+4c0dbc9ceb2b5d70204ea7603cf1b4bef83db234:tests/unit/test_helm_external_secrets.py:generic-api-key:719
+4c0dbc9ceb2b5d70204ea7603cf1b4bef83db234:tests/unit/test_select_with_stickiness.py:generic-api-key:676
+4c0dbc9ceb2b5d70204ea7603cf1b4bef83db234:tests/unit/test_proxy_http_bridge.py:generic-api-key:5333
+8d265c3f73bda4c2adb7632d888dad5413b1b121:tests/integration/test_http_upgrade_tolerance.py:generic-api-key:265
+8d265c3f73bda4c2adb7632d888dad5413b1b121:tests/integration/test_http_upgrade_tolerance.py:generic-api-key:298
+debd7cf63c173e1e7b2982ff171bf1564c150c5a:app/modules/telemetry/consent.py:generic-api-key:33
+aa642f33c6c9bd83c1aea8e7e8618e1ad2bf50c2:openspec/changes/add-realtime-live-sideband/tasks.md:generic-api-key:24
+1bee4ec32413b41a46ea54e9be7eb723b3e3d5e6:tests/unit/test_proxy_http_bridge.py:generic-api-key:2417
+39fb653c0e779aef30a2ecbfa6608ea4d797a789:tests/unit/test_select_with_stickiness.py:generic-api-key:649
+16391aec7c76096fb20218e353731d44a9cbc4f8:tests/unit/test_helm_external_secrets.py:generic-api-key:195
+16391aec7c76096fb20218e353731d44a9cbc4f8:tests/unit/test_helm_external_secrets.py:generic-api-key:199
+35eb9817cbd81878ee0dd5ed286094ab76eb189a:openspec/changes/archive/2026-02-12-admin-auth-and-api-keys/specs/api-keys/spec.md:generic-api-key:10
+35eb9817cbd81878ee0dd5ed286094ab76eb189a:openspec/specs/api-keys/spec.md:generic-api-key:13

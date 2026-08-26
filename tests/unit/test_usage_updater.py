@@ -300,6 +300,58 @@ async def test_owned_singleflight_reload_skips_account_that_became_ineligible(
 
 
 @pytest.mark.asyncio
+async def test_owned_session_refreshes_overlap_with_configured_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    @dataclass(frozen=True, slots=True)
+    class Settings:
+        usage_refresh_enabled: bool = True
+        usage_refresh_interval_seconds: int = 0
+        usage_refresh_auth_failure_cooldown_seconds: int = 0
+        usage_refresh_max_concurrency: int = 2
+
+    active = 0
+    peak = 0
+    completed: list[str] = []
+
+    async def fake_owned_refresh(
+        self,
+        account_id: str,
+        *,
+        interval_seconds: int,
+    ) -> usage_updater_module.AccountRefreshResult:
+        nonlocal active, peak
+        del self, interval_seconds
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0.03)
+        active -= 1
+        completed.append(account_id)
+        return usage_updater_module.AccountRefreshResult(usage_written=True)
+
+    monkeypatch.setattr(usage_updater_module, "get_settings", Settings)
+    monkeypatch.setattr(
+        UsageUpdater,
+        "_refresh_account_if_stale_with_owned_session",
+        fake_owned_refresh,
+    )
+    accounts = [_make_account(f"acc_parallel_{index}", f"workspace_parallel_{index}") for index in range(5)]
+
+    started = time.perf_counter()
+    refreshed = await UsageUpdater(StubUsageRepository()).refresh_accounts(
+        accounts,
+        latest_usage={},
+        own_singleflight_sessions=True,
+    )
+    elapsed = time.perf_counter() - started
+
+    assert refreshed is True
+    assert peak == 2
+    assert sorted(completed) == sorted(account.id for account in accounts)
+    assert elapsed < 0.13
+
+
+@pytest.mark.asyncio
 async def test_usage_refresh_scheduler_stop_cancels_inflight_singleflight(monkeypatch: pytest.MonkeyPatch) -> None:
     scheduler = refresh_scheduler_module.UsageRefreshScheduler(interval_seconds=60, enabled=True)
     run_loop_task = asyncio.create_task(asyncio.sleep(3600))
@@ -885,7 +937,7 @@ async def test_recover_restores_rate_limited_account_after_persisted_cooldown_el
 
 @pytest.mark.asyncio
 async def test_usage_refresh_keeps_rate_limited_retry_after_cooldown(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -933,7 +985,7 @@ async def test_usage_refresh_keeps_rate_limited_retry_after_cooldown(monkeypatch
 
 @pytest.mark.asyncio
 async def test_force_refresh_bypasses_fresh_usage_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -963,7 +1015,7 @@ async def test_force_refresh_bypasses_fresh_usage_cache(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_force_refresh_does_not_join_stale_refresh_singleflight(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1021,7 +1073,7 @@ async def test_force_refresh_does_not_join_stale_refresh_singleflight(monkeypatc
 async def test_force_refresh_preserves_cancellation_while_waiting_on_stale_refresh(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1066,8 +1118,8 @@ async def test_force_refresh_preserves_cancellation_while_waiting_on_stale_refre
 
 @pytest.mark.asyncio
 async def test_force_refresh_bypasses_auth_failure_cooldown(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1098,7 +1150,7 @@ async def test_force_refresh_bypasses_auth_failure_cooldown(monkeypatch: pytest.
 
 @pytest.mark.asyncio
 async def test_force_refresh_respects_usage_refresh_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "false")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "false")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1116,7 +1168,7 @@ async def test_force_refresh_respects_usage_refresh_disabled(monkeypatch: pytest
 
 @pytest.mark.asyncio
 async def test_force_refresh_can_ignore_usage_refresh_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "false")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "false")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1143,7 +1195,7 @@ async def test_force_refresh_can_ignore_usage_refresh_disabled(monkeypatch: pyte
 
 @pytest.mark.asyncio
 async def test_usage_updater_includes_chatgpt_account_id_even_when_shared(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1186,7 +1238,7 @@ async def test_usage_updater_includes_chatgpt_account_id_even_when_shared(monkey
 
 @pytest.mark.asyncio
 async def test_force_refresh_uses_access_token_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1212,7 +1264,7 @@ async def test_force_refresh_uses_access_token_override(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_usage_refresh_recovers_quota_exceeded_account_when_usage_is_available(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1265,7 +1317,7 @@ async def test_usage_refresh_recovers_quota_exceeded_account_when_usage_is_avail
 
 @pytest.mark.asyncio
 async def test_usage_refresh_keeps_recent_quota_exceeded_cooldown(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1311,8 +1363,8 @@ async def test_usage_refresh_keeps_recent_quota_exceeded_cooldown(monkeypatch) -
 
 @pytest.mark.asyncio
 async def test_usage_refresh_bypasses_freshness_after_quota_cooldown(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1366,8 +1418,8 @@ async def test_usage_refresh_bypasses_freshness_after_quota_cooldown(monkeypatch
 
 @pytest.mark.asyncio
 async def test_usage_refresh_preserves_freshness_after_failed_quota_recovery_probe(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1405,7 +1457,7 @@ async def test_usage_refresh_preserves_freshness_after_failed_quota_recovery_pro
 
 @pytest.mark.asyncio
 async def test_usage_refresh_does_not_overwrite_newer_status_change(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1456,7 +1508,7 @@ async def test_usage_refresh_does_not_overwrite_newer_status_change(monkeypatch)
 
 @pytest.mark.asyncio
 async def test_usage_refresh_syncs_blocked_at_after_compare_failure(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1507,7 +1559,7 @@ async def test_usage_refresh_syncs_blocked_at_after_compare_failure(monkeypatch)
 
 @pytest.mark.asyncio
 async def test_usage_refresh_does_not_recover_when_secondary_quota_is_missing(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1552,7 +1604,7 @@ async def test_usage_refresh_does_not_recover_when_secondary_quota_is_missing(mo
 
 @pytest.mark.asyncio
 async def test_usage_refresh_does_not_recover_when_secondary_quota_is_still_exhausted(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1597,7 +1649,7 @@ async def test_usage_refresh_does_not_recover_when_secondary_quota_is_still_exha
 
 @pytest.mark.asyncio
 async def test_usage_refresh_demotes_quota_exceeded_to_rate_limited_when_primary_is_exhausted(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1648,7 +1700,7 @@ async def test_usage_refresh_demotes_quota_exceeded_to_rate_limited_when_primary
 
 @pytest.mark.asyncio
 async def test_usage_refresh_recovers_quota_exceeded_free_weekly_account(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1685,7 +1737,7 @@ async def test_usage_refresh_recovers_quota_exceeded_free_weekly_account(monkeyp
 
 @pytest.mark.asyncio
 async def test_usage_refresh_stores_free_monthly_window_without_secondary_remap(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1728,7 +1780,7 @@ async def test_usage_refresh_stores_free_monthly_window_without_secondary_remap(
 
 @pytest.mark.asyncio
 async def test_usage_refresh_uses_fresh_monthly_row_for_quota_freshness(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1759,7 +1811,7 @@ async def test_usage_refresh_uses_fresh_monthly_row_for_quota_freshness(monkeypa
 
 @pytest.mark.asyncio
 async def test_usage_refresh_skips_mismatched_workspace_payload(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1806,7 +1858,7 @@ async def test_usage_refresh_skips_mismatched_workspace_payload(monkeypatch) -> 
 
 @pytest.mark.asyncio
 async def test_usage_refresh_skips_taken_workspace_slot_payload(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1858,7 +1910,7 @@ async def test_usage_refresh_skips_taken_workspace_slot_payload(monkeypatch) -> 
 
 @pytest.mark.asyncio
 async def test_usage_refresh_skips_unknown_workspace_plan_mismatch(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1898,7 +1950,7 @@ async def test_usage_refresh_skips_unknown_workspace_plan_mismatch(monkeypatch) 
 async def test_usage_refresh_skips_workspace_account_when_payload_omits_workspace_and_plan_conflicts(
     monkeypatch,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1941,7 +1993,7 @@ async def test_usage_refresh_skips_workspace_account_when_payload_omits_workspac
 async def test_usage_refresh_skips_workspace_account_when_payload_omits_workspace_and_paid_plan_differs(
     monkeypatch,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -1984,7 +2036,7 @@ async def test_usage_refresh_skips_workspace_account_when_payload_omits_workspac
 async def test_usage_refresh_applies_paid_plan_upgrade_without_workspace(monkeypatch) -> None:
     """Regression for #1086: a Plus -> Pro upgrade on a workspace-less account
     must be persisted instead of being skipped as an identity mismatch."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2022,8 +2074,50 @@ async def test_usage_refresh_applies_paid_plan_upgrade_without_workspace(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_usage_refresh_applies_expired_personal_subscription_downgrade_without_workspace(monkeypatch) -> None:
+    """A workspace-less Plus account must become Free when the per-account
+    usage response explicitly reports the expired personal subscription."""
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    from app.core.config.settings import get_settings
+
+    get_settings.cache_clear()
+
+    async def stub_fetch_usage(*, access_token: str, account_id: str | None, **_: Any) -> UsagePayload:
+        del access_token, account_id
+        return UsagePayload.model_validate(
+            {
+                "plan_type": "free",
+                "rate_limit": {
+                    "primary_window": {
+                        "used_percent": 14.0,
+                        "reset_at": 1736208000,
+                        "limit_window_seconds": 30 * 24 * 60 * 60,
+                    },
+                },
+            }
+        )
+
+    monkeypatch.setattr("app.modules.usage.updater.fetch_usage", stub_fetch_usage)
+
+    usage_repo = StubUsageRepository(return_rows=True)
+    accounts_repo = StubAccountsRepository()
+    updater = UsageUpdater(usage_repo, accounts_repo=accounts_repo)
+    account = _make_account("acc_personal_expired", "upstream_user", email="same@example.com")
+    account.workspace_id = None
+    account.plan_type = "plus"
+    accounts_repo.accounts_by_id[account.id] = account
+
+    await updater.refresh_accounts([account], latest_usage={})
+
+    assert usage_repo.entries != []
+    assert account.plan_type == "free"
+    assert account.workspace_id is None
+    assert accounts_repo.metadata_updates[0]["plan_type"] == "free"
+
+
+@pytest.mark.asyncio
 async def test_usage_refresh_hydrates_unknown_plan_without_workspace(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2066,7 +2160,7 @@ async def test_usage_refresh_skips_unknown_plan_degrade_without_workspace(
     monkeypatch,
     payload_plan_type: str,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2230,7 +2324,7 @@ class StubAccountsRepository:
 
 @pytest.mark.asyncio
 async def test_usage_updater_deactivates_on_account_invalid_4xx(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2260,7 +2354,7 @@ async def test_usage_updater_deactivates_on_account_invalid_4xx(monkeypatch) -> 
 
 @pytest.mark.asyncio
 async def test_usage_updater_does_not_deactivate_on_403(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2284,8 +2378,153 @@ async def test_usage_updater_does_not_deactivate_on_403(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_usage_updater_does_not_deactivate_on_generic_404(monkeypatch) -> None:
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
+    from app.core.clients.usage import UsageFetchError
+    from app.core.config.settings import get_settings
+
+    get_settings.cache_clear()
+
+    async def stub_fetch_usage_404(**_: Any) -> UsagePayload:
+        raise UsageFetchError(404, "Usage fetch failed (404)")
+
+    monkeypatch.setattr("app.modules.usage.updater.fetch_usage", stub_fetch_usage_404)
+
+    usage_repo = StubUsageRepository()
+    accounts_repo = StubAccountsRepository()
+    updater = UsageUpdater(usage_repo, accounts_repo=accounts_repo)
+    acc = _make_account("acc_404_transient", "workspace_404_transient", email="transient@example.com")
+    accounts_repo.accounts_by_id[acc.id] = acc
+
+    await updater.refresh_accounts([acc], latest_usage={})
+
+    assert accounts_repo.status_updates == []
+    assert acc.status == AccountStatus.ACTIVE
+    assert usage_updater_module._is_usage_refresh_in_cooldown(acc.id) is True
+
+
+@pytest.mark.asyncio
+async def test_usage_updater_recovers_exact_legacy_generic_404_row_from_fresh_usage(monkeypatch) -> None:
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    from app.core.config.settings import get_settings
+
+    get_settings.cache_clear()
+    fetch_calls = 0
+    now_epoch = int(time.time())
+
+    async def stub_fetch_usage(**_: Any) -> UsagePayload:
+        nonlocal fetch_calls
+        fetch_calls += 1
+        return UsagePayload.model_validate(
+            {
+                "rate_limit": {
+                    "primary_window": {
+                        "used_percent": 12.0,
+                        "reset_at": now_epoch + 3600,
+                        "limit_window_seconds": 5 * 60 * 60,
+                    },
+                    "secondary_window": {
+                        "used_percent": 20.0,
+                        "reset_at": now_epoch + 4 * 24 * 60 * 60,
+                        "limit_window_seconds": 7 * 24 * 60 * 60,
+                    },
+                }
+            }
+        )
+
+    monkeypatch.setattr("app.modules.usage.updater.fetch_usage", stub_fetch_usage)
+
+    usage_repo = StubUsageRepository(return_rows=True)
+    accounts_repo = StubAccountsRepository()
+    updater = UsageUpdater(usage_repo, accounts_repo=accounts_repo)
+    acc = _make_account("acc_404_recovery", "workspace_404_recovery", email="recovered@example.com")
+    acc.status = AccountStatus.DEACTIVATED
+    acc.deactivation_reason = usage_updater_module._LEGACY_GENERIC_USAGE_404_DEACTIVATION_REASON
+    accounts_repo.accounts_by_id[acc.id] = acc
+    # A fresh cached row must not suppress this one-time repair path.
+    await usage_repo.add_entry(
+        acc.id,
+        75.0,
+        recorded_at=datetime.now(tz=timezone.utc),
+        window="primary",
+        reset_at=now_epoch + 1800,
+        window_minutes=300,
+    )
+
+    refreshed = await updater.refresh_accounts([acc], latest_usage={})
+
+    assert refreshed is True
+    assert fetch_calls == 1
+    assert acc.status == AccountStatus.ACTIVE
+    assert acc.deactivation_reason is None
+    assert acc.reset_at is None
+    assert accounts_repo.status_updates == [
+        {
+            "account_id": acc.id,
+            "status": AccountStatus.ACTIVE,
+            "deactivation_reason": None,
+            "reset_at": None,
+            "blocked_at": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_usage_updater_keeps_nonlegacy_deactivated_rows_fail_closed(monkeypatch) -> None:
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    from app.core.config.settings import get_settings
+
+    get_settings.cache_clear()
+    fetch_calls = 0
+
+    async def stub_fetch_usage(**_: Any) -> UsagePayload:
+        nonlocal fetch_calls
+        fetch_calls += 1
+        return UsagePayload.model_validate({})
+
+    monkeypatch.setattr("app.modules.usage.updater.fetch_usage", stub_fetch_usage)
+
+    accounts_repo = StubAccountsRepository()
+    updater = UsageUpdater(StubUsageRepository(), accounts_repo=accounts_repo)
+    acc = _make_account("acc_real_deactivation", "workspace_real_deactivation")
+    acc.status = AccountStatus.DEACTIVATED
+    acc.deactivation_reason = "Usage API error: HTTP 401 - Your OpenAI account has been deactivated"
+    accounts_repo.accounts_by_id[acc.id] = acc
+
+    refreshed = await updater.refresh_accounts([acc], latest_usage={})
+
+    assert refreshed is False
+    assert fetch_calls == 0
+    assert acc.status == AccountStatus.DEACTIVATED
+    assert accounts_repo.status_updates == []
+
+
+@pytest.mark.asyncio
+async def test_legacy_generic_404_recovery_preserves_fresh_primary_limit() -> None:
+    accounts_repo = StubAccountsRepository()
+    updater = UsageUpdater(StubUsageRepository(), accounts_repo=accounts_repo)
+    acc = _make_account("acc_404_limited", "workspace_404_limited")
+    acc.status = AccountStatus.DEACTIVATED
+    acc.deactivation_reason = usage_updater_module._LEGACY_GENERIC_USAGE_404_DEACTIVATION_REASON
+    accounts_repo.accounts_by_id[acc.id] = acc
+    reset_at = int(time.time()) + 1800
+
+    await updater._recover_quota_status_from_usage(
+        acc,
+        primary=usage_updater_module.UsageWindow(used_percent=100.0, reset_at=reset_at),
+        secondary=usage_updater_module.UsageWindow(used_percent=20.0),
+    )
+
+    assert acc.status == AccountStatus.RATE_LIMITED
+    assert acc.deactivation_reason is None
+    assert acc.reset_at == reset_at
+    assert accounts_repo.status_updates[0]["status"] == AccountStatus.RATE_LIMITED
+
+
+@pytest.mark.asyncio
 async def test_usage_updater_does_not_deactivate_on_transient_4xx(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2310,7 +2549,7 @@ async def test_usage_updater_does_not_deactivate_on_transient_4xx(monkeypatch) -
 
 @pytest.mark.asyncio
 async def test_usage_updater_does_not_deactivate_on_401(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2355,7 +2594,7 @@ async def test_usage_updater_marks_session_failures_as_reauth_required(
     message: str,
     message_hint: str,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2386,7 +2625,7 @@ async def test_usage_updater_marks_session_failures_as_reauth_required(
 
 @pytest.mark.asyncio
 async def test_usage_updater_deactivates_on_401_account_deactivated_code(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2419,7 +2658,7 @@ async def test_usage_updater_deactivates_on_401_account_deactivated_code(monkeyp
 
 @pytest.mark.asyncio
 async def test_usage_updater_deactivates_on_401_deactivated_message_without_code(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2448,8 +2687,8 @@ async def test_usage_updater_deactivates_on_401_deactivated_message_without_code
 
 @pytest.mark.asyncio
 async def test_usage_updater_cools_down_repeated_403_failures(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2480,8 +2719,8 @@ async def test_usage_updater_cools_down_repeated_403_failures(monkeypatch) -> No
 
 @pytest.mark.asyncio
 async def test_usage_updater_subset_refresh_does_not_clear_other_account_cooldowns(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_AUTH_FAILURE_COOLDOWN_SECONDS", "300")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2528,7 +2767,7 @@ def test_mark_usage_refresh_auth_cooldown_ignores_non_auth_status(monkeypatch) -
 
 @pytest.mark.asyncio
 async def test_usage_updater_does_not_deactivate_on_5xx(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2553,7 +2792,7 @@ async def test_usage_updater_does_not_deactivate_on_5xx(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_usage_updater_persists_primary_and_secondary_usage(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2616,7 +2855,7 @@ async def test_usage_updater_persists_primary_and_secondary_usage(monkeypatch) -
 
 @pytest.mark.asyncio
 async def test_forced_usage_refresh_syncs_free_to_plus_upgrade_without_workspace(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2643,7 +2882,7 @@ async def test_forced_usage_refresh_syncs_free_to_plus_upgrade_without_workspace
 
 @pytest.mark.asyncio
 async def test_usage_updater_computes_reset_at_from_reset_after_seconds(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2679,7 +2918,7 @@ async def test_usage_updater_computes_reset_at_from_reset_after_seconds(monkeypa
 
 @pytest.mark.asyncio
 async def test_usage_updater_refresh_accounts_returns_false_when_rate_limit_missing(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2701,7 +2940,7 @@ async def test_usage_updater_refresh_accounts_returns_false_when_rate_limit_miss
 
 @pytest.mark.asyncio
 async def test_usage_updater_refresh_accounts_returns_false_on_401_retry_failure(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.clients.usage import UsageFetchError
     from app.core.config.settings import get_settings
 
@@ -2743,7 +2982,7 @@ async def test_usage_updater_refresh_accounts_returns_true_when_any_window_writt
     primary_used: float | None,
     secondary_used: float | None,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2780,7 +3019,7 @@ async def test_usage_updater_refresh_accounts_returns_true_when_any_window_writt
 
 @pytest.mark.asyncio
 async def test_usage_updater_refresh_accounts_returns_true_when_partial_write(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2815,7 +3054,7 @@ async def test_usage_updater_refresh_accounts_returns_true_when_partial_write(mo
 
 @pytest.mark.asyncio
 async def test_usage_updater_singleflights_concurrent_refreshes(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2872,7 +3111,7 @@ async def test_usage_updater_singleflights_concurrent_refreshes(monkeypatch) -> 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_written_to_additional_repo(monkeypatch) -> None:
     """Additional rate limits from payload are persisted via additional_usage_repo."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2944,7 +3183,7 @@ async def test_additional_rate_limits_written_to_additional_repo(monkeypatch) ->
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_normalize_known_alias_to_canonical_quota_key(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -2992,7 +3231,7 @@ async def test_additional_rate_limits_normalize_known_alias_to_canonical_quota_k
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_merge_aliases_before_pruning_quota(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3045,7 +3284,7 @@ async def test_additional_rate_limits_merge_aliases_before_pruning_quota(monkeyp
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_merge_windows_across_aliases(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3105,7 +3344,7 @@ async def test_additional_rate_limits_merge_windows_across_aliases(monkeypatch) 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_null_writes_nothing(monkeypatch) -> None:
     """When additional_rate_limits is null, no additional entries are written."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3137,7 +3376,7 @@ async def test_additional_rate_limits_null_writes_nothing(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_sync_even_when_main_rate_limit_missing(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3181,7 +3420,7 @@ async def test_additional_rate_limits_sync_even_when_main_rate_limit_missing(mon
 @pytest.mark.asyncio
 async def test_additional_only_account_not_repolled_within_interval(monkeypatch) -> None:
     """R6-F1: Additional-only accounts must not cause tight re-polling."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3227,7 +3466,7 @@ async def test_additional_only_account_not_repolled_within_interval(monkeypatch)
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_empty_list_writes_nothing(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3261,7 +3500,7 @@ async def test_additional_rate_limits_empty_list_writes_nothing(monkeypatch) -> 
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_none_does_not_prune_existing_rows(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3294,7 +3533,7 @@ async def test_additional_rate_limits_none_does_not_prune_existing_rows(monkeypa
 @pytest.mark.asyncio
 async def test_additional_rate_limits_multiple_limits(monkeypatch) -> None:
     """Multiple additional limits produce one entry per limit per window."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3362,7 +3601,7 @@ async def test_additional_rate_limits_multiple_limits(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_additional_rate_limits_secondary_none_only_primary(monkeypatch) -> None:
     """When secondary_window is None, only primary entry is written."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3412,7 +3651,7 @@ async def test_additional_rate_limits_secondary_none_only_primary(monkeypatch) -
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_prune_stale_limit_names(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3479,7 +3718,7 @@ async def test_additional_rate_limits_prune_stale_limit_names(monkeypatch) -> No
 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_prune_stale_secondary_window(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3548,7 +3787,7 @@ async def test_additional_rate_limits_prune_stale_secondary_window(monkeypatch) 
 @pytest.mark.asyncio
 async def test_additional_rate_limits_no_credits_passed(monkeypatch) -> None:
     """Credits data is NOT passed to additional limit entries (no credits_* fields)."""
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -3619,7 +3858,7 @@ def test_latest_usage_is_fresh_returns_false_when_reset_at_has_passed() -> None:
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_fetches_when_additional_usage_ages_despite_fresh_main_rows(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3677,7 +3916,7 @@ async def test_refresh_accounts_fetches_when_additional_usage_ages_despite_fresh
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_fetches_when_no_additional_rows_were_ever_synced(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3720,7 +3959,7 @@ async def test_refresh_accounts_fetches_when_no_additional_rows_were_ever_synced
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_skips_fetch_when_additional_usage_is_fresh(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3769,7 +4008,7 @@ async def test_refresh_accounts_skips_fetch_when_additional_usage_is_fresh(monke
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_skips_fetch_when_newer_sibling_row_supersedes_elapsed_primary(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3818,7 +4057,7 @@ async def test_refresh_accounts_skips_fetch_when_newer_sibling_row_supersedes_el
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_skips_fetch_when_only_fresh_secondary_row_exists(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3857,7 +4096,7 @@ async def test_refresh_accounts_skips_fetch_when_only_fresh_secondary_row_exists
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_ignores_lingering_monthly_rows_for_paid_plans(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3908,7 +4147,7 @@ async def test_refresh_accounts_ignores_lingering_monthly_rows_for_paid_plans(mo
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_still_fetches_when_elapsed_primary_has_no_newer_sibling(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -3957,7 +4196,7 @@ async def test_refresh_accounts_still_fetches_when_elapsed_primary_has_no_newer_
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_forces_fetch_after_rate_limit_reset_despite_fresh_usage(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -4009,8 +4248,8 @@ async def test_refresh_accounts_forces_fetch_after_rate_limit_reset_despite_fres
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_does_not_repeat_post_reset_rate_limit_probe(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -4043,7 +4282,7 @@ async def test_refresh_accounts_does_not_repeat_post_reset_rate_limit_probe(monk
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_forces_fetch_after_quota_reset_despite_fresh_primary_usage(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 
@@ -4101,8 +4340,8 @@ async def test_refresh_accounts_forces_fetch_after_quota_reset_despite_fresh_pri
 
 @pytest.mark.asyncio
 async def test_refresh_accounts_does_not_repeat_post_reset_quota_probe(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_ENABLED", "true")
-    monkeypatch.setenv("CODEX_LB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_ENABLED", "true")
+    monkeypatch.setenv("OPENHUB_USAGE_REFRESH_INTERVAL_SECONDS", "3600")
     from app.core.config.settings import get_settings
     from app.core.utils.time import utcnow
 

@@ -26,7 +26,7 @@ already lives in dashboard runtime settings backed by `dashboard_settings` +
   Leader-election gating of the actual pass is unchanged.
 - The Settings page gains a "Data retention" card inside the existing
   Advanced group (no new nav item).
-- `CODEX_LB_REQUEST_LOG_RETENTION_DAYS` / `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS`
+- `OPENHUB_REQUEST_LOG_RETENTION_DAYS` / `OPENHUB_USAGE_HISTORY_RETENTION_DAYS`
   stay functional this release as deprecated aliases; removal is a later
   phase (they are NOT added to `_REMOVED_SETTINGS` yet).
 

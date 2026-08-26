@@ -51,8 +51,8 @@ async def _add_log(logs_repo: RequestLogsRepository, *, account_id: str, request
 
 
 def _set_retention(monkeypatch, *, request_logs: int = 0, usage_history: int = 0) -> None:
-    monkeypatch.setenv("CODEX_LB_REQUEST_LOG_RETENTION_DAYS", str(request_logs))
-    monkeypatch.setenv("CODEX_LB_USAGE_HISTORY_RETENTION_DAYS", str(usage_history))
+    monkeypatch.setenv("OPENHUB_REQUEST_LOG_RETENTION_DAYS", str(request_logs))
+    monkeypatch.setenv("OPENHUB_USAGE_HISTORY_RETENTION_DAYS", str(usage_history))
     get_settings.cache_clear()
 
 

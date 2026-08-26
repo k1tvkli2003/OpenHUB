@@ -6,7 +6,7 @@ Return the Codex model catalog shape (`{"models": [...]}`) from `GET /v1/models`
 
 ## Motivation
 
-Codex CLI/IDE clients can be pointed at codex-lb in two ways: the `codex-lb`-style provider (`base_url = .../backend-api/codex`) or the simpler `openai_base_url = ".../v1"` override. In the second mode the client fetches its model catalog from `<base_url>/models`, i.e. `GET /v1/models?client_version=<version>` — the codex-rs models-manager always appends that query parameter.
+Codex CLI/IDE clients can be pointed at openhub in two ways: the `openhub`-style provider (`base_url = .../backend-api/codex`) or the simpler `openai_base_url = ".../v1"` override. In the second mode the client fetches its model catalog from `<base_url>/models`, i.e. `GET /v1/models?client_version=<version>` — the codex-rs models-manager always appends that query parameter.
 
 That endpoint currently returns only the OpenAI-compatible shape (`{"object": "list", "data": [...]}`), which the Codex client cannot parse as a catalog. The refresh fails silently and the client falls back to the model metadata bundled in its binary. The failure is invisible until the bundled metadata diverges from what the proxy can serve: with GPT-5.6 (`use_responses_lite = true`, `tool_mode = "code_mode_only"` in the bundled metadata), clients built lite-shaped requests that the proxy could not honor, and every session ran without tools while `/backend-api/codex/models` was serving correct(able) metadata all along.
 

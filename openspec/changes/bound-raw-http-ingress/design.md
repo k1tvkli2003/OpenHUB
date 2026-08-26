@@ -18,7 +18,7 @@ The implementation must protect body parsing that occurs before route dependenci
 
 - Multipart per-file, aggregate-file, or parser limits.
 - Websocket ingress, upstream `response.create` slimming, or reverse-proxy configuration.
-- New `CODEX_LB_*` settings or changes to the existing budget defaults.
+- New `OPENHUB_*` settings or changes to the existing budget defaults.
 
 ## Decisions
 

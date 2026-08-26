@@ -1,7 +1,7 @@
 ## Why
 
 Some OpenAI workspace tokens expose the same `chatgpt_account_id` for multiple
-human login emails in the same workspace. When codex-lb treats that upstream
+human login emails in the same workspace. When openhub treats that upstream
 workspace identifier as a unique account identity, adding or reauthorizing one
 workspace member can overwrite another member's stored tokens.
 

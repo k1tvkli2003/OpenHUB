@@ -153,9 +153,9 @@ _BLOCKED_LITERAL_HOSTS = {"localhost", "localhost.localdomain"}
 _UPSTREAM_RESPONSE_CREATE_MAX_BYTES = get_settings().upstream_response_create_max_bytes
 _UPSTREAM_RESPONSE_CREATE_WARN_BYTES = int(_UPSTREAM_RESPONSE_CREATE_MAX_BYTES * 0.8)
 _RESPONSE_CREATE_TOOL_OUTPUT_OMISSION_NOTICE = (
-    "[codex-lb omitted historical tool output ({bytes} bytes) to fit upstream websocket budget]"
+    "[openhub omitted historical tool output ({bytes} bytes) to fit upstream websocket budget]"
 )
-_RESPONSE_CREATE_IMAGE_OMISSION_NOTICE = "[codex-lb omitted historical inline image to fit upstream websocket budget]"
+_RESPONSE_CREATE_IMAGE_OMISSION_NOTICE = "[openhub omitted historical inline image to fit upstream websocket budget]"
 _SLIMMABLE_TOOL_CALL_OUTPUT_ITEM_TYPES = frozenset(
     {"function_call_output", "custom_tool_call_output", "apply_patch_call_output"}
 )
@@ -370,8 +370,8 @@ async def _record_account_circuit_breaker_failure(circuit_breaker: CircuitBreake
     return True
 
 
-_HELD_HALF_OPEN_PROBE_FLAG = "_codex_lb_half_open_probe_held"
-_HELD_HALF_OPEN_PROBE_BREAKER = "_codex_lb_half_open_probe_breaker"
+_HELD_HALF_OPEN_PROBE_FLAG = "_openhub_half_open_probe_held"
+_HELD_HALF_OPEN_PROBE_BREAKER = "_openhub_half_open_probe_breaker"
 
 
 def _bind_half_open_probe(
@@ -2616,7 +2616,7 @@ async def stream_responses(
     allow_direct_egress: bool = True,
     codex_installation_id: str | None = None,
     enforce_openai_sdk_contract: bool = True,
-    codex_lb_account_id: str | None = None,
+    openhub_account_id: str | None = None,
     suppress_live_usage: bool = False,
 ) -> AsyncIterator[str]:
     effective_allow_direct_egress = allow_direct_egress or (route is None and session is not None)
@@ -2636,14 +2636,14 @@ async def stream_responses(
             allow_direct_egress=effective_allow_direct_egress,
             codex_installation_id=codex_installation_id,
             enforce_openai_sdk_contract=enforce_openai_sdk_contract,
-            codex_lb_account_id=codex_lb_account_id,
+            openhub_account_id=openhub_account_id,
             suppress_live_usage=suppress_live_usage,
         ):
-            if not suppress_live_usage and (codex_lb_account_id or account_id) and EVENT_MARKER in event_block:
+            if not suppress_live_usage and (openhub_account_id or account_id) and EVENT_MARKER in event_block:
                 publish_live_usage(
                     parse_rate_limit_event_text(event_block),
-                    account_id=codex_lb_account_id,
-                    chatgpt_account_id=None if codex_lb_account_id else account_id,
+                    account_id=openhub_account_id,
+                    chatgpt_account_id=None if openhub_account_id else account_id,
                 )
             yield event_block
 
@@ -2663,7 +2663,7 @@ async def _stream_responses_with_session(
     allow_direct_egress: bool = True,
     codex_installation_id: str | None = None,
     enforce_openai_sdk_contract: bool = True,
-    codex_lb_account_id: str | None = None,
+    openhub_account_id: str | None = None,
     suppress_live_usage: bool = False,
 ) -> AsyncIterator[str]:
     settings = get_settings()
@@ -2795,8 +2795,8 @@ async def _stream_responses_with_session(
                 if not suppress_live_usage:
                     publish_live_usage(
                         parse_rate_limit_headers(getattr(raw_resp, "headers", None)),
-                        account_id=codex_lb_account_id,
-                        chatgpt_account_id=None if codex_lb_account_id else account_id,
+                        account_id=openhub_account_id,
+                        chatgpt_account_id=None if openhub_account_id else account_id,
                     )
                 if resp.status >= 400:
                     if raise_for_status:
@@ -2889,8 +2889,8 @@ async def _stream_responses_with_session(
             if not suppress_live_usage:
                 publish_live_usage(
                     parse_rate_limit_headers(getattr(resp, "headers", None)),
-                    account_id=codex_lb_account_id,
-                    chatgpt_account_id=None if codex_lb_account_id else account_id,
+                    account_id=openhub_account_id,
+                    chatgpt_account_id=None if openhub_account_id else account_id,
                 )
             if resp.status >= 400:
                 if raise_for_status:

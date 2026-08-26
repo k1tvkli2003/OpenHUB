@@ -43,7 +43,7 @@ frontend/coverage/
 .worktrees/
 certs/
 
-.codex-lb/
+.openhub/
 .sisyphus/
 
 .specstory/

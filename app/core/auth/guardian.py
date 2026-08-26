@@ -132,7 +132,7 @@ class AuthGuardianScheduler:
             if live_replicas > 1:
                 logger.warning(
                     "Auth Guardian skipped refresh pass: %d live replicas registered in the bridge ring "
-                    "while leader election is disabled; set CODEX_LB_LEADER_ELECTION_ENABLED=true so a "
+                    "while leader election is disabled; set OPENHUB_LEADER_ELECTION_ENABLED=true so a "
                     "single elected replica performs proactive refresh work",
                     live_replicas,
                 )
@@ -265,7 +265,7 @@ def build_auth_guardian_scheduler() -> AuthGuardianScheduler:
     if settings.auth_guardian_enabled and not enabled:
         logger.warning(
             "Auth Guardian disabled: multi-replica deployment without leader election; "
-            "set CODEX_LB_LEADER_ELECTION_ENABLED=true to run it leader-gated"
+            "set OPENHUB_LEADER_ELECTION_ENABLED=true to run it leader-gated"
         )
     return AuthGuardianScheduler(
         interval_seconds=_INTERVAL_SECONDS,

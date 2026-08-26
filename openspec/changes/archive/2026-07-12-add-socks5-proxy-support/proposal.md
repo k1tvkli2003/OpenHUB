@@ -1,6 +1,6 @@
 ## Why
 
-Operators deploying codex-lb in network environments that route egress through a
+Operators deploying openhub in network environments that route egress through a
 SOCKS proxy (corporate networks, VPNs, containerised egress gateways) have no way to
 tunnel the outbound HTTP and WebSocket sessions through that proxy today. `aiohttp`'s
 `trust_env=True` setting only honours HTTP/HTTPS proxy env vars natively; SOCKS

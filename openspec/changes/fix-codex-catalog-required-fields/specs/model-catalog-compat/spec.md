@@ -23,7 +23,7 @@ when the field is absent.
 #### Scenario: Hidden bootstrap metadata cannot invalidate the live catalog
 
 - **GIVEN** a successful live refresh omits an older bundled model
-- **AND** codex-lb retains that model as hidden metadata whose raw payload lacks
+- **AND** openhub retains that model as hidden metadata whose raw payload lacks
   required Codex wire fields
 - **WHEN** a Codex client requests the native model catalog
 - **THEN** the hidden entry includes a valid `truncation_policy`
@@ -35,14 +35,14 @@ when the field is absent.
 
 - **GIVEN** a live catalog or model source provides `truncation_policy` or
   `experimental_supported_tools`
-- **WHEN** codex-lb renders the Codex-native catalog entry
+- **WHEN** openhub renders the Codex-native catalog entry
 - **THEN** it preserves those explicit values unchanged
 
 #### Scenario: Invalid source tool members cannot fail the catalog
 
 - **GIVEN** a model source provides `experimental_supported_tools` with both
   string and non-string members
-- **WHEN** codex-lb renders the Codex-native catalog entry
+- **WHEN** openhub renders the Codex-native catalog entry
 - **THEN** it retains the string tool names
 - **AND** it omits non-string members instead of returning a server error
 
@@ -50,7 +50,7 @@ when the field is absent.
 
 - **GIVEN** a model source provides a non-list value for
   `experimental_supported_tools`
-- **WHEN** codex-lb renders the Codex-native catalog entry
+- **WHEN** openhub renders the Codex-native catalog entry
 - **THEN** it emits an empty list instead of returning a server error
 
 #### Scenario: Malformed source truncation policy cannot fail the catalog
@@ -58,7 +58,7 @@ when the field is absent.
 - **GIVEN** a model source provides an invalid `truncation_policy`, such as a
   null, non-object, incomplete object, unknown mode, non-integer limit, or
   out-of-range limit
-- **WHEN** codex-lb renders the Codex-native catalog entry
+- **WHEN** openhub renders the Codex-native catalog entry
 - **THEN** it emits the conservative model-compatible truncation policy
 - **AND** it does not return a server error
 

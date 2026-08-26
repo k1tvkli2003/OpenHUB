@@ -1,6 +1,6 @@
 ## Why
 
-Some OpenAI-compatible clients, including JetBrains IDE provider setup, probe the configured base URL by requesting `GET /backend-api/codex/models` and deserializing an OpenAI-style model list with a top-level `data` field. codex-lb's Codex-native endpoint only returned `models`, so those clients rejected the otherwise valid response before they could use the provider.
+Some OpenAI-compatible clients, including JetBrains IDE provider setup, probe the configured base URL by requesting `GET /backend-api/codex/models` and deserializing an OpenAI-style model list with a top-level `data` field. openhub's Codex-native endpoint only returned `models`, so those clients rejected the otherwise valid response before they could use the provider.
 
 ## What Changes
 

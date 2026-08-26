@@ -149,7 +149,7 @@ async def test_v1_models_list(async_client):
     custom_items = [item for item in data if item["id"] in {"gpt-5.2", "gpt-5.3-codex"}]
     for item in custom_items:
         assert item["object"] == "model"
-        assert item["owned_by"] == "codex-lb"
+        assert item["owned_by"] == "openhub"
         assert "metadata" in item
         assert item["api_types"] == ["chat_completions"]
         assert item["capabilities"]["context_length"] == item["metadata"]["input_context_window"]
@@ -831,7 +831,7 @@ async def test_backend_codex_models_data_keeps_only_list_visible_models(async_cl
     assert "gpt-visible" in data
     assert "gpt-hidden" not in data
     assert data["gpt-visible"]["object"] == "model"
-    assert data["gpt-visible"]["owned_by"] == "codex-lb"
+    assert data["gpt-visible"]["owned_by"] == "openhub"
 
 
 @pytest.mark.asyncio

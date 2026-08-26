@@ -27,6 +27,14 @@ ACCOUNT_PLAN_EQUIVALENTS: Final[dict[str, frozenset[str]]] = {
     "prolite": frozenset({"pro"}),
 }
 
+# These labels all describe the non-paid account family for routing purposes.
+# Keep this separate from normalization: unknown/unreported plans must retain
+# their existing compatibility behavior, while an explicit Free-family value
+# is a hard product-level routing exclusion.
+FREE_ROUTING_BLOCKED_PLAN_TYPES: Final[frozenset[str]] = frozenset(
+    {"free", "guest", "go", "free_workspace", "quorum"}
+)
+
 
 def _clean_plan_type(value: str | None) -> str | None:
     if value is None:
@@ -59,6 +67,11 @@ def coerce_account_plan_type(value: str | None, default: str) -> str:
         return default
     canonical = canonicalize_account_plan_type(cleaned)
     return canonical if canonical is not None else default
+
+
+def is_free_account_plan(value: str | None) -> bool:
+    cleaned = _clean_plan_type(value)
+    return cleaned is not None and cleaned.lower() in FREE_ROUTING_BLOCKED_PLAN_TYPES
 
 
 def normalize_rate_limit_plan_type(value: str | None) -> str | None:

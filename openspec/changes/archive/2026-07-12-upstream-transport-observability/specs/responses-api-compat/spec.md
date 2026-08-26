@@ -37,6 +37,6 @@ Streaming Responses proxy requests MUST emit a low-cardinality Prometheus counte
 
 #### Scenario: transport decision counter labels are bounded
 - **WHEN** a streaming Responses request completes or terminates with an error
-- **THEN** `codex_lb_upstream_transport_decisions_total` is incremented once
+- **THEN** `openhub_upstream_transport_decisions_total` is incremented once
 - **AND** its labels include only `downstream_transport`, `upstream_transport`, `policy`, `sticky`, and `status`
 - **AND** `status` is `"success"` or `"error"`

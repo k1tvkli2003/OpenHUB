@@ -1,5 +1,5 @@
 - [x] Add `i18next`, `react-i18next`, `i18next-browser-languagedetector` to `frontend/package.json` dependencies.
-- [x] Create `frontend/src/i18n/index.ts` initialising `i18next` with `en` and `zh-CN` resources, language detection (querystring, localStorage, navigator), `localStorage` persistence under `codex-lb-language`, and English fallback.
+- [x] Create `frontend/src/i18n/index.ts` initialising `i18next` with `en` and `zh-CN` resources, language detection (querystring, localStorage, navigator), `localStorage` persistence under `openhub-language`, and English fallback.
 - [x] Create `frontend/src/i18n/locales/en.json` and `frontend/src/i18n/locales/zh-CN.json` covering the in-scope keys (`common.*`, `nav.*`, `auth.*`, `statusBar.*`).
 - [x] Import the i18n bootstrap from `frontend/src/main.tsx` so it runs before React hydration.
 - [x] Add a `LanguageToggle` control rendered inside `AppHeader` (desktop and mobile sheet) that switches between English and Simplified Chinese, persists the change, and updates the `<html lang>` attribute.

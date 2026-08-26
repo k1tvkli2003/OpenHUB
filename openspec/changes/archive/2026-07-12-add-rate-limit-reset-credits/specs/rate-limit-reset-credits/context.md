@@ -2,10 +2,10 @@
 
 ## Purpose
 
-codex-lb polls OpenAI's banked ("savable") rate-limit reset credits per account, caches them
+openhub polls OpenAI's banked ("savable") rate-limit reset credits per account, caches them
 in memory, and lets dashboard operators redeem the soonest-expiring credit for any account
 without leaving the dashboard. The credit is a ChatGPT-subscription entitlement granted by
-OpenAI; codex-lb is spending a credit OpenAI already gave the account — it does not bypass
+OpenAI; openhub is spending a credit OpenAI already gave the account — it does not bypass
 any rate limit.
 
 ## Upstream Source
@@ -23,8 +23,8 @@ headers. The consume body returns `{code, credit: {id, status, redeemed_at, ...}
 These endpoints are undocumented and were reverse-engineered from the official
 `openai.chatgpt` VS Code extension's webview bundle. The canonical external reference is
 [`aaamosh/codex-reset`](https://github.com/aaamosh/codex-reset) — a single-account CLI
-implementation that codex-lb's multi-account, dashboard-driven, in-memory-cached variant
-is based on. OpenAI may rename, gate, or remove these endpoints at any time; the codex-lb
+implementation that openhub's multi-account, dashboard-driven, in-memory-cached variant
+is based on. OpenAI may rename, gate, or remove these endpoints at any time; the openhub
 client treats non-200, non-JSON, and schema-drifted 200 responses defensively.
 
 ## Decisions
@@ -52,7 +52,7 @@ client treats non-200, non-JSON, and schema-drifted 200 responses defensively.
 - **Snapshot is empty/stale.** UI hides all reset affordances for that account
   (`available_reset_credits: 0`). Not an error — wait one tick.
 - **Fresh consume preflight disproves a cached credit.** If the live pre-consume fetch says
-  `available_count: 0` or returns no available items, codex-lb overwrites the cached snapshot
+  `available_count: 0` or returns no available items, openhub overwrites the cached snapshot
   with that fresh upstream state before returning `409`, so the dashboard does not keep
   advertising a stale `Reset (N)` action until the next scheduler tick.
 - **Account becomes ineligible after a successful snapshot.** Scheduler skips paused,

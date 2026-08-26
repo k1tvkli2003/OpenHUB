@@ -257,8 +257,8 @@ class _TrackingBody(AsyncByteStream):
 
 
 def _configure_tiny_generic_ingress_budget(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "5")
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "5")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", "5")
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", "5")
     get_settings.cache_clear()
 
 

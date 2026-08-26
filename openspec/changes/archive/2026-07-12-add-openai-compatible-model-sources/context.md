@@ -8,14 +8,14 @@
 link-local, and private-network addresses. This is deliberate: the primary use
 case for OpenAI-compatible model sources is self-hosted inference servers
 (vLLM, Ollama, llama.cpp, LM Studio) running on `localhost` or inside the same
-private network as codex-lb, so an allowlist or private-range block would break
+private network as openhub, so an allowlist or private-range block would break
 the feature's main deployment shape.
 
 The resulting SSRF surface is bounded by:
 
 - Source creation/update is dashboard-admin gated. Only operators with write
   access to the settings UI (or the admin API) can point the proxy at a new
-  URL, and those operators already control the host codex-lb runs on.
+  URL, and those operators already control the host openhub runs on.
 - Requests to a source are always fixed-shape POSTs:
   `<base_url>/chat/completions` or `<base_url>/responses` with a JSON body, or
   `<base_url>/audio/transcriptions` with multipart form data. An attacker

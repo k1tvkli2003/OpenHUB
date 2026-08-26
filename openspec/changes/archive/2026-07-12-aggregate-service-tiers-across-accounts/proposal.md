@@ -1,6 +1,6 @@
 ## Why
 
-When codex-lb serves multiple ChatGPT/Codex accounts, the model registry
+When openhub serves multiple ChatGPT/Codex accounts, the model registry
 fetches the catalog per plan/account and merges same-slug models
 last-writer-wins. An account without Fast (speed-tier) entitlement returns empty
 `service_tiers`/`additional_speed_tiers` for a shared slug, and that empty list

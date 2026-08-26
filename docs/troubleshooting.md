@@ -2,19 +2,19 @@
 
 ## Usage and quota
 
-**Why does codex-lb still say `rate_limited` when Codex Desktop says the window reset?**
-codex-lb refreshes usage on its own schedule and treats upstream samples conservatively. The full policy — refresh cadence, expiry, and why displays can briefly disagree with upstream — is documented in the
-[usage refresh policy context](https://github.com/Soju06/codex-lb/blob/main/openspec/specs/usage-refresh-policy/context.md).
+**Why does openhub still say `rate_limited` when Codex Desktop says the window reset?**
+openhub refreshes usage on its own schedule and treats upstream samples conservatively. The full policy — refresh cadence, expiry, and why displays can briefly disagree with upstream — is documented in the
+[usage refresh policy context](https://github.com/k1tvkli2003/OpenHUB/blob/main/openspec/specs/usage-refresh-policy/context.md).
 
 ## Streaming
 
 **Codex CLI falls back to POST instead of WebSockets.**
-Run the [WebSocket verification steps](client-setup.md#verify-websocket-transport). If codex-lb sits behind a reverse proxy, make sure it forwards WebSocket upgrades — see [Remote Access](deployment/remote.md).
+Run the [WebSocket verification steps](client-setup.md#verify-websocket-transport). If openhub sits behind a reverse proxy, make sure it forwards WebSocket upgrades — see [Remote Access](deployment/remote.md).
 
 ## Fast Mode and service tiers
 
 Fast Mode and service-tier behavior is documented in the
-[Responses API compatibility context](https://github.com/Soju06/codex-lb/blob/main/openspec/specs/responses-api-compat/context.md#fast-mode-and-service-tiers).
+[Responses API compatibility context](https://github.com/k1tvkli2003/OpenHUB/blob/main/openspec/specs/responses-api-compat/context.md#fast-mode-and-service-tiers).
 
 ## Old Codex sessions missing after migrating
 
@@ -23,4 +23,4 @@ Fast Mode and service-tier behavior is documented in the
 
 ---
 
-*Spec: [usage-refresh-policy](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/usage-refresh-policy)*
+*Spec: [usage-refresh-policy](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/usage-refresh-policy)*

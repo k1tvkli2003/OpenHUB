@@ -194,8 +194,8 @@ async def test_peer_replica_holds_free_plan_rate_limited_account_despite_fresh_m
     straight back to ACTIVE, erasing the persisted cooldown."""
     limited = _make_account("free_limited", plan_type="free")
     healthy = _make_account("free_healthy", plan_type="free")
-    # fill_first prefers the higher long-window usage, so replica B would pick
-    # the rate-limited account if it (incorrectly) considered it selectable.
+    # Free-family accounts are visibility-only and must never enter routing,
+    # while the persisted cooldown still has to survive a peer read.
     await _seed_free_accounts_with_monthly_usage((limited, 50.0), (healthy, 10.0))
 
     balancer_a = LoadBalancer(_repo_factory)
@@ -211,8 +211,7 @@ async def test_peer_replica_holds_free_plan_rate_limited_account_despite_fresh_m
     balancer_b = LoadBalancer(_repo_factory)
     selection = await balancer_b.select_account(routing_strategy="fill_first")
 
-    assert selection.account is not None
-    assert selection.account.id == healthy.id
+    assert selection.account is None
 
     row = await _fetch_account(limited.id)
     assert row.status == AccountStatus.RATE_LIMITED
@@ -240,8 +239,7 @@ async def test_legacy_free_plan_rate_limited_row_is_floored_despite_fresh_monthl
     balancer = LoadBalancer(_repo_factory)
     selection = await balancer.select_account(routing_strategy="fill_first")
 
-    assert selection.account is not None
-    assert selection.account.id == healthy.id
+    assert selection.account is None
 
     row = await _fetch_account(limited.id)
     assert row.status == AccountStatus.RATE_LIMITED

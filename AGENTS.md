@@ -87,7 +87,7 @@ are encouraged but not substitutes for the cloud gates.
 
 ## PR Readiness / Review Trapdoors
 
-These rules encode recurring review blockers observed across codex-lb PRs.
+These rules encode recurring review blockers observed across openhub PRs.
 
 - OpenSpec is a hard gate for behavior, API, schema, CLI,
   dashboard-visible, proxy-routing, operator-contract, and compatibility
@@ -132,7 +132,7 @@ These rules encode recurring review blockers observed across codex-lb PRs.
   behavior the code does not implement.
 - Simplicity gates are a merge gate (`PRINCIPLES.md` +
   [CONTRIBUTING.md Simplicity gates](.github/CONTRIBUTING.md#simplicity-gates)).
-  New features must default off or work zero-config; new `CODEX_LB_*` settings
+  New features must default off or work zero-config; new `OPENHUB_*` settings
   need a why-not-a-default justification in the PR body; README top-level
   sections, `.env.example`, and dashboard core-nav items are budgeted per
   `.github/simplicity-budgets.toml` and exceptions need the maintainer-applied

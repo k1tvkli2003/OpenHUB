@@ -45,42 +45,42 @@ if PROMETHEUS_AVAILABLE:
     REGISTRY = CollectorRegistry(auto_describe=True)
 
     requests_total = Counter(
-        "codex_lb_requests_total",
+        "openhub_requests_total",
         "Total HTTP requests",
         ["method", "path", "status"],
         registry=REGISTRY,
     )
     request_duration_seconds = Histogram(
-        "codex_lb_request_duration_seconds",
+        "openhub_request_duration_seconds",
         "HTTP request duration",
         ["method", "path"],
         registry=REGISTRY,
     )
     upstream_requests_total = Counter(
-        "codex_lb_upstream_requests_total",
+        "openhub_upstream_requests_total",
         "Total upstream requests",
         ["account_id", "status"],
         registry=REGISTRY,
     )
     upstream_transport_decisions_total = Counter(
-        "codex_lb_upstream_transport_decisions_total",
+        "openhub_upstream_transport_decisions_total",
         "Total upstream transport decisions for streaming Responses requests",
         ["downstream_transport", "upstream_transport", "policy", "sticky", "status"],
         registry=REGISTRY,
     )
     upstream_request_duration_seconds = Histogram(
-        "codex_lb_upstream_request_duration_seconds",
+        "openhub_upstream_request_duration_seconds",
         "Upstream request duration",
         registry=REGISTRY,
     )
     image_requests_total = Counter(
-        "codex_lb_image_requests_total",
+        "openhub_image_requests_total",
         "Total OpenAI-compatible image route requests",
         ["route", "model", "stream", "status", "outcome"],
         registry=REGISTRY,
     )
     image_request_duration_seconds = Histogram(
-        "codex_lb_image_request_duration_seconds",
+        "openhub_image_request_duration_seconds",
         "OpenAI-compatible image route request duration",
         ["route", "model", "stream", "status", "outcome"],
         registry=REGISTRY,
@@ -91,143 +91,143 @@ if PROMETHEUS_AVAILABLE:
         _gauge_kwargs["multiprocess_mode"] = "livesum"
 
     active_connections = Gauge(
-        "codex_lb_active_connections",
+        "openhub_active_connections",
         "Active HTTP connections",
         registry=REGISTRY,
         **_gauge_kwargs,
     )
     rate_limit_hits_total = Counter(
-        "codex_lb_rate_limit_hits_total",
+        "openhub_rate_limit_hits_total",
         "Rate limit hits",
         ["type"],
         registry=REGISTRY,
     )
     circuit_breaker_state = Gauge(
-        "codex_lb_circuit_breaker_state",
+        "openhub_circuit_breaker_state",
         "Circuit breaker state (0=closed, 1=open, 2=half-open)",
         ["service"],
         registry=REGISTRY,
         **({"multiprocess_mode": "liveall"} if MULTIPROCESS_MODE else {}),
     )
     accounts_total = Gauge(
-        "codex_lb_accounts_total",
+        "openhub_accounts_total",
         "Total accounts by status",
         ["status"],
         registry=REGISTRY,
         **({"multiprocess_mode": "liveall"} if MULTIPROCESS_MODE else {}),
     )
     bridge_instance_mismatch_total = Counter(
-        "codex_lb_bridge_instance_mismatch_total",
+        "openhub_bridge_instance_mismatch_total",
         "Total bridge instance mismatches handled via graceful fallback",
         ["outcome"],
         registry=REGISTRY,
     )
     bridge_prompt_cache_locality_miss_total = Counter(
-        "codex_lb_bridge_prompt_cache_locality_miss_total",
+        "openhub_bridge_prompt_cache_locality_miss_total",
         "Total prompt-cache bridge locality misses tolerated via gateway-safe handling",
         registry=REGISTRY,
     )
     bridge_soft_local_rebind_total = Counter(
-        "codex_lb_bridge_soft_local_rebind_total",
+        "openhub_bridge_soft_local_rebind_total",
         "Total soft-affinity bridge sessions rebound locally on a non-owner instance",
         registry=REGISTRY,
     )
     bridge_owner_forward_total = Counter(
-        "codex_lb_bridge_owner_forward_total",
+        "openhub_bridge_owner_forward_total",
         "Total bridge owner forwards by outcome",
         ["outcome"],
         registry=REGISTRY,
     )
     bridge_durable_recover_total = Counter(
-        "codex_lb_bridge_durable_recover_total",
+        "openhub_bridge_durable_recover_total",
         "Total durable bridge recoveries by path",
         ["path"],
         registry=REGISTRY,
     )
     bridge_same_account_takeover_total = Counter(
-        "codex_lb_bridge_same_account_takeover_total",
+        "openhub_bridge_same_account_takeover_total",
         "Total same-account takeover outcomes",
         ["outcome"],
         registry=REGISTRY,
     )
     bridge_reattach_total = Counter(
-        "codex_lb_bridge_reattach_total",
+        "openhub_bridge_reattach_total",
         "Total bridge reattach outcomes by path",
         ["path", "outcome"],
         registry=REGISTRY,
     )
     bridge_first_turn_timeout_total = Counter(
-        "codex_lb_bridge_first_turn_timeout_total",
+        "openhub_bridge_first_turn_timeout_total",
         "Total first-turn bridge timeouts during upstream connect",
         registry=REGISTRY,
     )
     bridge_drain_recovery_allowed_total = Counter(
-        "codex_lb_bridge_drain_recovery_allowed_total",
+        "openhub_bridge_drain_recovery_allowed_total",
         "Total continuity recoveries allowed while bridge drain is active",
         registry=REGISTRY,
     )
     bridge_owner_mismatch_total = Counter(
-        "codex_lb_bridge_owner_mismatch_total",
+        "openhub_bridge_owner_mismatch_total",
         "Total bridge owner mismatches by key strength",
         ["strength"],
         registry=REGISTRY,
     )
     bridge_local_rebind_total = Counter(
-        "codex_lb_bridge_local_rebind_total",
+        "openhub_bridge_local_rebind_total",
         "Total bridge local rebinds by reason",
         ["reason"],
         registry=REGISTRY,
     )
     bridge_forward_latency_seconds = Histogram(
-        "codex_lb_bridge_forward_latency_seconds",
+        "openhub_bridge_forward_latency_seconds",
         "Bridge owner forward latency",
         registry=REGISTRY,
     )
     bridge_public_contract_error_total = Counter(
-        "codex_lb_bridge_public_contract_error_total",
+        "openhub_bridge_public_contract_error_total",
         "Total public /responses contract violations by kind",
         ["kind"],
         registry=REGISTRY,
     )
     continuity_owner_resolution_total = Counter(
-        "codex_lb_continuity_owner_resolution_total",
+        "openhub_continuity_owner_resolution_total",
         "Total continuity owner resolution outcomes by surface and source",
         ["surface", "source", "outcome"],
         registry=REGISTRY,
     )
     continuity_fail_closed_total = Counter(
-        "codex_lb_continuity_fail_closed_total",
+        "openhub_continuity_fail_closed_total",
         "Total continuity fail-closed or masked retryable outcomes by surface and reason",
         ["surface", "reason"],
         registry=REGISTRY,
     )
     account_lease_acquired_total = Counter(
-        "codex_lb_account_lease_acquired_total",
+        "openhub_account_lease_acquired_total",
         "Total account pressure leases acquired by kind",
         ["kind"],
         registry=REGISTRY,
     )
     account_lease_released_total = Counter(
-        "codex_lb_account_lease_released_total",
+        "openhub_account_lease_released_total",
         "Total account pressure leases released by kind and reason",
         ["kind", "reason"],
         registry=REGISTRY,
     )
     account_lease_stale_reclaimed_total = Counter(
-        "codex_lb_account_lease_stale_reclaimed_total",
+        "openhub_account_lease_stale_reclaimed_total",
         "Total stale account pressure leases reclaimed by kind",
         ["kind"],
         registry=REGISTRY,
     )
     account_inflight_leases = Gauge(
-        "codex_lb_account_inflight_leases",
+        "openhub_account_inflight_leases",
         "Current in-process account pressure leases by account and kind",
         ["account_id", "kind"],
         registry=REGISTRY,
         **_gauge_kwargs,
     )
     account_cap_rejections_total = Counter(
-        "codex_lb_account_cap_rejections_total",
+        "openhub_account_cap_rejections_total",
         "Total account-local cap rejections by kind",
         ["kind"],
         registry=REGISTRY,
@@ -241,37 +241,37 @@ if PROMETHEUS_AVAILABLE:
         # worker's stale higher count forever after a scale-down.
         _replica_gauge_kwargs["multiprocess_mode"] = "livemax"
     cap_partition_replicas = Gauge(
-        "codex_lb_cap_partition_replicas",
+        "openhub_cap_partition_replicas",
         "Live replica count currently used for account cap partitioning",
         registry=REGISTRY,
         **_replica_gauge_kwargs,
     )
     proxy_phase_latency_seconds = Histogram(
-        "codex_lb_proxy_phase_latency_seconds",
+        "openhub_proxy_phase_latency_seconds",
         "Proxy phase latency by low-cardinality phase and transport labels",
         ["phase", "transport", "upstream_transport", "model_class"],
         registry=REGISTRY,
     )
     http_bridge_prewarm_total = Counter(
-        "codex_lb_http_bridge_prewarm_total",
+        "openhub_http_bridge_prewarm_total",
         "Total HTTP bridge Codex prewarm outcomes",
         ["outcome"],
         registry=REGISTRY,
     )
     http_bridge_stuck_retire_total = Counter(
-        "codex_lb_http_bridge_stuck_retire_total",
+        "openhub_http_bridge_stuck_retire_total",
         "Total HTTP bridge stuck-session retirements",
         ["reason", "affinity_kind", "model_class"],
         registry=REGISTRY,
     )
     cache_invalidation_bump_failures_total = Counter(
-        "codex_lb_cache_invalidation_bump_failures_total",
+        "openhub_cache_invalidation_bump_failures_total",
         "Total cache invalidation version bumps that failed after retries",
         ["namespace"],
         registry=REGISTRY,
     )
     cache_invalidation_poll_failures_total = Counter(
-        "codex_lb_cache_invalidation_poll_failures_total",
+        "openhub_cache_invalidation_poll_failures_total",
         "Total cache invalidation poll cycles that failed",
         registry=REGISTRY,
     )

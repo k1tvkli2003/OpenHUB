@@ -3,7 +3,7 @@
 ## Why
 
 Deferred follow-up from issue #1340 (settings-surface reduction): operators
-have no complete, trustworthy list of the `CODEX_LB_*` environment variables.
+have no complete, trustworthy list of the `OPENHUB_*` environment variables.
 `docs/configuration.md` deliberately lists only the handful that matter and
 hand-written full lists drift immediately — the settings surface still has
 100+ fields and changes across releases. A generated reference page keeps the

@@ -1,13 +1,13 @@
 ## Context
 
-codex-lb already polls upstream `GET /wham/usage` per account on a 60s leader-gated loop (`app/core/usage/refresh_scheduler.py`) and uses an in-memory cache pattern (`app/modules/proxy/rate_limit_cache.py`) for short-lived values. Per-account OAuth bearer tokens are stored encrypted at rest (`Account.access_token_encrypted`) and decrypted on demand via `TokenEncryptor`. Dashboard endpoints authenticate via `validate_dashboard_session` + `require_dashboard_write_access`.
+openhub already polls upstream `GET /wham/usage` per account on a 60s leader-gated loop (`app/core/usage/refresh_scheduler.py`) and uses an in-memory cache pattern (`app/modules/proxy/rate_limit_cache.py`) for short-lived values. Per-account OAuth bearer tokens are stored encrypted at rest (`Account.access_token_encrypted`) and decrypted on demand via `TokenEncryptor`. Dashboard endpoints authenticate via `validate_dashboard_session` + `require_dashboard_write_access`.
 
 OpenAI added banked rate-limit reset credits on 2026-06-12. The upstream API surface (reverse-engineered and documented in the [`aaamosh/codex-reset`](https://github.com/aaamosh/codex-reset) reference) is:
 
 - `GET /wham/rate-limit-reset-credits` → `{credits: [...], available_count: N}` with `Authorization: Bearer <token>` + `chatgpt-account-id: <account_id>` headers
 - `POST /wham/rate-limit-reset-credits/consume` with body `{credit_id, redeem_request_id}` → `{code, credit, windows_reset}`
 
-The reference is a single-account CLI; codex-lb needs a multi-account, dashboard-driven, in-memory-cached variant.
+The reference is a single-account CLI; openhub needs a multi-account, dashboard-driven, in-memory-cached variant.
 
 ## Goals / Non-Goals
 

@@ -93,7 +93,7 @@ def _http_downstream_request_is_sticky(payload: ResponsesRequest, headers: Mappi
     )
 
 
-_POST_REFRESH_TRANSIENT_EXHAUSTED_ATTR = "_codex_lb_post_refresh_transient_exhausted"
+_POST_REFRESH_TRANSIENT_EXHAUSTED_ATTR = "_openhub_post_refresh_transient_exhausted"
 
 
 def _resolve_http_downstream_transport(policy: str, *, payload: ResponsesRequest, headers: Mapping[str, str]) -> str:

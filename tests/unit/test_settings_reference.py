@@ -25,12 +25,12 @@ from scripts.generate_settings_reference import OUTPUT_PATH, render_settings_ref
 def _isolated_settings(**overrides: Any) -> Settings:
     """Build Settings from code defaults only.
 
-    Strips ``CODEX_LB_*`` and the bare ``PORT`` variable from the process
+    Strips ``OPENHUB_*`` and the bare ``PORT`` variable from the process
     environment and disables env-file loading, so a developer's local
     ``.env.local`` or exported variables can never mask (or fake) a drift
     between ``.env.example`` and the code.
     """
-    clean = {k: v for k, v in os.environ.items() if not k.startswith("CODEX_LB_") and k != "PORT"}
+    clean = {k: v for k, v in os.environ.items() if not k.startswith("OPENHUB_") and k != "PORT"}
     with mock.patch.dict(os.environ, clean, clear=True):
         # ``_env_file`` is a documented pydantic-settings init kwarg that its
         # type stubs do not expose; ty flags it as unknown.
@@ -44,9 +44,11 @@ ENV_EXAMPLE_PATH = REPO_ROOT / ".env.example"
 
 # Ratchet on the settings surface (issue #1340, PRINCIPLES.md P2). Lower this
 # number when fields are removed; never raise it without a simplicity-budget
-# discussion — every new CODEX_LB_* setting needs a why-not-a-default
+# discussion — every new OPENHUB_* setting needs a why-not-a-default
 # justification per CONTRIBUTING.md's simplicity gates.
-MAX_SETTINGS_FIELDS = 115
+# OpenHUB adds two deliberately bounded local-runtime controls:
+# disposable native fixture mode and account-refresh concurrency.
+MAX_SETTINGS_FIELDS = 117
 
 
 def test_generated_settings_reference_matches_code() -> None:
@@ -93,8 +95,8 @@ def test_env_example_uncommented_values_match_code_defaults() -> None:
         if key == "PORT":
             assert value == "2455", f".env.example sets PORT={value}, but the code default is 2455"
             continue
-        assert key.startswith("CODEX_LB_"), f".env.example sets unknown env var {key}"
-        field_name = key.removeprefix("CODEX_LB_").lower()
+        assert key.startswith("OPENHUB_"), f".env.example sets unknown env var {key}"
+        field_name = key.removeprefix("OPENHUB_").lower()
         assert field_name in Settings.model_fields, f".env.example sets unknown setting {key}"
         # The raw env-file string is validated through the field's own
         # validators/coercion, exactly as pydantic-settings would apply it.

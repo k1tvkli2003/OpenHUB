@@ -45,4 +45,4 @@ The existing `trusted_header` validator will continue to require proxy-header tr
 
 ## Migration Plan
 
-Before upgrading, any deployment with `CODEX_LB_FIREWALL_TRUST_PROXY_HEADERS=true` and an empty `CODEX_LB_FIREWALL_TRUSTED_PROXY_CIDRS` must either configure the actual proxy CIDR or set header trust to false. No data migration is required. Rollback restores acceptance of the contradictory configuration.
+Before upgrading, any deployment with `OPENHUB_FIREWALL_TRUST_PROXY_HEADERS=true` and an empty `OPENHUB_FIREWALL_TRUSTED_PROXY_CIDRS` must either configure the actual proxy CIDR or set header trust to false. No data migration is required. Rollback restores acceptance of the contradictory configuration.

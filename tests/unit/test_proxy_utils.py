@@ -2556,6 +2556,232 @@ async def test_responses_route_preserves_immediate_error_after_capacity_recovers
 
 
 @pytest.mark.asyncio
+async def test_managed_codex_route_requires_a_prepared_launch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    select_account = AsyncMock()
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(prepared=False, account_id=None)
+        ),
+    )
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-not-prepared",
+        kind="responses",
+    )
+
+    assert selection.account is None
+    assert selection.error_code == "codex_launch_not_prepared"
+    select_account.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_manual_managed_codex_route_forces_prepared_account_without_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _make_proxy_settings()
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    prepared_account = _make_account("acc-managed-prepared")
+    select_account = AsyncMock(
+        return_value=AccountSelection(account=prepared_account, error_message=None)
+    )
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(
+                prepared=True,
+                account_id=prepared_account.id,
+                selection_mode="manual",
+            )
+        ),
+    )
+    monkeypatch.setattr(proxy_service, "get_settings_cache", lambda: _SettingsCache(settings))
+    monkeypatch.setattr(proxy_service, "_remaining_budget_seconds", lambda _deadline: 10.0)
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-prepared",
+        kind="responses",
+        preferred_account_id="acc-soft-preference",
+        fallback_on_preferred_account_unavailable=True,
+    )
+
+    assert selection.account == prepared_account
+    select_account.assert_awaited_once()
+    assert select_account.await_args is not None
+    assert select_account.await_args.kwargs["required_account_id"] == prepared_account.id
+    assert select_account.await_args.kwargs["required_account_is_ownership_constraint"] is True
+
+
+@pytest.mark.asyncio
+async def test_managed_codex_route_rejects_conflicting_continuity_owner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    select_account = AsyncMock()
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(
+                prepared=True,
+                account_id="acc-managed-prepared",
+                selection_mode="manual",
+            )
+        ),
+    )
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-conflict",
+        kind="responses",
+        preferred_account_id="acc-other-owner",
+        fallback_on_preferred_account_unavailable=False,
+    )
+
+    assert selection.account is None
+    assert selection.error_code == "codex_launch_continuity_conflict"
+    select_account.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_manual_managed_codex_route_does_not_fallback_when_prepared_account_is_excluded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _make_proxy_settings()
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    select_account = AsyncMock()
+    prepared_account_id = "acc-managed-excluded"
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(
+                prepared=True,
+                account_id=prepared_account_id,
+                selection_mode="manual",
+            )
+        ),
+    )
+    monkeypatch.setattr(proxy_service, "get_settings_cache", lambda: _SettingsCache(settings))
+    monkeypatch.setattr(proxy_service, "_remaining_budget_seconds", lambda _deadline: 10.0)
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-excluded",
+        kind="responses",
+        exclude_account_ids={prepared_account_id},
+    )
+
+    assert selection.account is None
+    assert selection.error_code == "codex_launch_account_unavailable"
+    select_account.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_automatic_managed_codex_route_falls_back_when_prepared_account_is_excluded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _make_proxy_settings()
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    prepared_account_id = "acc-managed-excluded"
+    fallback_account = _make_account("acc-managed-fallback")
+    select_account = AsyncMock(
+        return_value=AccountSelection(account=fallback_account, error_message=None)
+    )
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(
+                prepared=True,
+                account_id=prepared_account_id,
+                selection_mode="auto",
+            )
+        ),
+    )
+    monkeypatch.setattr(proxy_service, "get_settings_cache", lambda: _SettingsCache(settings))
+    monkeypatch.setattr(proxy_service, "_remaining_budget_seconds", lambda _deadline: 10.0)
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-auto-fallback",
+        kind="responses",
+        exclude_account_ids={prepared_account_id},
+    )
+
+    assert selection.account == fallback_account
+    select_account.assert_awaited_once()
+    assert select_account.await_args is not None
+    assert select_account.await_args.kwargs["required_account_id"] is None
+    assert select_account.await_args.kwargs["exclude_account_ids"] == {prepared_account_id}
+
+
+@pytest.mark.asyncio
+async def test_automatic_managed_codex_route_preserves_a_continuity_owner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _make_proxy_settings()
+    service = proxy_service.ProxyService(_repo_factory(_RequestLogsRecorder()))
+    continuity_account = _make_account("acc-continuity-owner")
+    select_account = AsyncMock(
+        return_value=AccountSelection(account=continuity_account, error_message=None)
+    )
+
+    monkeypatch.setattr(proxy_service, "managed_codex_route_active", lambda: True)
+    monkeypatch.setattr(
+        proxy_service,
+        "get_codex_integration_service",
+        lambda: SimpleNamespace(
+            launch_route_snapshot=lambda: SimpleNamespace(
+                prepared=True,
+                account_id="acc-managed-initial",
+                selection_mode="auto",
+            )
+        ),
+    )
+    monkeypatch.setattr(proxy_service, "get_settings_cache", lambda: _SettingsCache(settings))
+    monkeypatch.setattr(proxy_service, "_remaining_budget_seconds", lambda _deadline: 10.0)
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+
+    selection = await service._select_account_with_budget(
+        deadline=123.0,
+        request_id="req-managed-auto-continuity",
+        kind="responses",
+        preferred_account_id=continuity_account.id,
+        preferred_account_is_continuity_owner=True,
+        fallback_on_preferred_account_unavailable=False,
+    )
+
+    assert selection.account == continuity_account
+    select_account.assert_awaited_once()
+    assert select_account.await_args is not None
+    assert select_account.await_args.kwargs["required_account_id"] == continuity_account.id
+    assert select_account.await_args.kwargs["required_account_is_ownership_constraint"] is True
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("request_budget_seconds", "recovery_sleep_seconds", "minimum_selection_calls", "selection_delay_seconds"),
     [(0.2, 0.1, 2, 0.0), (0.1, 0.3, 1, 0.12)],
@@ -8451,7 +8677,7 @@ async def test_open_upstream_websocket_holds_half_open_probe_until_lifecycle_fin
     )
 
     assert cb.release_calls == 0
-    assert getattr(websocket, "_codex_lb_half_open_probe_held", False) is True
+    assert getattr(websocket, "_openhub_half_open_probe_held", False) is True
 
 
 @pytest.mark.asyncio
@@ -14366,11 +14592,11 @@ async def test_stream_responses_trims_overlapping_parallel_http_tool_call_replay
         "tool_uses": [
             {
                 "recipient_name": "functions.exec_command",
-                "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
             },
             {
                 "recipient_name": "functions.exec_command",
-                "parameters": {"cmd": "gh pr checks --repo Soju06/codex-lb"},
+                "parameters": {"cmd": "gh pr checks --repo k1tvkli2003/OpenHUB"},
             },
         ]
     }
@@ -14378,11 +14604,11 @@ async def test_stream_responses_trims_overlapping_parallel_http_tool_call_replay
         "tool_uses": [
             {
                 "recipient_name": "functions.exec_command",
-                "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
             },
             {
                 "recipient_name": "github.read_file",
-                "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+                "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
             },
         ]
     }
@@ -14423,7 +14649,7 @@ async def test_stream_responses_trims_overlapping_parallel_http_tool_call_replay
     assert json.loads(replay_item_arguments)["tool_uses"] == [
         {
             "recipient_name": "github.read_file",
-            "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+            "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
         }
     ]
 
@@ -14513,7 +14739,7 @@ async def test_stream_responses_retries_security_work_warning_on_authorized_acco
     assert len(chunks) == 2
     warning = json.loads(chunks[0].split("data: ", 1)[1])
     event = json.loads(chunks[1].split("data: ", 1)[1])
-    assert warning["type"] == "codex_lb.warning"
+    assert warning["type"] == "openhub.warning"
     assert warning["warning"]["code"] == "security_work_authorization_required"
     assert warning["warning"]["action"] == "retry_security_work_authorized"
     assert event["type"] == "response.completed"
@@ -14601,10 +14827,10 @@ async def test_stream_responses_treats_missing_security_work_pool_as_optional(mo
     retry_warning = json.loads(chunks[0].split("data: ", 1)[1])
     missing_pool_warning = json.loads(chunks[1].split("data: ", 1)[1])
     event = json.loads(chunks[2].split("data: ", 1)[1])
-    assert retry_warning["type"] == "codex_lb.warning"
+    assert retry_warning["type"] == "openhub.warning"
     assert retry_warning["warning"]["code"] == "security_work_authorization_required"
     assert retry_warning["warning"]["action"] == "retry_security_work_authorized"
-    assert missing_pool_warning["type"] == "codex_lb.warning"
+    assert missing_pool_warning["type"] == "openhub.warning"
     assert missing_pool_warning["warning"]["code"] == "no_security_work_authorized_accounts"
     assert missing_pool_warning["warning"]["action"] == "continue_normal_selection"
     assert event["type"] == "response.completed"
@@ -15016,7 +15242,7 @@ async def test_http_bridge_retries_security_work_warning_on_authorized_account(m
     warning_block = await request_state.event_queue.get()
     assert warning_block is not None
     warning = json.loads(warning_block.split("data: ", 1)[1])
-    assert warning["type"] == "codex_lb.warning"
+    assert warning["type"] == "openhub.warning"
     assert warning["warning"]["code"] == "security_work_authorization_required"
     assert warning["warning"]["action"] == "retry_security_work_authorized"
     assert request_state.event_queue.empty()
@@ -16375,7 +16601,7 @@ async def test_http_bridge_does_not_replay_security_work_warning_after_response_
     warning_block = await request_state.event_queue.get()
     assert warning_block is not None
     warning = json.loads(warning_block.split("data: ", 1)[1])
-    assert warning["type"] == "codex_lb.warning"
+    assert warning["type"] == "openhub.warning"
     assert warning["warning"]["code"] == "security_work_authorization_required"
     assert warning["warning"]["action"] == "forward_original_security_work_error"
     forwarded = await request_state.event_queue.get()
@@ -16851,6 +17077,75 @@ async def test_connect_proxy_websocket_fails_over_on_handshake_usage_limit_reach
     assert mark_call is not None
     assert mark_call.args[0] == account_a
     assert mark_call.args[1]["message"] == "usage limit reached"
+    websocket_send.assert_not_awaited()
+    assert request_logs.calls == []
+
+
+@pytest.mark.asyncio
+async def test_connect_proxy_websocket_quota_traverses_beyond_legacy_three_account_cap(monkeypatch):
+    request_logs = _RequestLogsRecorder()
+    service = proxy_service.ProxyService(_repo_factory(request_logs))
+    accounts = [_make_account(f"acc_ws_pool_{index}") for index in range(4)]
+    upstream = SimpleNamespace()
+
+    select_account = AsyncMock(
+        side_effect=[AccountSelection(account=account, error_message=None) for account in accounts]
+    )
+    mark_rate_limit = AsyncMock()
+    handshake_errors = [
+        proxy_module.ProxyResponseError(
+            429,
+            openai_error("usage_limit_reached", "usage limit reached"),
+        )
+        for _ in range(3)
+    ]
+
+    monkeypatch.setattr(service._load_balancer, "select_account", select_account)
+    monkeypatch.setattr(service._load_balancer, "mark_rate_limit", mark_rate_limit)
+    monkeypatch.setattr(service, "_ensure_fresh", AsyncMock(side_effect=accounts))
+    monkeypatch.setattr(
+        service,
+        "_open_upstream_websocket",
+        AsyncMock(side_effect=[*handshake_errors, upstream]),
+    )
+    monkeypatch.setattr(service, "_release_websocket_reservation", AsyncMock())
+
+    request_state = proxy_service._WebSocketRequestState(
+        request_id="ws_req_pool_failover",
+        model="gpt-5.1",
+        service_tier=None,
+        reasoning_effort=None,
+        api_key_reservation=None,
+        started_at=0.0,
+    )
+    websocket_send = AsyncMock()
+    websocket = cast(WebSocket, SimpleNamespace(send_text=websocket_send))
+
+    selected_account, selected_upstream = await service._connect_proxy_websocket(
+        {},
+        sticky_key=None,
+        sticky_kind=None,
+        prefer_earlier_reset=False,
+        prefer_earlier_reset_window="secondary",
+        routing_strategy="usage_weighted",
+        model="gpt-5.1",
+        request_state=request_state,
+        api_key=None,
+        client_send_lock=anyio.Lock(),
+        websocket=websocket,
+    )
+
+    assert selected_account == accounts[3]
+    assert selected_upstream is upstream
+    assert select_account.await_count == 4
+    assert mark_rate_limit.await_count == 3
+    expected_exclusions: list[set[str]] = [
+        set(),
+        {accounts[0].id},
+        {accounts[0].id, accounts[1].id},
+        {accounts[0].id, accounts[1].id, accounts[2].id},
+    ]
+    assert [call.kwargs["exclude_account_ids"] for call in select_account.await_args_list] == expected_exclusions
     websocket_send.assert_not_awaited()
     assert request_logs.calls == []
 
@@ -31945,7 +32240,7 @@ async def test_compact_responses_propagates_selection_error_code(monkeypatch):
 
 
 def test_settings_parses_image_inline_allowlist_from_csv(monkeypatch):
-    monkeypatch.setenv("CODEX_LB_IMAGE_INLINE_ALLOWED_HOSTS", "a.example, b.example ,,C.Example")
+    monkeypatch.setenv("OPENHUB_IMAGE_INLINE_ALLOWED_HOSTS", "a.example, b.example ,,C.Example")
     from app.core.config.settings import Settings
 
     settings = Settings()

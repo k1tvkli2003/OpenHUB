@@ -702,14 +702,14 @@ def test_rewrite_parallel_tool_call_payload_keeps_duplicate_read_only_connector_
             {
                 "recipient_name": "github.read_file",
                 "parameters": {
-                    "repo": "Soju06/codex-lb",
+                    "repo": "k1tvkli2003/OpenHUB",
                     "path": "README.md",
                 },
             },
             {
                 "recipient_name": "github.read_file",
                 "parameters": {
-                    "repo": "Soju06/codex-lb",
+                    "repo": "k1tvkli2003/OpenHUB",
                     "path": "README.md",
                 },
             },
@@ -796,11 +796,11 @@ def test_mark_duplicate_tool_call_downstream_event_trims_overlapping_parallel_re
             "tool_uses": [
                 {
                     "recipient_name": "functions.exec_command",
-                    "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                    "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
                 },
                 {
                     "recipient_name": "functions.exec_command",
-                    "parameters": {"cmd": "gh pr checks --repo Soju06/codex-lb"},
+                    "parameters": {"cmd": "gh pr checks --repo k1tvkli2003/OpenHUB"},
                 },
             ]
         },
@@ -811,11 +811,11 @@ def test_mark_duplicate_tool_call_downstream_event_trims_overlapping_parallel_re
             "tool_uses": [
                 {
                     "recipient_name": "functions.exec_command",
-                    "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                    "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
                 },
                 {
                     "recipient_name": "github.read_file",
-                    "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+                    "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
                 },
             ]
         },
@@ -866,7 +866,7 @@ def test_mark_duplicate_tool_call_downstream_event_trims_overlapping_parallel_re
     assert rewritten_replay_arguments["tool_uses"] == [
         {
             "recipient_name": "github.read_file",
-            "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+            "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
         }
     ]
 
@@ -878,7 +878,7 @@ def test_mark_duplicate_tool_call_downstream_event_can_trim_parallel_replay_acro
             "tool_uses": [
                 {
                     "recipient_name": "functions.exec_command",
-                    "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                    "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
                 },
                 {
                     "recipient_name": "functions.write_stdin",
@@ -893,11 +893,11 @@ def test_mark_duplicate_tool_call_downstream_event_can_trim_parallel_replay_acro
             "tool_uses": [
                 {
                     "recipient_name": "functions.exec_command",
-                    "parameters": {"cmd": "gh pr view --repo Soju06/codex-lb"},
+                    "parameters": {"cmd": "gh pr view --repo k1tvkli2003/OpenHUB"},
                 },
                 {
                     "recipient_name": "github.read_file",
-                    "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+                    "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
                 },
             ]
         },
@@ -950,7 +950,7 @@ def test_mark_duplicate_tool_call_downstream_event_can_trim_parallel_replay_acro
     assert rewritten_replay_arguments["tool_uses"] == [
         {
             "recipient_name": "github.read_file",
-            "parameters": {"repo": "Soju06/codex-lb", "path": "README.md"},
+            "parameters": {"repo": "k1tvkli2003/OpenHUB", "path": "README.md"},
         }
     ]
 
@@ -963,7 +963,7 @@ def test_mark_duplicate_tool_call_downstream_event_keeps_read_only_parallel_wrap
                 {
                     "recipient_name": "github.read_file",
                     "parameters": {
-                        "repo": "Soju06/codex-lb",
+                        "repo": "k1tvkli2003/OpenHUB",
                         "path": "README.md",
                     },
                 }

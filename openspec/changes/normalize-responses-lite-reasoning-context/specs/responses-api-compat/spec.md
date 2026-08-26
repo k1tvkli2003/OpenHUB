@@ -2,7 +2,7 @@
 
 ### Requirement: Responses Lite signaling enforces all-turns reasoning context
 
-Every final upstream Responses payload that codex-lb advertises as Responses
+Every final upstream Responses payload that openhub advertises as Responses
 Lite—by the canonical HTTP header or the canonical per-request websocket
 client-metadata marker, whether body-derived, bridge-preserved, or
 continuity-trusted—MUST contain the exact JSON string

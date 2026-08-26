@@ -7,7 +7,7 @@
 The documentation site SHALL include a settings reference page
 (`docs/reference/settings.md`) generated from `Settings.model_fields` by
 `scripts/generate_settings_reference.py`. The page SHALL list, for every
-setting, the `CODEX_LB_`-prefixed environment variable name, its type, and
+setting, the `OPENHUB_`-prefixed environment variable name, its type, and
 its default (environment-derived defaults rendered symbolically), grouped by
 functional area; it SHALL document the bare `PORT` special case and SHALL
 list the removed (`_REMOVED_SETTINGS`) and deprecated env names sourced from

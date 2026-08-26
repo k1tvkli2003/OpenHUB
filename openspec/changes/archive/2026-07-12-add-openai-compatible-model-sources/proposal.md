@@ -10,7 +10,7 @@ continuity-owner invariants that do not apply to OpenAI-compatible endpoints.
 
 This also aligns with GitHub issue #1082, which asks for first-class external
 model routing and Codex model-picker entries for providers such as DeepSeek
-while keeping `model_provider = "codex-lb"`.
+while keeping `model_provider = "openhub"`.
 
 ## What Changes
 

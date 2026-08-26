@@ -28,6 +28,7 @@ from app.core.balancer.logic import (
 from app.core.crypto import TokenEncryptor
 from app.db.models import Account, AccountStatus, StickySessionKind, UsageHistory
 from app.modules.api_keys.repository import ApiKeysRepository
+from app.modules.proxy.account_cache import AccountSelectionCache
 from app.modules.proxy.affinity import _codex_session_selection_key
 from app.modules.proxy.cap_partitioning import CapPartition
 from app.modules.proxy.load_balancer import LoadBalancer, RuntimeState, effective_account_concurrency_caps
@@ -372,6 +373,41 @@ async def test_select_account_100_concurrent_calls_avoid_serial_persist_latency(
     # runners, but still require a comfortably sub-serialized runtime.
     assert elapsed < 1.25, f"Expected <1.25s for 100 concurrent selections, got {elapsed:.3f}s"
     assert all(result.account is not None for result in results)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("persisted", [True, False])
+async def test_selection_state_persistence_invalidates_cached_inputs_after_commit_or_cas_miss(
+    monkeypatch: pytest.MonkeyPatch,
+    persisted: bool,
+) -> None:
+    account = _make_account(f"acc-cache-invalidation-{persisted}")
+    account.status = AccountStatus.RATE_LIMITED
+    account.reset_at = 10
+    accounts_repo = _StubAccountsRepository([account])
+    balancer = LoadBalancer(lambda: _repo_factory(accounts_repo, _StubUsageRepository({}, {})))
+    balancer._selection_inputs_cache = AccountSelectionCache(ttl_seconds=5)
+    generation_before = balancer._selection_inputs_cache.generation
+
+    async def persist_if_current(*args: Any, **kwargs: Any) -> bool:
+        del args, kwargs
+        return persisted
+
+    monkeypatch.setattr(balancer, "_persist_state_if_current", persist_if_current)
+    state = AccountState(
+        account_id=account.id,
+        status=AccountStatus.ACTIVE,
+        reset_at=None,
+    )
+
+    stale_ids = await balancer._persist_selection_state(
+        accounts_repo,
+        {account.id: account},
+        [state],
+    )
+
+    assert stale_ids == (set() if persisted else {account.id})
+    assert balancer._selection_inputs_cache.generation == generation_before + 1
 
 
 @pytest.mark.asyncio
@@ -1650,6 +1686,59 @@ async def test_concurrent_unbound_stickies_reserve_one_due_probe() -> None:
     selected_ids = {selection.account.id for selection in (first, second) if selection.account is not None}
     assert selected_ids == {healthy.id, probing.id}
     assert [account_id for _, account_id, _ in sticky_repo.upserts].count(probing.id) == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_same_prompt_cache_key_falls_back_while_probe_is_reserved() -> None:
+    now_epoch = int(datetime.now(tz=timezone.utc).timestamp())
+    healthy = _make_account("acc-concurrent-prompt-healthy")
+    probing = _make_account("acc-concurrent-prompt-probing")
+    accounts_repo = _StubAccountsRepository([healthy, probing])
+    usage_repo = _StubUsageRepository(
+        primary={
+            healthy.id: _usage_row_with_percent(
+                151,
+                healthy.id,
+                used_percent=30.0,
+                reset_at=now_epoch + 300,
+            ),
+            probing.id: _usage_row_with_percent(
+                152,
+                probing.id,
+                used_percent=10.0,
+                reset_at=now_epoch + 300,
+            ),
+        },
+        secondary={},
+    )
+    sticky_repo = _ConcurrentUnboundStickySessionsRepository(expected_lookups=3)
+    balancer = LoadBalancer(lambda: _repo_factory(accounts_repo, usage_repo, sticky_repo))
+    balancer._runtime[probing.id] = RuntimeState(
+        health_tier=HEALTH_TIER_PROBING,
+        last_selected_at=0.0,
+    )
+
+    selections = await asyncio.gather(
+        *(
+            balancer.select_account(
+                sticky_key="shared-derived-prompt-cache",
+                sticky_kind=StickySessionKind.PROMPT_CACHE,
+                sticky_max_age_seconds=3600,
+                routing_strategy="usage_weighted",
+                lease_kind="stream",
+            )
+            for _ in range(3)
+        )
+    )
+
+    assert all(selection.account is not None for selection in selections)
+    selected_ids = [selection.account.id for selection in selections if selection.account is not None]
+    assert selected_ids.count(probing.id) == 1
+    assert selected_ids.count(healthy.id) == 2
+    assert [account_id for _, account_id, _ in sticky_repo.upserts].count(probing.id) == 1
+
+    for selection in selections:
+        await balancer.release_account_lease(selection.lease)
 
 
 @pytest.mark.asyncio

@@ -25,7 +25,7 @@ from app.core.config.settings import Settings
 pytestmark = pytest.mark.unit
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_CHART_DIR = _REPO_ROOT / "deploy" / "helm" / "codex-lb"
+_CHART_DIR = _REPO_ROOT / "deploy" / "helm" / "openhub"
 _CHART_README = _CHART_DIR / "README.md"
 _SMOKE_SCRIPT = _REPO_ROOT / "scripts" / "helm-kind-smoke.sh"
 _ENV_EXAMPLE = _REPO_ROOT / ".env.example"
@@ -54,7 +54,7 @@ def _ensure_chart_dependencies() -> None:
 def _helm_template(*args: str) -> str:
     _ensure_chart_dependencies()
     completed = subprocess.run(
-        ["helm", "template", "codex-lb", str(_CHART_DIR), *args],
+        ["helm", "template", "openhub", str(_CHART_DIR), *args],
         cwd=_REPO_ROOT,
         check=True,
         capture_output=True,
@@ -66,7 +66,7 @@ def _helm_template(*args: str) -> str:
 def _helm_template_error(*args: str) -> str:
     _ensure_chart_dependencies()
     completed = subprocess.run(
-        ["helm", "template", "codex-lb", str(_CHART_DIR), *args],
+        ["helm", "template", "openhub", str(_CHART_DIR), *args],
         cwd=_REPO_ROOT,
         check=False,
         capture_output=True,
@@ -82,7 +82,7 @@ kind: ConfigMap
 metadata:
   name: rendered-notes
 data:
-  notes: {{ include "codex-lb/templates/NOTES.txt" . | toJson }}
+  notes: {{ include "openhub/templates/NOTES.txt" . | toJson }}
 """
 
 
@@ -97,14 +97,14 @@ def _helm_notes(*args: str) -> str:
     """
     _ensure_chart_dependencies()
     with tempfile.TemporaryDirectory() as tmp_dir:
-        chart_copy = Path(tmp_dir) / "codex-lb"
+        chart_copy = Path(tmp_dir) / "openhub"
         shutil.copytree(_CHART_DIR, chart_copy)
         (chart_copy / "templates" / "zz-rendered-notes.yaml").write_text(_NOTES_WRAPPER_TEMPLATE)
         completed = subprocess.run(
             [
                 "helm",
                 "template",
-                "codex-lb",
+                "openhub",
                 str(chart_copy),
                 "--show-only",
                 "templates/zz-rendered-notes.yaml",
@@ -273,7 +273,7 @@ def test_static_ring_with_autoscaling_fails_at_render_time() -> None:
         "--set",
         "postgresql.auth.password=test-password",
         "--set-string",
-        "config.sessionBridgeInstanceRing=codex-lb-workload-0\\,codex-lb-workload-1",
+        "config.sessionBridgeInstanceRing=openhub-workload-0\\,openhub-workload-1",
         "--set",
         "autoscaling.enabled=true",
     )
@@ -286,12 +286,12 @@ def test_static_ring_smaller_than_replica_count_fails_at_render_time() -> None:
         "--set",
         "postgresql.auth.password=test-password",
         "--set-string",
-        "config.sessionBridgeInstanceRing=codex-lb-workload-0\\,codex-lb-workload-1",
+        "config.sessionBridgeInstanceRing=openhub-workload-0\\,openhub-workload-1",
         "--set",
         "replicaCount=3",
     )
 
-    assert 'missing pod name(s) "codex-lb-workload-2"' in stderr
+    assert 'missing pod name(s) "openhub-workload-2"' in stderr
 
 
 def test_static_ring_with_wrong_pod_names_fails_at_render_time() -> None:
@@ -300,18 +300,18 @@ def test_static_ring_with_wrong_pod_names_fails_at_render_time() -> None:
         "--set",
         "postgresql.auth.password=test-password",
         "--set-string",
-        "config.sessionBridgeInstanceRing=codex-lb-0\\,codex-lb-1",
+        "config.sessionBridgeInstanceRing=openhub-0\\,openhub-1",
         "--set",
         "replicaCount=2",
     )
 
-    assert 'missing pod name(s) "codex-lb-workload-0,codex-lb-workload-1"' in stderr
-    assert 'must list exactly "codex-lb-workload-0,codex-lb-workload-1"' in stderr
+    assert 'missing pod name(s) "openhub-workload-0,openhub-workload-1"' in stderr
+    assert 'must list exactly "openhub-workload-0,openhub-workload-1"' in stderr
 
 
 def test_static_ring_with_fqdn_entries_fails_at_render_time() -> None:
     fqdn_ring = "\\,".join(
-        f"codex-lb-workload-{ordinal}.codex-lb-bridge.default.svc.cluster.local" for ordinal in range(2)
+        f"openhub-workload-{ordinal}.openhub-bridge.default.svc.cluster.local" for ordinal in range(2)
     )
     stderr = _helm_template_error(
         "--set",
@@ -330,12 +330,12 @@ def test_static_ring_with_extra_unknown_entry_fails_at_render_time() -> None:
         "--set",
         "postgresql.auth.password=test-password",
         "--set-string",
-        "config.sessionBridgeInstanceRing=codex-lb-workload-0\\,codex-lb-workload-1\\,codex-lb-workload-9",
+        "config.sessionBridgeInstanceRing=openhub-workload-0\\,openhub-workload-1\\,openhub-workload-9",
         "--set",
         "replicaCount=2",
     )
 
-    assert 'entry(ies) "codex-lb-workload-9" do not match any StatefulSet pod name' in stderr
+    assert 'entry(ies) "openhub-workload-9" do not match any StatefulSet pod name' in stderr
 
 
 def test_static_ring_covering_every_replica_renders() -> None:
@@ -343,7 +343,7 @@ def test_static_ring_covering_every_replica_renders() -> None:
         "--set",
         "postgresql.auth.password=test-password",
         "--set-string",
-        "config.sessionBridgeInstanceRing=codex-lb-workload-0\\,codex-lb-workload-1",
+        "config.sessionBridgeInstanceRing=openhub-workload-0\\,openhub-workload-1",
         "--set",
         "replicaCount=2",
         "--show-only",
@@ -366,8 +366,8 @@ def _readme_config_examples() -> list[dict]:
 def _clear_pod_identity_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("POD_NAME", "POD_NAMESPACE", "POD_IP", "HOSTNAME"):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.delenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING", raising=False)
-    monkeypatch.delenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_ADVERTISE_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING", raising=False)
+    monkeypatch.delenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_ADVERTISE_BASE_URL", raising=False)
 
 
 def test_readme_advertise_base_url_example_passes_settings_validation(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -378,16 +378,16 @@ def test_readme_advertise_base_url_example_passes_settings_validation(monkeypatc
     ]
     assert examples, "README no longer documents a sessionBridgeAdvertiseBaseUrl example"
 
-    pod_name = "codex-lb-workload-0"
+    pod_name = "openhub-workload-0"
     _clear_pod_identity_env(monkeypatch)
-    monkeypatch.setenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", pod_name)
+    monkeypatch.setenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", pod_name)
 
     for example in examples:
         # The chart injects the value through the container env list after POD_NAME,
         # so the kubelet expands $(POD_NAME) per pod before the app reads it.
         assert "$(POD_NAME)" in example, f"README advertise example is not per-pod: {example}"
         expanded = example.replace("$(POD_NAME)", pod_name)
-        monkeypatch.setenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_ADVERTISE_BASE_URL", expanded)
+        monkeypatch.setenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_ADVERTISE_BASE_URL", expanded)
 
         settings = Settings()
 
@@ -411,8 +411,8 @@ def test_readme_manual_ring_example_passes_settings_validation(monkeypatch: pyte
             # Instance ids are bare $(POD_NAME) values; FQDN entries never match them.
             assert "." not in entry, f"README ring example uses a non-pod-name entry: {entry}"
 
-        monkeypatch.setenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", entries[0])
-        monkeypatch.setenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING", example)
+        monkeypatch.setenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", entries[0])
+        monkeypatch.setenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING", example)
 
         settings = Settings()
 
@@ -451,13 +451,13 @@ def test_env_example_does_not_force_leader_election_off() -> None:
     """A fresh copy-the-sample deployment must inherit the hardened default (enabled).
 
     The runtime default for ``leader_election_enabled`` is True, so the sample env
-    must not export ``CODEX_LB_LEADER_ELECTION_ENABLED=false`` as an active line;
+    must not export ``OPENHUB_LEADER_ELECTION_ENABLED=false`` as an active line;
     otherwise multi-replica/multi-worker installs that copy .env.example silently
     run every singleton scheduler instead of gating on the lease.
     """
     assignments = _env_example_active_assignments()
 
-    assert assignments.get("CODEX_LB_LEADER_ELECTION_ENABLED") != "false"
+    assert assignments.get("OPENHUB_LEADER_ELECTION_ENABLED") != "false"
 
     # A default-loaded Settings (with the sample's active assignments applied)
     # keeps leader election enabled.
@@ -465,7 +465,7 @@ def test_env_example_does_not_force_leader_election_off() -> None:
 
     # The opt-out is still documented as a commented single-instance escape hatch.
     text = _ENV_EXAMPLE.read_text()
-    assert "# CODEX_LB_LEADER_ELECTION_ENABLED=false" in text
+    assert "# OPENHUB_LEADER_ELECTION_ENABLED=false" in text
 
 
 def test_helm_configmap_enables_leader_election_by_default() -> None:
@@ -477,7 +477,7 @@ def test_helm_configmap_enables_leader_election_by_default() -> None:
     )
     (configmap,) = _helm_documents(rendered)
 
-    assert configmap["data"]["CODEX_LB_LEADER_ELECTION_ENABLED"] == "true"
+    assert configmap["data"]["OPENHUB_LEADER_ELECTION_ENABLED"] == "true"
 
 
 def test_compose_files_declare_single_replica_topology() -> None:
@@ -485,4 +485,4 @@ def test_compose_files_declare_single_replica_topology() -> None:
         content = compose_path.read_text()
         assert "SINGLE-REPLICA topology" in content, compose_path.name
         assert "--scale server=N" in content, compose_path.name
-        assert "deploy/helm/codex-lb" in content, compose_path.name
+        assert "deploy/helm/openhub" in content, compose_path.name

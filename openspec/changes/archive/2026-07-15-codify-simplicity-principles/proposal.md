@@ -2,7 +2,7 @@
 
 ## Why
 
-codex-lb started as a one-command proxy with a glanceable dashboard, and the contribution process has no gate that protects that shape. The erosion is measurable: the README has grown to 652 lines, `Settings` exposes 164 fields, and the dashboard ships 14 feature modules competing for navigation space (snapshot 2026-07-15; see `context.md`). Each addition passed review individually because no principle said "the default experience is budgeted" — reviewers had nothing to point at.
+openhub started as a one-command proxy with a glanceable dashboard, and the contribution process has no gate that protects that shape. The erosion is measurable: the README has grown to 652 lines, `Settings` exposes 164 fields, and the dashboard ships 14 feature modules competing for navigation space (snapshot 2026-07-15; see `context.md`). Each addition passed review individually because no principle said "the default experience is budgeted" — reviewers had nothing to point at.
 
 ## What Changes
 
@@ -17,7 +17,7 @@ codex-lb started as a one-command proxy with a glanceable dashboard, and the con
 
 ### New Capabilities
 
-- `contribution-simplicity`: the normative contract for keeping codex-lb's default experience simple — defaults-off features, justified settings, budgeted README/config/dashboard surface, docs-site documentation placement, and screenshot evidence for dashboard changes.
+- `contribution-simplicity`: the normative contract for keeping openhub's default experience simple — defaults-off features, justified settings, budgeted README/config/dashboard surface, docs-site documentation placement, and screenshot evidence for dashboard changes.
 
 ### Modified Capabilities
 

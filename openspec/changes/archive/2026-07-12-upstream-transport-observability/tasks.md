@@ -14,7 +14,7 @@
 
 ## 3. Metrics
 
-- [x] 3.1 Add `codex_lb_upstream_transport_decisions_total` with labels `downstream_transport`, `upstream_transport`, `policy`, `sticky`, and `status`.
+- [x] 3.1 Add `openhub_upstream_transport_decisions_total` with labels `downstream_transport`, `upstream_transport`, `policy`, `sticky`, and `status`.
 - [x] 3.2 Increment it once per completed streaming Responses request after final status is known.
 - [x] 3.3 Ensure metric helpers no-op cleanly when `prometheus_client` is unavailable.
 

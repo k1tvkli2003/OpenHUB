@@ -54,7 +54,7 @@ Chat Completions-only sources that cannot satisfy Codex-native Responses
 requests. Disabled sources and disabled source models MUST NOT be listed.
 Subscription-backed Codex catalog entries MUST continue to be listed through the
 existing registry path. If a source model entry emits `model_provider`, it MUST
-emit `codex-lb` and MUST NOT advertise the external upstream provider name.
+emit `openhub` and MUST NOT advertise the external upstream provider name.
 
 #### Scenario: Responses-capable source is advertised to Codex-native clients
 
@@ -62,7 +62,7 @@ emit `codex-lb` and MUST NOT advertise the external upstream provider name.
 - **AND** the source declares Responses-compatible support
 - **WHEN** a client calls `GET /backend-api/codex/models`
 - **THEN** the response includes `deepseek-v4-flash`
-- **AND** the model entry does not change the Codex provider away from `codex-lb`
+- **AND** the model entry does not change the Codex provider away from `openhub`
 
 #### Scenario: Chat-only source is not advertised to Codex-native clients
 

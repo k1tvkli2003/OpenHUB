@@ -1,9 +1,9 @@
 # Tasks
 
 ## 1. Settings tripwire
-- [x] 1.1 Keep `workers_per_instance` (`CODEX_LB_WORKERS_PER_INSTANCE`, default 1, `ge=1`) on `Settings` as an explicit operator declaration; document that only 1 is supported.
-- [x] 1.2 Add `_validate_workers_per_instance` (`model_validator(mode="after")`) that raises a clear `ValidationError` at startup when `workers_per_instance > 1`, naming `CODEX_LB_WORKERS_PER_INSTANCE` and directing operators to run one worker per pod/container and scale via replicas. `workers_per_instance == 1` (default or explicit) requires no operator action.
-- [x] 1.3 Remove `worker_index` / `CODEX_LB_WORKER_INDEX` entirely (no per-worker index anywhere).
+- [x] 1.1 Keep `workers_per_instance` (`OPENHUB_WORKERS_PER_INSTANCE`, default 1, `ge=1`) on `Settings` as an explicit operator declaration; document that only 1 is supported.
+- [x] 1.2 Add `_validate_workers_per_instance` (`model_validator(mode="after")`) that raises a clear `ValidationError` at startup when `workers_per_instance > 1`, naming `OPENHUB_WORKERS_PER_INSTANCE` and directing operators to run one worker per pod/container and scale via replicas. `workers_per_instance == 1` (default or explicit) requires no operator action.
+- [x] 1.3 Remove `worker_index` / `OPENHUB_WORKER_INDEX` entirely (no per-worker index anywhere).
 
 ## 2. Revert intra-pod worker partitioning
 - [x] 2.1 Restore `app/modules/proxy/cap_partitioning.py` to `main` (ring-only `partition_cap(cap, R, rank)`; remove `partition_cap_for_worker`, `partition_stream_reserve`, `worker_count`/`worker_index` on `CapPartition`, `resolve_worker_partition` worker logic).

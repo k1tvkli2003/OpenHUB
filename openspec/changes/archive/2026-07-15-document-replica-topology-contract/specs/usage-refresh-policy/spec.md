@@ -4,9 +4,9 @@
 
 ### Requirement: Multi-replica leader guard
 
-Auth Guardian SHALL use the existing leader-election mechanism so only the elected replica performs proactive refresh work. WHEN the auth guardian is enabled, the statically configured bridge instance ring has more than one member, and leader election is disabled, THEN the guardian SHALL NOT run and SHALL log a startup WARNING telling the operator to enable `CODEX_LB_LEADER_ELECTION_ENABLED`.
+Auth Guardian SHALL use the existing leader-election mechanism so only the elected replica performs proactive refresh work. WHEN the auth guardian is enabled, the statically configured bridge instance ring has more than one member, and leader election is disabled, THEN the guardian SHALL NOT run and SHALL log a startup WARNING telling the operator to enable `OPENHUB_LEADER_ELECTION_ENABLED`.
 
-Because Helm and compose deployments deliberately leave `CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING` empty and instead register replicas dynamically in the DB-backed `bridge_ring_members` ring, the build-time guard alone cannot observe those replicas. Therefore, WHEN leader election is disabled, each refresh pass SHALL first count the live `bridge_ring_members` heartbeats and, IF more than one replica is live, SHALL skip that pass and log a WARNING telling the operator to enable `CODEX_LB_LEADER_ELECTION_ENABLED`. WHEN leader election is enabled, the elected-leader gate alone determines who runs and the dynamic ring count SHALL NOT be consulted.
+Because Helm and compose deployments deliberately leave `OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_RING` empty and instead register replicas dynamically in the DB-backed `bridge_ring_members` ring, the build-time guard alone cannot observe those replicas. Therefore, WHEN leader election is disabled, each refresh pass SHALL first count the live `bridge_ring_members` heartbeats and, IF more than one replica is live, SHALL skip that pass and log a WARNING telling the operator to enable `OPENHUB_LEADER_ELECTION_ENABLED`. WHEN leader election is enabled, the elected-leader gate alone determines who runs and the dynamic ring count SHALL NOT be consulted.
 
 #### Scenario: Replica is not leader
 
@@ -22,7 +22,7 @@ Because Helm and compose deployments deliberately leave `CODEX_LB_HTTP_RESPONSES
 - **AND** leader election is disabled
 - **WHEN** the guardian scheduler is built at startup
 - **THEN** the guardian is disabled
-- **AND** a WARNING is logged telling the operator to set `CODEX_LB_LEADER_ELECTION_ENABLED=true`
+- **AND** a WARNING is logged telling the operator to set `OPENHUB_LEADER_ELECTION_ENABLED=true`
 
 #### Scenario: Dynamic bridge ring without leader election skips the refresh pass
 
@@ -32,7 +32,7 @@ Because Helm and compose deployments deliberately leave `CODEX_LB_HTTP_RESPONSES
 - **AND** leader election is disabled
 - **WHEN** a refresh pass runs
 - **THEN** the pass performs no proactive refresh work
-- **AND** a WARNING is logged telling the operator to set `CODEX_LB_LEADER_ELECTION_ENABLED=true`
+- **AND** a WARNING is logged telling the operator to set `OPENHUB_LEADER_ELECTION_ENABLED=true`
 
 #### Scenario: Dynamic ring count is not consulted when leader election is enabled
 

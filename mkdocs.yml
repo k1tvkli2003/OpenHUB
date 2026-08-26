@@ -1,8 +1,8 @@
-site_name: codex-lb
-site_description: Codex load balancer and proxy for ChatGPT accounts with usage dashboard
-site_url: https://soju06.github.io/codex-lb/
-repo_url: https://github.com/Soju06/codex-lb
-repo_name: Soju06/codex-lb
+site_name: OpenHUB
+site_description: Provider-neutral local control plane for Codex, Hermes, OpenCode, and OpenAI account routing
+site_url: https://k1tvkli2003.github.io/OpenHUB/
+repo_url: https://github.com/k1tvkli2003/OpenHUB
+repo_name: k1tvkli2003/OpenHUB
 edit_uri: edit/main/docs/
 docs_dir: docs
 

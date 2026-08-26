@@ -24,6 +24,8 @@ from app.core.config.settings import get_settings
 from app.core.config.settings_cache import get_settings_cache
 from app.core.crypto import TokenEncryptor
 from app.core.exceptions import DashboardAuthError, DashboardPermissionError, ProxyAuthError, ProxyUpstreamError
+from app.core.managed_codex_route import managed_codex_route_active
+from app.core.openhub_shared_route import openhub_shared_route_active
 from app.core.request_locality import is_local_request
 from app.core.socket_peer import raw_socket_peer_host
 from app.core.upstream_proxy import UpstreamProxyRouteError, resolve_upstream_route
@@ -72,6 +74,13 @@ async def validate_proxy_api_key_authorization(
     *,
     request: HTTPConnection | None = None,
 ) -> ApiKeyData | None:
+    # The managed marker can only be activated by ManagedCodexRouteMiddleware
+    # for a numeric raw-loopback socket peer. Codex desktop sends its own
+    # ChatGPT/OpenAI bearer on this private route; it is not a OpenHUB key.
+    # Account routing still fails closed on the prepared managed launch pin.
+    if managed_codex_route_active() or openhub_shared_route_active():
+        return None
+
     settings = await get_settings_cache().get()
     if not settings.api_key_auth_enabled:
         if request is not None and not is_local_request(request):

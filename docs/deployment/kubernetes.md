@@ -1,13 +1,14 @@
 # Kubernetes
 
-Install with Helm:
+Build chart dependencies and install from this repository:
 
 ```bash
-helm install codex-lb oci://ghcr.io/soju06/charts/codex-lb \
+helm dependency build deploy/helm/openhub
+helm install openhub deploy/helm/openhub \
   --set postgresql.auth.password=changeme \
   --set config.databaseMigrateOnStartup=true \
   --set migration.schemaGate.enabled=false
-kubectl port-forward svc/codex-lb 2455:2455
+kubectl port-forward svc/openhub 2455:2455
 ```
 
 Open [localhost:2455](http://localhost:2455) → Add account → Done.
@@ -22,7 +23,7 @@ In multi-replica setups, replicas must share the same encryption key (the Helm c
 
 Set `gatewayApi.rules` when different request paths need different Gateway API
 filters. The chart renders each rule's `matches` and `filters` in order and
-adds the codex-lb Service backend automatically. For example, this keeps API
+adds the openhub Service backend automatically. For example, this keeps API
 traffic direct while applying a Traefik forward-auth middleware to the
 dashboard catch-all:
 
@@ -33,7 +34,7 @@ gatewayApi:
     - name: gateway
       namespace: gateway-system
   hostnames:
-    - codex-lb.example.com
+    - openhub.example.com
   rules:
     - matches:
         - path:
@@ -77,8 +78,8 @@ Gateway implementation.
 ## Full chart reference
 
 For external database, production config, ingress, observability, and more see the
-[Helm chart README](https://github.com/Soju06/codex-lb/blob/main/deploy/helm/codex-lb/README.md).
+[Helm chart README](https://github.com/k1tvkli2003/OpenHUB/blob/main/deploy/helm/openhub/README.md).
 
 ---
 
-*Specs: [deployment-installation](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/deployment-installation) · [deployment-networking](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/deployment-networking) · [replica-operations](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/replica-operations)*
+*Specs: [deployment-installation](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/deployment-installation) · [deployment-networking](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/deployment-networking) · [replica-operations](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/replica-operations)*

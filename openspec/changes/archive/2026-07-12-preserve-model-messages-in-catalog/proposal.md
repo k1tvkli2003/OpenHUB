@@ -3,7 +3,7 @@
 The Codex client model picker requires the `model_messages` field on each
 model catalog entry to display newer models (gpt-5.6-sol/terra/luna). Without
 it, the client silently drops models absent from its bundled metadata, so
-gpt-5.6 models never appear in the picker even though codex-lb is serving
+gpt-5.6 models never appear in the picker even though openhub is serving
 them.
 
 `model_fetcher.py` explicitly stripped `model_messages` from upstream entries

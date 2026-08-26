@@ -698,7 +698,7 @@ def _run_upgrade_locked(
             bootstrap=_NO_LEGACY_BOOTSTRAP,
         )
 
-    config.attributes["codex_lb_fresh_install"] = (
+    config.attributes["openhub_fresh_install"] = (
         state_before.current_revision is None
         and not state_before.has_alembic_version_table
         and not state_before.has_legacy_migrations_table
@@ -709,7 +709,7 @@ def _run_upgrade_locked(
     if bootstrap_legacy:
         bootstrap_result = _bootstrap_legacy_history(config)
         if bootstrap_result.stamped_revision is not None:
-            config.attributes["codex_lb_fresh_install"] = False
+            config.attributes["openhub_fresh_install"] = False
 
     _ensure_alembic_version_table_capacity(config)
     if auto_remap_legacy_revisions:
@@ -830,12 +830,12 @@ def _non_empty_database_url(value: str) -> str:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Database migration utility for codex-lb.")
+    parser = argparse.ArgumentParser(description="Database migration utility for openhub.")
     parser.add_argument(
         "--db-url",
         type=_non_empty_database_url,
         default=None,
-        help="Database URL to migrate. Defaults to CODEX_LB_DATABASE_URL from settings.",
+        help="Database URL to migrate. Defaults to OPENHUB_DATABASE_URL from settings.",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)

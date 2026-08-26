@@ -12,7 +12,7 @@ An hourly, leader-gated background job deletes aged rows in 10,000-row batches, 
 Retention is a per-deployment policy the operator may want to tighten or relax while watching disk usage — a restart-requiring env var is the wrong shape for it (PRINCIPLES.md P2), so it lives in dashboard runtime settings (`dashboard_settings` row + `SettingsCache` with cross-replica invalidation) like every comparable policy. Per window, the effective value resolves as:
 
 1. dashboard value (non-NULL, including `0` = explicitly disabled)
-2. env alias (`CODEX_LB_REQUEST_LOG_RETENTION_DAYS` / `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS`), **deprecated**
+2. env alias (`OPENHUB_REQUEST_LOG_RETENTION_DAYS` / `OPENHUB_USAGE_HISTORY_RETENTION_DAYS`), **deprecated**
 3. disabled (`0`)
 
 `NULL` in the dashboard column means "never set from the dashboard", which keeps existing env-configured deployments working unchanged through the deprecation window. The dashboard API mirrors the env safety floors exactly (0 or ≥ 30 request logs / 0 or ≥ 45 usage history, max 3650) with the same error wording, so in-product consumer windows stay inside retained data regardless of which layer configured retention.
@@ -26,14 +26,14 @@ The scheduler always starts and re-resolves the effective retention at the top o
 ## Env-alias deprecation plan (PENDING follow-up)
 
 - Shipped release (`retention-dashboard-settings`, PR #1364): the env vars keep working as aliases; their comment in `app/core/config/settings.py` marks them deprecated. They are deliberately NOT in `_REMOVED_SETTINGS`.
-- **Pending later phase**: remove the env fields and add `CODEX_LB_REQUEST_LOG_RETENTION_DAYS` / `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS` to `_REMOVED_SETTINGS` with a pointer to the dashboard setting, once operators have had a release to migrate. Also tracked in the next-release queue in `openspec/specs/deployment-installation/context.md`.
+- **Pending later phase**: remove the env fields and add `OPENHUB_REQUEST_LOG_RETENTION_DAYS` / `OPENHUB_USAGE_HISTORY_RETENTION_DAYS` to `_REMOVED_SETTINGS` with a pointer to the dashboard setting, once operators have had a release to migrate. Also tracked in the next-release queue in `openspec/specs/deployment-installation/context.md`.
 
 ## Decisions
 
 - **Floors**: 30 days keeps default report ranges and `previous_response_id` owner lookups inside retained data; 45 days exceeds the monthly usage window (~31 days) plus margin. Sub-floor non-zero values fail settings validation at startup (env) or are rejected with a validation error (dashboard API).
 - **Rollup gate**: request-log pruning deletes only rows at or below the account-usage-rollup watermark (`min(cutoff, folded_through)`), so lifetime account totals survive pruning by construction; with no watermark (fold never ran) request-log pruning is skipped entirely.
 - **Latest-row preservation**: usage-history pruning always retains the newest row per `(account_id, coalesce(window,'primary'))` and per `(account_id, quota_key, window)` so idle or paused accounts keep their last-known usage on the dashboard, regardless of age.
-- **No partitioning**: batched deletes are sufficient at codex-lb volumes and avoid a heavyweight migration; revisit if tables reach hundreds of millions of rows.
+- **No partitioning**: batched deletes are sufficient at openhub volumes and avoid a heavyweight migration; revisit if tables reach hundreds of millions of rows.
 
 ## Operational Notes
 
@@ -46,4 +46,4 @@ The scheduler always starts and re-resolves the effective retention at the top o
 
 ## Example
 
-An operator running with `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=90` opens Settings → Advanced → Data retention, sees 90 prefilled (effective value), and changes it to 30. The row now stores 30; within one scheduler tick the leader prunes request logs older than 30 days — no restart, and the stale env var no longer matters. With a fold watermark at `now − 24h`, a row requested 31 days ago is deleted (older than cutoff, below watermark), while a row requested 2 hours ago is kept at any retention setting (above the watermark, unfolded).
+An operator running with `OPENHUB_REQUEST_LOG_RETENTION_DAYS=90` opens Settings → Advanced → Data retention, sees 90 prefilled (effective value), and changes it to 30. The row now stores 30; within one scheduler tick the leader prunes request logs older than 30 days — no restart, and the stale env var no longer matters. With a fold watermark at `now − 24h`, a row requested 31 days ago is deleted (older than cutoff, below watermark), while a row requested 2 hours ago is kept at any retention setting (above the watermark, unfolded).

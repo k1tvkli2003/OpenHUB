@@ -22,8 +22,8 @@ pytestmark = pytest.mark.unit
 
 
 def _configure_limits(monkeypatch: pytest.MonkeyPatch, *, general: int, responses: int | None = None) -> None:
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", str(general))
-    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", str(responses or general))
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_BODY_BYTES", str(general))
+    monkeypatch.setenv("OPENHUB_MAX_DECOMPRESSED_RESPONSES_BODY_BYTES", str(responses or general))
     get_settings.cache_clear()
 
 

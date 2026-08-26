@@ -1,5 +1,5 @@
 <!--
-Thanks for contributing to codex-lb! 🙏
+Thanks for contributing to openhub! 🙏
 Fill in the sections below. Delete sections that don't apply.
 -->
 
@@ -24,7 +24,7 @@ Linked issue: <!-- e.g. Closes #123, Fixes #456 -->
 ## OpenSpec
 
 <!--
-codex-lb is OpenSpec-first. If this PR changes observable behavior, requirements,
+openhub is OpenSpec-first. If this PR changes observable behavior, requirements,
 contracts, or schema, it needs an OpenSpec change under openspec/changes/<change>/.
 
 If this PR touches an upstream-mimicking code path (Codex CLI / ChatGPT request
@@ -85,4 +85,4 @@ Required: unit tests for new logic, integration tests for new endpoints.
 - [ ] Ran `uv run pre-commit run local-ci --hook-stage manual --all-files` or the relevant `make <target>` subset locally.
 - [ ] If touching specs: `openspec validate --specs` passes and `/opsx:verify` is clean.
 - [ ] Simplicity gates reviewed: the five simplicity rules (PRINCIPLES.md P1-P5).
-- [ ] CHANGELOG is **not** edited by hand (release-please handles it).
+- [ ] Updated `CHANGELOG.md` when this changes a public release surface.

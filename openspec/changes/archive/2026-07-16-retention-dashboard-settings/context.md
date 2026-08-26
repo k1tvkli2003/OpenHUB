@@ -15,8 +15,8 @@ keeps existing env-configured deployments working unchanged through the
 deprecation window:
 
 1. dashboard value (non-NULL, including `0` = explicitly disabled)
-2. env alias (`CODEX_LB_REQUEST_LOG_RETENTION_DAYS` /
-   `CODEX_LB_USAGE_HISTORY_RETENTION_DAYS`), deprecated
+2. env alias (`OPENHUB_REQUEST_LOG_RETENTION_DAYS` /
+   `OPENHUB_USAGE_HISTORY_RETENTION_DAYS`), deprecated
 3. disabled (`0`)
 
 The dashboard API mirrors the env safety floors exactly (0 or >= 30 request
@@ -57,7 +57,7 @@ pass (`run_if_leader`, heartbeat-renewed) is unchanged.
 
 ## Example
 
-An operator running with `CODEX_LB_REQUEST_LOG_RETENTION_DAYS=90` opens
+An operator running with `OPENHUB_REQUEST_LOG_RETENTION_DAYS=90` opens
 Settings -> Advanced -> Data retention, sees 90 prefilled (effective value),
 and changes it to 30. The row now stores 30; within one scheduler tick the
 leader prunes request logs older than 30 days — no restart, and the stale

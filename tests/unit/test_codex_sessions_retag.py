@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ def _write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
 
 
 def _create_state_db(path: Path, providers: list[str]) -> None:
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.execute("CREATE TABLE threads (id TEXT PRIMARY KEY, model_provider TEXT)")
         conn.executemany(
             "INSERT INTO threads (id, model_provider) VALUES (?, ?)",
@@ -27,7 +28,7 @@ def _create_state_db(path: Path, providers: list[str]) -> None:
 
 
 def _read_state_providers(path: Path) -> list[str]:
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         return [row[0] for row in conn.execute("SELECT model_provider FROM threads ORDER BY id").fetchall()]
 
 
@@ -37,12 +38,12 @@ def test_dry_run_reports_jsonl_and_sqlite_without_writing(tmp_path: Path) -> Non
     state_db = codex_home / "state_5.sqlite"
     codex_home.mkdir()
     _write_jsonl(session_file, [{"model_provider": "openai", "id": "a"}])
-    _create_state_db(state_db, ["openai", "codex-lb"])
+    _create_state_db(state_db, ["openai", "openhub"])
 
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
         dry_run=True,
     )
 
@@ -56,7 +57,7 @@ def test_dry_run_reports_jsonl_and_sqlite_without_writing(tmp_path: Path) -> Non
     assert result.sqlite_rows_updated == 0
     assert result.backup_path is None
     assert json.loads(session_file.read_text(encoding="utf-8").splitlines()[0])["model_provider"] == "openai"
-    assert _read_state_providers(state_db) == ["openai", "codex-lb"]
+    assert _read_state_providers(state_db) == ["openai", "openhub"]
     assert not (codex_home / "backups").exists()
 
 
@@ -69,20 +70,20 @@ def test_retag_updates_jsonl_and_sqlite_with_backup(tmp_path: Path) -> None:
         session_file,
         [
             {"model_provider": "openai", "id": "a"},
-            {"model_provider": "codex-lb", "id": "b"},
+            {"model_provider": "openhub", "id": "b"},
         ],
     )
-    _create_state_db(state_db, ["openai", "openai", "codex-lb"])
+    _create_state_db(state_db, ["openai", "openai", "openhub"])
 
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
     )
 
     records = [json.loads(line) for line in session_file.read_text(encoding="utf-8").splitlines()]
-    assert [record["model_provider"] for record in records] == ["codex-lb", "codex-lb"]
-    assert _read_state_providers(state_db) == ["codex-lb", "codex-lb", "codex-lb"]
+    assert [record["model_provider"] for record in records] == ["openhub", "openhub"]
+    assert _read_state_providers(state_db) == ["openhub", "openhub", "openhub"]
     assert result.methods_used == ("jsonl", "sqlite")
     assert result.jsonl_files_updated == 1
     assert result.sqlite_rows_updated == 2
@@ -90,7 +91,7 @@ def test_retag_updates_jsonl_and_sqlite_with_backup(tmp_path: Path) -> None:
     assert (result.backup_path / "state_5.sqlite").is_file()
     assert (result.backup_path / "sessions" / "2026" / "session.jsonl").is_file()
     assert ProviderCount("openai", 3) in result.provider_counts_before
-    assert ProviderCount("codex-lb", 5) in result.provider_counts_after
+    assert ProviderCount("openhub", 5) in result.provider_counts_after
 
 
 def test_retag_updates_nested_session_meta_provider(tmp_path: Path) -> None:
@@ -107,15 +108,15 @@ def test_retag_updates_nested_session_meta_provider(tmp_path: Path) -> None:
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
     )
 
     records = [json.loads(line) for line in session_file.read_text(encoding="utf-8").splitlines()]
-    assert records[0]["payload"]["model_provider"] == "codex-lb"
+    assert records[0]["payload"]["model_provider"] == "openhub"
     assert records[1]["payload"]["model_provider"] == "openai"
     assert result.jsonl_files_matched == 1
     assert ProviderCount("openai", 1) in result.provider_counts_before
-    assert ProviderCount("codex-lb", 1) in result.provider_counts_after
+    assert ProviderCount("openhub", 1) in result.provider_counts_after
 
 
 def test_retag_streams_jsonl_rewrite_to_temp_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -138,9 +139,9 @@ def test_retag_streams_jsonl_rewrite_to_temp_file(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(codex_sessions_retag, "NamedTemporaryFile", capture_named_temporary_file)
 
-    retag_codex_sessions(codex_home=codex_home, source_provider="openai", target_provider="codex-lb")
+    retag_codex_sessions(codex_home=codex_home, source_provider="openai", target_provider="openhub")
 
-    assert writes == ['{"model_provider":"codex-lb","id":"a"}\n']
+    assert writes == ['{"model_provider":"openhub","id":"a"}\n']
 
 
 def test_retag_surfaces_unreadable_jsonl_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -175,7 +176,7 @@ def test_retag_surfaces_unreadable_jsonl_files(monkeypatch: pytest.MonkeyPatch, 
         retag_codex_sessions(
             codex_home=codex_home,
             source_provider="openai",
-            target_provider="codex-lb",
+            target_provider="openhub",
         )
 
     assert not (codex_home / "backups").exists()
@@ -189,12 +190,12 @@ def test_retag_supports_jsonl_only_storage(tmp_path: Path) -> None:
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
     )
 
     assert result.methods_used == ("jsonl",)
     assert result.sqlite_dbs_scanned == 0
-    assert json.loads(session_file.read_text(encoding="utf-8"))["model_provider"] == "codex-lb"
+    assert json.loads(session_file.read_text(encoding="utf-8"))["model_provider"] == "openhub"
 
 
 def test_retag_uses_copy_fallback_when_live_sqlite_cannot_open(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -216,11 +217,11 @@ def test_retag_uses_copy_fallback_when_live_sqlite_cannot_open(monkeypatch: pyte
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
     )
 
     assert result.sqlite_rows_updated == 1
-    assert _read_state_providers(state_db) == ["codex-lb"]
+    assert _read_state_providers(state_db) == ["openhub"]
 
 
 def test_read_only_sqlite_count_uses_non_immutable_uri(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -248,14 +249,14 @@ def test_retag_skips_legacy_sqlite_without_model_provider_column(tmp_path: Path)
     session_file = codex_home / "sessions" / "2026" / "session.jsonl"
     codex_home.mkdir()
     _write_jsonl(session_file, [{"model_provider": "openai", "id": "a"}])
-    with sqlite3.connect(state_db) as conn:
+    with closing(sqlite3.connect(state_db)) as conn, conn:
         conn.execute("CREATE TABLE threads (id TEXT PRIMARY KEY)")
         conn.execute("INSERT INTO threads (id) VALUES ('thread-legacy')")
 
     result = retag_codex_sessions(
         codex_home=codex_home,
         source_provider="openai",
-        target_provider="codex-lb",
+        target_provider="openhub",
     )
 
     assert result.sqlite_dbs_scanned == 1
@@ -274,7 +275,7 @@ def test_sqlite_backup_consolidates_wal_rows(tmp_path: Path) -> None:
     codex_home = tmp_path / ".codex"
     state_db = codex_home / "state_5.sqlite"
     codex_home.mkdir()
-    with sqlite3.connect(state_db) as conn:
+    with closing(sqlite3.connect(state_db)) as conn, conn:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA wal_autocheckpoint=0")
         conn.execute("CREATE TABLE threads (id TEXT PRIMARY KEY, model_provider TEXT)")
@@ -293,7 +294,7 @@ def test_sqlite_copy_fallback_uses_consolidated_backup_and_removes_sidecars(tmp_
     codex_home = tmp_path / ".codex"
     state_db = codex_home / "state_5.sqlite"
     codex_home.mkdir()
-    with sqlite3.connect(state_db) as conn:
+    with closing(sqlite3.connect(state_db)) as conn, conn:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA wal_autocheckpoint=0")
         conn.execute("CREATE TABLE threads (id TEXT PRIMARY KEY, model_provider TEXT)")
@@ -305,12 +306,12 @@ def test_sqlite_copy_fallback_uses_consolidated_backup_and_removes_sidecars(tmp_
 
     try:
         assert _read_state_providers(temp_path) == ["openai"]
-        codex_sessions_retag._update_sqlite_provider_in_place(temp_path, "openai", "codex-lb")
+        codex_sessions_retag._update_sqlite_provider_in_place(temp_path, "openai", "openhub")
         Path(f"{state_db}-wal").write_bytes(b"stale wal")
         Path(f"{state_db}-shm").write_bytes(b"stale shm")
         codex_sessions_retag._replace_sqlite_db(temp_path, state_db)
 
-        assert _read_state_providers(state_db) == ["codex-lb"]
+        assert _read_state_providers(state_db) == ["openhub"]
         assert not Path(f"{state_db}-wal").exists()
         assert not Path(f"{state_db}-shm").exists()
     finally:
@@ -327,9 +328,9 @@ def test_retag_stays_inside_configured_codex_home(tmp_path: Path) -> None:
     _create_state_db(mounted_db, ["openai"])
     _create_state_db(host_db, ["openai"])
 
-    retag_codex_sessions(codex_home=codex_home, source_provider="openai", target_provider="codex-lb")
+    retag_codex_sessions(codex_home=codex_home, source_provider="openai", target_provider="openhub")
 
-    assert _read_state_providers(mounted_db) == ["codex-lb"]
+    assert _read_state_providers(mounted_db) == ["openhub"]
     assert _read_state_providers(host_db) == ["openai"]
 
 

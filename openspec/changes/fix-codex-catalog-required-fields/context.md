@@ -11,7 +11,7 @@ wire-valid upstream values.
 their known truncation mode: `gpt-5.2` uses the upstream-compatible 10,000-byte
 limit, while the other bundled Codex models use the upstream-compatible
 10,000-token limit. Other missing policies use the same 10,000-token default as
-codex-lb's Responses-capable model-source catalog. Explicit upstream or
+openhub's Responses-capable model-source catalog. Explicit upstream or
 operator-provided policies take precedence unchanged.
 
 Model-source metadata is an operator-extensible JSON object. Its existing tool

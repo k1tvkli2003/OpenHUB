@@ -457,7 +457,7 @@ The dashboard footer SHALL show the running application version and SHALL displa
 
 - **WHEN** `GET /api/runtime/version` returns `updateAvailable: true` with a `latestVersion`
 - **THEN** the footer renders an accessible update icon beside the current version
-- **AND** the icon links to `https://github.com/Soju06/codex-lb/releases/latest`
+- **AND** the icon links to `https://github.com/k1tvkli2003/OpenHUB/releases/latest`
 - **AND** the icon title or accessible label includes the latest version
 
 #### Scenario: Version lookup is unavailable
@@ -1417,13 +1417,13 @@ The dashboard SHALL render a visible sort icon on every sortable `/reports` `Dai
 
 ### Requirement: Dashboard supports runtime locale selection
 
-The dashboard SHALL load translations through `i18next` + `react-i18next`, support at least `en` (default) and `zh-CN` locales, persist the user's selection in `localStorage` under the key `codex-lb-language`, and apply the active locale to the document's `lang` attribute. When no persisted preference exists, the dashboard SHALL detect the browser language and use `zh-CN` for any `zh*` tag and `en` otherwise.
+The dashboard SHALL load translations through `i18next` + `react-i18next`, support at least `en` (default) and `zh-CN` locales, persist the user's selection in `localStorage` under the key `openhub-language`, and apply the active locale to the document's `lang` attribute. When no persisted preference exists, the dashboard SHALL detect the browser language and use `zh-CN` for any `zh*` tag and `en` otherwise.
 
 #### Scenario: First visit with a Chinese browser
 
 - **WHEN** a user opens the dashboard for the first time with `navigator.language = "zh-CN"` and no persisted preference
 - **THEN** the in-scope surface (header, status-bar labels, auth screens) renders in Simplified Chinese
-- **AND** `localStorage` contains `codex-lb-language=zh-CN`
+- **AND** `localStorage` contains `openhub-language=zh-CN`
 
 #### Scenario: First visit with an unsupported browser language
 
@@ -1435,7 +1435,7 @@ The dashboard SHALL load translations through `i18next` + `react-i18next`, suppo
 
 - **WHEN** the user activates the language switcher in the app header and selects `简体中文`
 - **THEN** the in-scope surface re-renders in Simplified Chinese without a full page reload
-- **AND** `localStorage.codex-lb-language` is set to `zh-CN`
+- **AND** `localStorage.openhub-language` is set to `zh-CN`
 - **AND** `document.documentElement.lang` is set to `zh-CN`
 
 #### Scenario: Selection persists across reloads
@@ -1632,7 +1632,7 @@ reset appear sooner.
 - **WHEN** the operator clicks the Usage panel Reset action
 - **AND** confirms the dialog
 - **THEN** the dashboard sends a usage reset consume request for the selected account
-- **AND** codex-lb does not send a model probe request
+- **AND** openhub does not send a model probe request
 - **AND** account-related usage, trend, reset-credit, and dashboard summary
   queries are invalidated after success
 - **AND** no reset-credit availability query is configured with a permanent

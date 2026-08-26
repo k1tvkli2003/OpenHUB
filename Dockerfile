@@ -52,8 +52,8 @@ RUN python -m pip uninstall -y pip setuptools wheel || true \
         /usr/local/lib/python*/site-packages/wheel*
 
 RUN adduser --disabled-password --gecos "" app \
-    && mkdir -p /var/lib/codex-lb \
-    && chown -R app:app /var/lib/codex-lb
+    && mkdir -p /var/lib/openhub \
+    && chown -R app:app /var/lib/openhub
 
 COPY --from=python-build /opt/venv /opt/venv
 COPY --chown=app:app app app
@@ -64,8 +64,8 @@ COPY --chown=app:app --from=frontend-build /app/app/static app/static
 # The runtime image copies source files instead of installing the project, so
 # recreate the console-script entry point that pyproject would normally install.
 RUN chmod +x /app/scripts/docker-entrypoint.sh \
-    && printf '%s\n' '#!/bin/sh' 'exec python -m app.cli "$@"' > /usr/local/bin/codex-lb \
-    && chmod +x /usr/local/bin/codex-lb
+    && printf '%s\n' '#!/bin/sh' 'exec python -m app.cli "$@"' > /usr/local/bin/openhub \
+    && chmod +x /usr/local/bin/openhub
 
 USER app
 RUN test -z "$(find /app/app /app/config /app/scripts -type f ! -readable -print -quit)"

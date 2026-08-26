@@ -69,7 +69,7 @@ const useReportsMock = vi.mocked(useReports);
 const listAccountsMock = vi.mocked(listAccounts);
 const getBrowserReportsTimeZoneMock = vi.mocked(getBrowserReportsTimeZone);
 type UseReportsMockResult = ReturnType<typeof useReports>;
-const REPORTS_TIMEZONE_STORAGE_KEY = "codex-lb-reports-timezone";
+const REPORTS_TIMEZONE_STORAGE_KEY = "openhub-reports-timezone";
 
 const asUseReportsResult = (
   value: Partial<UseReportsMockResult>,

@@ -1,77 +1,80 @@
+from __future__ import annotations
+
 import re
 from pathlib import Path
 
+import yaml
+
 CI_WORKFLOW = Path(__file__).parents[2] / ".github" / "workflows" / "ci.yml"
+RELEASE_WORKFLOW = Path(__file__).parents[2] / ".github" / "workflows" / "release.yml"
+_PINNED_ACTION = re.compile(r"^[^\s]+@[0-9a-f]{40}$")
 
 
-def _ci_workflow_text() -> str:
-    return CI_WORKFLOW.read_text(encoding="utf-8")
+def _workflow(path: Path) -> dict:
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def _job_block(text: str, job_name: str) -> str:
-    start_match = re.search(rf"^  {re.escape(job_name)}:\n", text, re.MULTILINE)
-    assert start_match is not None
-    next_job_match = re.search(r"^  [A-Za-z0-9_-]+:\n", text[start_match.end() :], re.MULTILINE)
-    if next_job_match is None:
-        return text[start_match.start() :]
-    return text[start_match.start() : start_match.end() + next_job_match.start()]
+def _uses(workflow: dict) -> list[str]:
+    result: list[str] = []
+    for job in workflow["jobs"].values():
+        for step in job.get("steps", []):
+            if "uses" in step:
+                result.append(step["uses"])
+    return result
 
 
-def test_pytest_matrix_required_contexts_are_created_for_non_backend_prs() -> None:
-    test_job = _job_block(_ci_workflow_text(), "test")
+def test_ci_runs_each_shipped_product_surface() -> None:
+    workflow = _workflow(CI_WORKFLOW)
 
-    assert "name: Tests (pytest, ${{ matrix.slice.name }})" in test_job
-    assert "matrix:" in test_job
-    assert "\n    if: needs.changes.outputs.backend == 'true'" not in test_job
-    assert "name: Skip backend tests for unrelated changes" in test_job
-    assert "if: needs.changes.outputs.backend != 'true'" in test_job
-    assert "required pytest context satisfied" in test_job
-
-
-def test_pytest_matrix_real_test_steps_still_run_only_for_backend_changes() -> None:
-    test_job = _job_block(_ci_workflow_text(), "test")
-
-    assert "if: needs.changes.outputs.backend == 'true'\n        run: make test-${{ matrix.slice.name }}" in test_job
-    for step_name in (
-        "Checkout repository",
-        "Set up Bun",
-        "Cache Bun dependencies",
-        "Set up uv",
+    assert set(workflow["jobs"]) == {
+        "backend",
+        "dashboard",
+        "native-windows",
+        "helm-contracts",
+        "helm-smoke",
+        "contracts",
+    }
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    for command in (
+        "uv run ruff check app tests scripts",
+        "uv run pytest tests/unit -q",
+        "bun run lint",
+        "bun run typecheck",
+        "bun run test",
+        "bun run build",
+        "flutter analyze",
+        "flutter test",
+        "flutter build windows --release --no-pub",
+        "make helm-check",
+        "make helm-smoke-kind",
+        "openspec validate --specs --strict",
     ):
-        step = test_job.split(f"- name: {step_name}", maxsplit=1)[1]
-        assert step.lstrip().startswith("if: needs.changes.outputs.backend == 'true'")
+        assert command in text
 
 
-def test_postgres_required_context_is_created_for_non_backend_prs() -> None:
-    pg_job = _job_block(_ci_workflow_text(), "test-postgres")
+def test_workflows_pin_every_external_action_to_a_full_commit() -> None:
+    uses = _uses(_workflow(CI_WORKFLOW)) + _uses(_workflow(RELEASE_WORKFLOW))
 
-    assert "name: Tests (pytest, PostgreSQL)" in pg_job
-    assert "\n    if: needs.changes.outputs.backend == 'true'" not in pg_job
-    assert "name: Skip PostgreSQL tests for unrelated changes" in pg_job
-    assert "if: needs.changes.outputs.backend != 'true'" in pg_job
-    assert "required PostgreSQL context satisfied" in pg_job
+    assert uses
+    assert all(_PINNED_ACTION.fullmatch(value) for value in uses)
 
 
-def test_postgres_real_test_steps_still_run_only_for_backend_changes() -> None:
-    pg_job = _job_block(_ci_workflow_text(), "test-postgres")
+def test_release_is_serialized_without_cancelling_and_has_scoped_permissions() -> None:
+    workflow = _workflow(RELEASE_WORKFLOW)
 
-    assert "if: needs.changes.outputs.backend == 'true'\n        run: make test-postgres" in pg_job
-    for step_name in (
-        "Checkout repository",
-        "Set up Bun",
-        "Cache Bun dependencies",
-        "Set up uv",
-    ):
-        step = pg_job.split(f"- name: {step_name}", maxsplit=1)[1]
-        assert step.lstrip().startswith("if: needs.changes.outputs.backend == 'true'")
+    assert workflow["concurrency"]["cancel-in-progress"] is False
+    assert workflow["permissions"] == {"contents": "read"}
+    assert workflow["jobs"]["publish"]["permissions"] == {
+        "contents": "write",
+        "id-token": "write",
+        "attestations": "write",
+    }
 
 
-def test_dashboard_browser_smoke_covers_both_contract_sides_and_is_required() -> None:
-    workflow = _ci_workflow_text()
-    browser_job = _job_block(workflow, "dashboard-browser-smoke")
-    required_job = _job_block(workflow, "ci-required")
+def test_release_contains_integrity_and_provenance_outputs() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
-    assert "if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'" in browser_job
-    assert "bun run playwright install --with-deps chromium" in browser_job
-    assert "run: make test-dashboard-browser-smoke" in browser_job
-    assert "- dashboard-browser-smoke" in required_job
+    assert "SHA256SUMS.txt" in text
+    assert ".sbom.spdx.json" in text
+    assert "actions/attest-build-provenance@" in text
+    assert "cancel-in-progress: false" in text

@@ -1,6 +1,6 @@
 ## Why
 
-Codex clients now send a terminal `compaction_trigger` item on normal `/backend-api/codex/responses` turns when they want remote compaction. codex-lb currently forwards that item as ordinary Responses input, which leaves the downstream compact flow with no compaction output item and can trap the client in a failed retry loop.
+Codex clients now send a terminal `compaction_trigger` item on normal `/backend-api/codex/responses` turns when they want remote compaction. openhub currently forwards that item as ordinary Responses input, which leaves the downstream compact flow with no compaction output item and can trap the client in a failed retry loop.
 
 ## What Changes
 

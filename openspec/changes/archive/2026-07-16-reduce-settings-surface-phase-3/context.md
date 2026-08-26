@@ -19,33 +19,33 @@ so the change carries MODIFIED deltas for them.
 
 Database pool tuning (`app/db/session.py`):
 
-- `CODEX_LB_DATABASE_BACKGROUND_POOL_SIZE` (derived: always
+- `OPENHUB_DATABASE_BACKGROUND_POOL_SIZE` (derived: always
   `database_pool_size`; the previous default was already "unset = derive")
-- `CODEX_LB_DATABASE_BACKGROUND_MAX_OVERFLOW` (derived: always
+- `OPENHUB_DATABASE_BACKGROUND_MAX_OVERFLOW` (derived: always
   `database_max_overflow`)
-- `CODEX_LB_DATABASE_POOL_TIMEOUT_SECONDS` (fixed: 30.0,
+- `OPENHUB_DATABASE_POOL_TIMEOUT_SECONDS` (fixed: 30.0,
   `_POSTGRES_POOL_TIMEOUT_SECONDS`)
-- `CODEX_LB_DATABASE_POOL_RECYCLE_SECONDS` (fixed: 1800,
+- `OPENHUB_DATABASE_POOL_RECYCLE_SECONDS` (fixed: 1800,
   `_POSTGRES_POOL_RECYCLE_SECONDS`)
 
 Soft-drain/probe thresholds (already constants in
 `app/core/balancer/logic.py`; the settings plumbing is deleted):
 
-- `CODEX_LB_DRAIN_PRIMARY_THRESHOLD_PCT` (fixed: 85.0)
-- `CODEX_LB_DRAIN_SECONDARY_THRESHOLD_PCT` (fixed: 90.0)
-- `CODEX_LB_DRAIN_ERROR_WINDOW_SECONDS` (fixed: 60.0)
-- `CODEX_LB_DRAIN_ERROR_COUNT_THRESHOLD` (fixed: 2)
-- `CODEX_LB_PROBE_QUIET_SECONDS` (fixed: 60.0)
-- `CODEX_LB_PROBE_SUCCESS_STREAK_REQUIRED` (fixed: 3)
+- `OPENHUB_DRAIN_PRIMARY_THRESHOLD_PCT` (fixed: 85.0)
+- `OPENHUB_DRAIN_SECONDARY_THRESHOLD_PCT` (fixed: 90.0)
+- `OPENHUB_DRAIN_ERROR_WINDOW_SECONDS` (fixed: 60.0)
+- `OPENHUB_DRAIN_ERROR_COUNT_THRESHOLD` (fixed: 2)
+- `OPENHUB_PROBE_QUIET_SECONDS` (fixed: 60.0)
+- `OPENHUB_PROBE_SUCCESS_STREAK_REQUIRED` (fixed: 3)
 
-Kept deliberately: `CODEX_LB_DATABASE_POOL_SIZE` and
-`CODEX_LB_DATABASE_MAX_OVERFLOW` — the one genuine PostgreSQL HA sizing
+Kept deliberately: `OPENHUB_DATABASE_POOL_SIZE` and
+`OPENHUB_DATABASE_MAX_OVERFLOW` — the one genuine PostgreSQL HA sizing
 decision. Operators must budget
 `(pool_size + max_overflow) x maxReplicas <= max_connections`, and the
 Helm chart pins both values (`config.databasePoolSize=5`,
 `config.databaseMaxOverflow`), so removing them would break real
-deployments' connection budgets. `CODEX_LB_SOFT_DRAIN_ENABLED` and
-`CODEX_LB_DETERMINISTIC_FAILOVER_ENABLED` stay as the failover
+deployments' connection budgets. `OPENHUB_SOFT_DRAIN_ENABLED` and
+`OPENHUB_DETERMINISTIC_FAILOVER_ENABLED` stay as the failover
 subsystem's switches.
 
 ## Background-pool decision
@@ -78,11 +78,11 @@ rely on the constant defaults. Per-replica drain/probe state semantics
 
 ## Example
 
-An operator running `CODEX_LB_PROBE_QUIET_SECONDS=30` upgrades: startup
+An operator running `OPENHUB_PROBE_QUIET_SECONDS=30` upgrades: startup
 logs
 
 ```
-removed setting(s) ignored: CODEX_LB_PROBE_QUIET_SECONDS — values are now fixed; see PRINCIPLES.md P2 / issue #1340
+removed setting(s) ignored: OPENHUB_PROBE_QUIET_SECONDS — values are now fixed; see PRINCIPLES.md P2 / issue #1340
 ```
 
 and drained accounts enter the probing tier after the fixed 60-second

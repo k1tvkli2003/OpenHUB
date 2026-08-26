@@ -17,7 +17,7 @@ per-worker index — cannot be made reliable:
 - **No portable per-worker index.** Neither uvicorn `--workers` nor gunicorn
   exposes a stable index in the child environment.
 - **Inherited environment.** A standard multi-worker launch copies the SAME
-  environment into every child, so an operator-declared `CODEX_LB_WORKER_INDEX`
+  environment into every child, so an operator-declared `OPENHUB_WORKER_INDEX`
   is identical in all workers — every worker resolves to slot 0 and enforces slot
   0's share independently. That is worse than no partitioning: it looks
   configured but silently over-admits (e.g. `W=3`, stream cap 8: each worker
@@ -32,7 +32,7 @@ more than one worker is refused rather than mis-served.
 
 ## The tripwire and its accepted limitation
 
-`workers_per_instance` (`CODEX_LB_WORKERS_PER_INSTANCE`, default 1) is the only
+`workers_per_instance` (`OPENHUB_WORKERS_PER_INSTANCE`, default 1) is the only
 worker-related setting. A `model_validator(mode="after")` on `Settings` (the same
 pattern as the other cross-field validators, e.g.
 `_validate_token_refresh_claim_ttl`) rejects a declared value `> 1` at startup
@@ -42,7 +42,7 @@ no-op: zero operator action, behavior identical to `main` today.
 
 The tripwire catches only the **explicit declaration**. The worker count is not
 portably auto-detectable, so an operator who launches multiple workers without
-setting `CODEX_LB_WORKERS_PER_INSTANCE` is not caught at runtime — that case is
+setting `OPENHUB_WORKERS_PER_INSTANCE` is not caught at runtime — that case is
 covered by deployment documentation (one worker per pod). This is a deliberate,
 accepted trade-off: a loud refusal of the declared-unsupported config is worth
 more than an unreliable partition, and auto-detection would give false
@@ -54,7 +54,7 @@ An earlier revision of this change added intra-pod worker cap partitioning: an
 `R*W` flattened `partition_cap_for_worker`, `worker_count`/`worker_index` on
 `CapPartition` and `AccountConcurrencyCaps`, a per-worker stream-reserve split,
 an ordinary-floor-at-zero rule for over-subscribed shares, and a
-`CODEX_LB_WORKER_INDEX` setting with per-worker-index validation. All of that is
+`OPENHUB_WORKER_INDEX` setting with per-worker-index validation. All of that is
 removed for the reasons above; the partitioning path is byte-for-byte `main`'s
 ring-only behavior, and the branch's only code change versus `main` is the
 `workers_per_instance > 1` tripwire.

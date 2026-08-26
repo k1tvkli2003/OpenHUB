@@ -10,7 +10,7 @@ OpenAI now rejects some Codex model requests when this internal header reaches u
 
 `This model is not supported when using X-OpenAI-Internal-Codex-Responses-Lite.`
 
-The header is client/internal control metadata, not part of the public Responses API contract. codex-lb should continue accepting clients that send it without blindly forwarding it.
+The header is client/internal control metadata, not part of the public Responses API contract. openhub should continue accepting clients that send it without blindly forwarding it.
 
 Newer Codex models also use a developer-role `additional_tools` input item as the authoritative Responses Lite body shape. Treating every developer-role item as an instruction silently deletes those tool definitions. Once the body is known to be Lite, the proxy must reconstruct the transport-specific marker instead of trusting the inbound header.
 

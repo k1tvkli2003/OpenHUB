@@ -6,7 +6,7 @@
       `app/modules/oauth/service.py`)
 - [x] 1.2 Hardcode the seven auth-guardian tuning values as constants in
       `app/core/auth/guardian.py`; keep `auth_guardian_enabled`
-- [x] 1.3 Replace the six debug log booleans with one `CODEX_LB_TRACE`
+- [x] 1.3 Replace the six debug log booleans with one `OPENHUB_TRACE`
       comma-separated channel setting plus a cached
       `Settings.trace_channels` frozenset; convert call sites in
       `app/modules/proxy/_service/observability.py` and

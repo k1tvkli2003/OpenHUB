@@ -8,7 +8,7 @@ A stable GitHub Release can become visible before the release publishing workflo
 
 - Add a stable release PR guard that rejects release-please stable promotions unless every release-managed version field agrees and advances together
 - Add a Release workflow failure cleanup job that withdraws a release-event GitHub Release back to draft when publishing fails, so dashboard/latest-release consumers do not keep advertising a non-installable stable release
-- Restore current main release metadata consistency by moving the editable codex-lb `uv.lock` entry back to the current stable version
+- Restore current main release metadata consistency by moving the editable openhub `uv.lock` entry back to the current stable version
 
 ## Changes
 

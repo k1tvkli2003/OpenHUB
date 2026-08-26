@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -420,7 +420,12 @@ class QuotaWarmupService:
             return False, "no_short_window"
         if await self._short_window_superseded(account, latest):
             return False, "no_short_window"
-        if latest is not None and latest.reset_at is not None and latest.reset_at > int(utcnow().timestamp()):
+        # ``utcnow`` deliberately returns a naive UTC datetime. Calling
+        # ``timestamp()`` on it would reinterpret that value in the host's
+        # local timezone (and made expired windows look active on Windows in
+        # non-UTC locales). Attach UTC explicitly before comparing epochs.
+        now_epoch = int(utcnow().replace(tzinfo=UTC).timestamp())
+        if latest is not None and latest.reset_at is not None and latest.reset_at > now_epoch:
             return False, "account_window_already_active"
 
         # Advisory pre-check only: the authoritative budget enforcement happens
@@ -477,7 +482,7 @@ class QuotaWarmupService:
                 "generate": False,
             }
         )
-        headers = {"x-request-id": request_id, "user-agent": "codex-lb-quota-planner"}
+        headers = {"x-request-id": request_id, "user-agent": "openhub-quota-planner"}
         access_token = self._encryptor.decrypt(account.access_token_encrypted)
         upstream_account_id = account.chatgpt_account_id
         usage = WarmupUsage(input_tokens=0, output_tokens=0, cached_input_tokens=0, reasoning_tokens=None)

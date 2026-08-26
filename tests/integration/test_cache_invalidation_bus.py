@@ -8,6 +8,7 @@ directly for determinism (no sleeps).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -53,6 +54,41 @@ from app.modules.proxy.account_cache import (
 if TYPE_CHECKING:
     from app.modules.proxy._service.http_bridge.helpers import _HTTPBridgeSession
     from app.modules.proxy.load_balancer import SelectionInputs
+
+
+@pytest.mark.asyncio
+async def test_poller_stop_waits_for_inflight_poll_without_cancelling_it(monkeypatch) -> None:
+    """Shutdown must let a DB acquisition finish so its worker can close."""
+
+    poll_started = asyncio.Event()
+    release_poll = asyncio.Event()
+    poll_cancelled = asyncio.Event()
+    poller = CacheInvalidationPoller(SessionLocal, poll_interval_seconds=60)
+
+    async def controlled_poll() -> bool:
+        poll_started.set()
+        try:
+            await release_poll.wait()
+        except asyncio.CancelledError:
+            poll_cancelled.set()
+            raise
+        return True
+
+    monkeypatch.setattr(poller, "_poll_once", controlled_poll)
+
+    await poller.start()
+    await asyncio.wait_for(poll_started.wait(), timeout=1)
+    stop_task = asyncio.create_task(poller.stop())
+    await asyncio.sleep(0)
+
+    assert stop_task.done() is False
+    assert poll_cancelled.is_set() is False
+
+    release_poll.set()
+    await asyncio.wait_for(stop_task, timeout=1)
+
+    assert poll_cancelled.is_set() is False
+    assert poller._task is None
 
 pytestmark = pytest.mark.integration
 

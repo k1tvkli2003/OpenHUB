@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parents[3]
 ENV_FILES = (BASE_DIR / ".env", BASE_DIR / ".env.local")
 
-# OAuth protocol constants. These values identify codex-lb to OpenAI's OAuth
+# OAuth protocol constants. These values identify openhub to OpenAI's OAuth
 # endpoints exactly like the Codex CLI; they are protocol constants, not
 # deployment tunables, and changing any of them breaks login
 # (PRINCIPLES.md P2, issue #1340).
@@ -39,66 +39,66 @@ OAUTH_CALLBACK_PORT = 1455  # Do not change the port. OpenAI dislikes changes.
 # emits one WARN for one release as a courtesy to operators who still set them.
 _REMOVED_SETTINGS: tuple[str, ...] = (
     # Phase 1 (reduce-settings-surface-phase-1)
-    "CODEX_LB_AUTH_BASE_URL",
-    "CODEX_LB_OAUTH_CLIENT_ID",
-    "CODEX_LB_OAUTH_ORIGINATOR",
-    "CODEX_LB_OAUTH_SCOPE",
-    "CODEX_LB_OAUTH_REDIRECT_URI",
-    "CODEX_LB_OAUTH_CALLBACK_PORT",
-    "CODEX_LB_AUTH_GUARDIAN_INTERVAL_SECONDS",
-    "CODEX_LB_AUTH_GUARDIAN_MAX_REFRESH_AGE_SECONDS",
-    "CODEX_LB_AUTH_GUARDIAN_BATCH_SIZE",
-    "CODEX_LB_AUTH_GUARDIAN_CONCURRENCY",
-    "CODEX_LB_AUTH_GUARDIAN_JITTER_SECONDS",
-    "CODEX_LB_AUTH_GUARDIAN_FAILURE_BACKOFF_BASE_SECONDS",
-    "CODEX_LB_AUTH_GUARDIAN_FAILURE_BACKOFF_MAX_SECONDS",
-    "CODEX_LB_LOG_PROXY_REQUEST_SHAPE",
-    "CODEX_LB_LOG_PROXY_REQUEST_SHAPE_RAW_CACHE_KEY",
-    "CODEX_LB_LOG_PROXY_REQUEST_PAYLOAD",
-    "CODEX_LB_LOG_PROXY_SERVICE_TIER_TRACE",
-    "CODEX_LB_LOG_UPSTREAM_REQUEST_SUMMARY",
-    "CODEX_LB_LOG_UPSTREAM_REQUEST_PAYLOAD",
-    "CODEX_LB_BULKHEAD_PROXY_HTTP_LIMIT",
-    "CODEX_LB_BULKHEAD_PROXY_WEBSOCKET_LIMIT",
-    "CODEX_LB_BULKHEAD_PROXY_COMPACT_LIMIT",
-    "CODEX_LB_TOKEN_REFRESH_CLAIM_WAIT_SECONDS",
-    "CODEX_LB_TOKEN_REFRESH_CLAIM_POLL_SECONDS",
+    "OPENHUB_AUTH_BASE_URL",
+    "OPENHUB_OAUTH_CLIENT_ID",
+    "OPENHUB_OAUTH_ORIGINATOR",
+    "OPENHUB_OAUTH_SCOPE",
+    "OPENHUB_OAUTH_REDIRECT_URI",
+    "OPENHUB_OAUTH_CALLBACK_PORT",
+    "OPENHUB_AUTH_GUARDIAN_INTERVAL_SECONDS",
+    "OPENHUB_AUTH_GUARDIAN_MAX_REFRESH_AGE_SECONDS",
+    "OPENHUB_AUTH_GUARDIAN_BATCH_SIZE",
+    "OPENHUB_AUTH_GUARDIAN_CONCURRENCY",
+    "OPENHUB_AUTH_GUARDIAN_JITTER_SECONDS",
+    "OPENHUB_AUTH_GUARDIAN_FAILURE_BACKOFF_BASE_SECONDS",
+    "OPENHUB_AUTH_GUARDIAN_FAILURE_BACKOFF_MAX_SECONDS",
+    "OPENHUB_LOG_PROXY_REQUEST_SHAPE",
+    "OPENHUB_LOG_PROXY_REQUEST_SHAPE_RAW_CACHE_KEY",
+    "OPENHUB_LOG_PROXY_REQUEST_PAYLOAD",
+    "OPENHUB_LOG_PROXY_SERVICE_TIER_TRACE",
+    "OPENHUB_LOG_UPSTREAM_REQUEST_SUMMARY",
+    "OPENHUB_LOG_UPSTREAM_REQUEST_PAYLOAD",
+    "OPENHUB_BULKHEAD_PROXY_HTTP_LIMIT",
+    "OPENHUB_BULKHEAD_PROXY_WEBSOCKET_LIMIT",
+    "OPENHUB_BULKHEAD_PROXY_COMPACT_LIMIT",
+    "OPENHUB_TOKEN_REFRESH_CLAIM_WAIT_SECONDS",
+    "OPENHUB_TOKEN_REFRESH_CLAIM_POLL_SECONDS",
     # Phase 2 (reduce-settings-surface-phase-2)
-    "CODEX_LB_QUOTA_PLANNER_TICK_SECONDS",
-    "CODEX_LB_AUTOMATIONS_SCHEDULER_INTERVAL_SECONDS",
-    "CODEX_LB_MODEL_REGISTRY_REFRESH_INTERVAL_SECONDS",
-    "CODEX_LB_STICKY_SESSION_CLEANUP_INTERVAL_SECONDS",
-    "CODEX_LB_CODEX_FINGERPRINT_OS",
-    "CODEX_LB_CODEX_FINGERPRINT_ARCH",
-    "CODEX_LB_CODEX_FINGERPRINT_TERMINAL",
-    "CODEX_LB_LIVE_USAGE_WRITE_MIN_INTERVAL_SECONDS",
-    "CODEX_LB_LIVE_USAGE_QUEUE_SIZE",
-    "CODEX_LB_REQUEST_LOG_COUNT_CACHE_TTL_SECONDS",
-    "CODEX_LB_CIRCUIT_BREAKER_FAILURE_THRESHOLD",
-    "CODEX_LB_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS",
-    "CODEX_LB_MEMORY_WARNING_THRESHOLD_MB",
-    "CODEX_LB_IMAGES_HOST_MODEL",
-    "CODEX_LB_IMAGES_MAX_PARTIAL_IMAGES",
+    "OPENHUB_QUOTA_PLANNER_TICK_SECONDS",
+    "OPENHUB_AUTOMATIONS_SCHEDULER_INTERVAL_SECONDS",
+    "OPENHUB_MODEL_REGISTRY_REFRESH_INTERVAL_SECONDS",
+    "OPENHUB_STICKY_SESSION_CLEANUP_INTERVAL_SECONDS",
+    "OPENHUB_CODEX_FINGERPRINT_OS",
+    "OPENHUB_CODEX_FINGERPRINT_ARCH",
+    "OPENHUB_CODEX_FINGERPRINT_TERMINAL",
+    "OPENHUB_LIVE_USAGE_WRITE_MIN_INTERVAL_SECONDS",
+    "OPENHUB_LIVE_USAGE_QUEUE_SIZE",
+    "OPENHUB_REQUEST_LOG_COUNT_CACHE_TTL_SECONDS",
+    "OPENHUB_CIRCUIT_BREAKER_FAILURE_THRESHOLD",
+    "OPENHUB_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS",
+    "OPENHUB_MEMORY_WARNING_THRESHOLD_MB",
+    "OPENHUB_IMAGES_HOST_MODEL",
+    "OPENHUB_IMAGES_MAX_PARTIAL_IMAGES",
     # Phase 3 (reduce-settings-surface-phase-3)
-    "CODEX_LB_DATABASE_BACKGROUND_POOL_SIZE",
-    "CODEX_LB_DATABASE_BACKGROUND_MAX_OVERFLOW",
-    "CODEX_LB_DATABASE_POOL_TIMEOUT_SECONDS",
-    "CODEX_LB_DATABASE_POOL_RECYCLE_SECONDS",
-    "CODEX_LB_DRAIN_PRIMARY_THRESHOLD_PCT",
-    "CODEX_LB_DRAIN_SECONDARY_THRESHOLD_PCT",
-    "CODEX_LB_DRAIN_ERROR_WINDOW_SECONDS",
-    "CODEX_LB_DRAIN_ERROR_COUNT_THRESHOLD",
-    "CODEX_LB_PROBE_QUIET_SECONDS",
-    "CODEX_LB_PROBE_SUCCESS_STREAK_REQUIRED",
+    "OPENHUB_DATABASE_BACKGROUND_POOL_SIZE",
+    "OPENHUB_DATABASE_BACKGROUND_MAX_OVERFLOW",
+    "OPENHUB_DATABASE_POOL_TIMEOUT_SECONDS",
+    "OPENHUB_DATABASE_POOL_RECYCLE_SECONDS",
+    "OPENHUB_DRAIN_PRIMARY_THRESHOLD_PCT",
+    "OPENHUB_DRAIN_SECONDARY_THRESHOLD_PCT",
+    "OPENHUB_DRAIN_ERROR_WINDOW_SECONDS",
+    "OPENHUB_DRAIN_ERROR_COUNT_THRESHOLD",
+    "OPENHUB_PROBE_QUIET_SECONDS",
+    "OPENHUB_PROBE_SUCCESS_STREAK_REQUIRED",
     # Phase 4 (reduce-settings-surface-phase-4)
-    "CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_CANARY_PERCENT",
-    "CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ALLOW_API_KEY_IDS",
-    "CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_DENY_API_KEY_IDS",
+    "OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_CANARY_PERCENT",
+    "OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_ALLOW_API_KEY_IDS",
+    "OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_CODEX_PREWARM_DENY_API_KEY_IDS",
 )
 
 
 def warn_removed_settings(environ: Mapping[str, str] | None = None) -> list[str]:
-    """Log one WARN listing removed ``CODEX_LB_*`` env vars still set.
+    """Log one WARN listing removed ``OPENHUB_*`` env vars still set.
 
     Scans the process environment plus the same env files Settings loads
     (``ENV_FILES``), so removed names lingering in ``.env``/``.env.local``
@@ -118,7 +118,7 @@ def warn_removed_settings(environ: Mapping[str, str] | None = None) -> list[str]
     return found
 
 
-DOCKER_DATA_DIR = Path("/var/lib/codex-lb")
+DOCKER_DATA_DIR = Path("/var/lib/openhub")
 DOCKER_CALLBACK_HOST = "0.0.0.0"
 
 
@@ -127,10 +127,10 @@ def _in_container() -> bool:
 
 
 def _default_home_dir() -> Path:
-    env_dir = os.getenv("CODEX_LB_DATA_DIR")
+    env_dir = os.getenv("OPENHUB_DATA_DIR")
     if env_dir and env_dir.strip():
         return Path(env_dir.strip())
-    home_dir = Path.home() / ".codex-lb"
+    home_dir = Path.home() / ".openhub"
     if home_dir.exists():
         return home_dir
     if _in_container():
@@ -146,7 +146,7 @@ def _default_oauth_callback_host() -> str:
 
 def _default_http_bridge_instance_id() -> str:
     hostname = socket.gethostname().strip()
-    return hostname or "codex-lb"
+    return hostname or "openhub"
 
 
 def _default_upstream_websocket_trust_env() -> bool:
@@ -232,7 +232,7 @@ def _normalize_cidr_list(value: StringListInput, *, field_name: str, invalid_lab
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="CODEX_LB_",
+        env_prefix="OPENHUB_",
         env_file=ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
@@ -280,12 +280,14 @@ class Settings(BaseSettings):
     # must not lose its claim mid-work.
     token_refresh_claim_ttl_seconds: float = Field(default=30.0, gt=0)
     auth_guardian_enabled: bool = False
+    native_fixture_mode: bool = False
     transcription_request_budget_seconds: float = Field(default=120.0, gt=0)
     token_refresh_interval_days: int = 8
     usage_fetch_timeout_seconds: float = 10.0
     usage_fetch_max_retries: int = 2
     usage_refresh_enabled: bool = True
     usage_refresh_interval_seconds: int = Field(default=60, gt=0)
+    usage_refresh_max_concurrency: int = Field(default=4, ge=1, le=16)
     live_usage_ingestion_enabled: bool = True
     rate_limit_reset_credits_refresh_interval_seconds: int = Field(default=60, gt=0)
     openai_cache_affinity_max_age_seconds: int = Field(default=1800, gt=0)
@@ -325,7 +327,7 @@ class Settings(BaseSettings):
     # ERROR and continues, "off" disables the check.
     encryption_key_fingerprint_mode: Literal["enforce", "warn", "off"] = "enforce"
     database_migrations_fail_fast: bool = True
-    # Incident-debugging trace channels (env ``CODEX_LB_TRACE``), a
+    # Incident-debugging trace channels (env ``OPENHUB_TRACE``), a
     # comma-separated list. Empty (the default) disables all trace logging.
     # Channels: ``shape`` (request shape), ``shape_raw_cache_key`` (include the
     # raw prompt cache key in shape logs), ``payload`` (downstream request
@@ -348,7 +350,7 @@ class Settings(BaseSettings):
     images_default_model: str = "gpt-image-2"
     # NOTE: there is intentionally no ``images_max_n`` setting. The
     # upstream ``image_generation`` tool path accepts only a single
-    # image per call and codex-lb does not yet implement client-side
+    # image per call and openhub does not yet implement client-side
     # fan-out, so ``n > 1`` is hard-rejected at the API boundary. The
     # cap is lifted in the same change that introduces fan-out.
     model_registry_enabled: bool = True
@@ -712,13 +714,13 @@ class Settings(BaseSettings):
         # fast on the explicit declaration rather than silently over-admitting.
         if self.workers_per_instance > 1:
             raise ValueError(
-                "workers_per_instance (CODEX_LB_WORKERS_PER_INSTANCE="
+                "workers_per_instance (OPENHUB_WORKERS_PER_INSTANCE="
                 f"{self.workers_per_instance}) is not supported: running more than one worker "
                 "process per instance would multiply per-account concurrency caps, because those "
                 "caps are partitioned per replica via the bridge ring and intra-pod worker "
                 "partitioning cannot be made reliable. Run ONE worker per pod/container and scale "
                 "horizontally via replicas (the bridge ring partitions caps per replica); set "
-                "CODEX_LB_WORKERS_PER_INSTANCE=1 (the default)."
+                "OPENHUB_WORKERS_PER_INSTANCE=1 (the default)."
             )
         return self
 

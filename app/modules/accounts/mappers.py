@@ -11,6 +11,7 @@ from app.core.usage.quota import apply_usage_quota
 from app.core.usage.types import UsageTrendBucket, UsageWindowRow
 from app.core.utils.time import from_epoch_seconds
 from app.db.models import Account, AccountLimitWarmup, AccountStatus, UsageHistory
+from app.modules.accounts.display_names import account_display_name
 from app.modules.accounts.schemas import (
     AccountAdditionalQuota,
     AccountAuthStatus,
@@ -252,12 +253,26 @@ def _account_to_summary(
         reset_at_primary = None
         window_minutes_primary = None
 
+    sampled_windows = [
+        usage
+        for usage, remaining in (
+            (effective_primary_usage, primary_remaining_percent),
+            (effective_secondary_usage, secondary_remaining_percent),
+            (monthly_usage, monthly_remaining_percent),
+        )
+        if usage is not None and remaining is not None
+    ]
+    usage_sample_at = max(
+        (usage.recorded_at for usage in sampled_windows),
+        default=None,
+    )
+
     return AccountSummary(
         account_id=account.id,
         chatgpt_account_id=account.chatgpt_account_id,
         email=account.email,
         alias=account.alias,
-        display_name=account.alias or account.email,
+        display_name=account_display_name(email=account.email, alias=account.alias),
         workspace_id=account.workspace_id,
         workspace_label=account.workspace_label,
         seat_type=account.seat_type,
@@ -277,6 +292,7 @@ def _account_to_summary(
         window_minutes_secondary=window_minutes_secondary,
         window_minutes_monthly=window_minutes_monthly,
         last_refresh_at=account.last_refresh,
+        usage_sample_at=usage_sample_at,
         capacity_credits_primary=capacity_primary,
         remaining_credits_primary=remaining_credits_primary,
         capacity_credits_secondary=capacity_secondary,

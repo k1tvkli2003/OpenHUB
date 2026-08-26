@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import pytest
 from pydantic import ValidationError
 from sqlalchemy.dialects import postgresql, sqlite
@@ -75,7 +77,7 @@ def test_long_instance_id_truncates_base_and_preserves_process_and_owner_room(
 
     process_suffix = _current_process_suffix()
 
-    monkeypatch.setenv("CODEX_LB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", "i" * 200)
+    monkeypatch.setenv("OPENHUB_HTTP_RESPONSES_SESSION_BRIDGE_INSTANCE_ID", "i" * 200)
     get_settings.cache_clear()
     try:
         claimant_id = default_refresh_claimant_id()
@@ -120,6 +122,7 @@ def test_process_suffix_is_stable_within_one_process() -> None:
     assert default_refresh_claimant_id() == default_refresh_claimant_id()
 
 
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires POSIX fork semantics")
 def test_forked_children_get_distinct_claimant_ids_after_preload() -> None:
     """Regression: the per-process suffix was frozen at module import, so in a
     pre-fork deployment (module preloaded in the parent before workers fork)
@@ -129,8 +132,6 @@ def test_forked_children_get_distinct_claimant_ids_after_preload() -> None:
     concurrently. Two forked children (same instance id, module imported before
     the fork boundary) MUST therefore yield DISTINCT claimant ids and distinct
     composed ``claimed_by`` values."""
-    import os
-
     from app.modules.accounts.refresh_claims import _compose_claimed_by
 
     # Resolve the claimant id in the parent BEFORE forking to model a preloaded
@@ -176,6 +177,7 @@ def test_forked_children_get_distinct_claimant_ids_after_preload() -> None:
     assert len(composed) == 3
 
 
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires POSIX fork semantics")
 def test_process_default_coordinator_yields_distinct_claimants_across_fork() -> None:
     """Regression: the process-default coordinator froze its claimant id at
     construction. In a pre-fork deployment the coordinator is built during
@@ -190,8 +192,6 @@ def test_process_default_coordinator_yields_distinct_claimants_across_fork() -> 
     claimant ids and distinct composed ``claimed_by`` for the same account+owner,
     while an explicitly injected claimant id stays untouched across the fork and
     repeated reads within one process are stable."""
-    import os
-
     from app.modules.accounts.refresh_claims import (
         RefreshClaimCoordinator,
         _compose_claimed_by,

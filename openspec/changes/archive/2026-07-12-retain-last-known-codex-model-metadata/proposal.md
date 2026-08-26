@@ -3,7 +3,7 @@
 An otherwise successful upstream model refresh can temporarily omit a model
 during a staged rollout. The live registry currently replaces the whole model
 map, so Codex loses metadata for an explicitly configured model even while
-codex-lb can still route requests to it. Codex then falls back to generic
+openhub can still route requests to it. Codex then falls back to generic
 metadata, degrading tool, context, and instruction behavior.
 
 ## What Changes

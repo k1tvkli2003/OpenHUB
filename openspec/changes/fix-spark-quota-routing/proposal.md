@@ -1,6 +1,6 @@
 ## Why
 
-Separately metered Codex models can remain usable through fresh per-account quota telemetry even when the general upstream model catalog omits them. `codex-lb` currently treats that catalog omission as definitive account-level non-support and rejects `gpt-5.3-codex-spark` with `no_plan_support_for_model` before evaluating fresh Spark quota data.
+Separately metered Codex models can remain usable through fresh per-account quota telemetry even when the general upstream model catalog omits them. `openhub` currently treats that catalog omission as definitive account-level non-support and rejects `gpt-5.3-codex-spark` with `no_plan_support_for_model` before evaluating fresh Spark quota data.
 
 ## What Changes
 

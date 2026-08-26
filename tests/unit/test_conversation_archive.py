@@ -465,8 +465,14 @@ def test_archive_files_are_operator_only_even_with_permissive_umask(monkeypatch,
         os.umask(old_umask)
 
     [path] = list(archive_dir.glob("*.jsonl.gz"))
-    assert stat.S_IMODE(archive_dir.stat().st_mode) == 0o700
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    if os.name == "posix":
+        assert stat.S_IMODE(archive_dir.stat().st_mode) == 0o700
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    else:
+        # Windows inherits the containing user profile's ACL; chmod only maps
+        # the read-only bit and cannot represent POSIX group/other modes.
+        assert archive_dir.is_dir()
+        assert path.is_file()
 
 
 def test_archive_path_expands_user_home(monkeypatch, tmp_path):

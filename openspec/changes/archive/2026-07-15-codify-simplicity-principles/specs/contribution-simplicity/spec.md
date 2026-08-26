@@ -4,12 +4,12 @@
 
 ### Requirement: New features default to off or zero-config
 
-A PR that introduces a new feature MUST NOT add a required setup step (environment variable, migration action, external account, or manual file edit) to the base install path. The feature SHALL either default to off or work with a zero-config default, and `docker run` / `uvx codex-lb` without an env file SHALL continue to produce a working proxy and dashboard. A change that genuinely cannot avoid a new required setup step SHALL carry the maintainer-applied `simplicity-budget-approved` label before merge.
+A PR that introduces a new feature MUST NOT add a required setup step (environment variable, migration action, external account, or manual file edit) to the base install path. The feature SHALL either default to off or work with a zero-config default, and `docker run` / `uvx openhub` without an env file SHALL continue to produce a working proxy and dashboard. A change that genuinely cannot avoid a new required setup step SHALL carry the maintainer-applied `simplicity-budget-approved` label before merge.
 
 #### Scenario: Feature ships with a working default
 
 - **WHEN** a PR introduces a new feature without any new required setup step
-- **THEN** the base install path (`docker run` / `uvx codex-lb` with no env file) still produces a working proxy and dashboard
+- **THEN** the base install path (`docker run` / `uvx openhub` with no env file) still produces a working proxy and dashboard
 - **AND** the PR passes this gate without a label
 
 #### Scenario: Unavoidable setup step needs maintainer approval
@@ -20,16 +20,16 @@ A PR that introduces a new feature MUST NOT add a required setup step (environme
 
 ### Requirement: New settings justify not being a default
 
-A PR that adds a `CODEX_LB_*` setting or an `.env.example` entry MUST include, in the PR body, a justification of why the value cannot be a hardcoded default. Settings that only tune internals SHOULD NOT be added to `.env.example`.
+A PR that adds a `OPENHUB_*` setting or an `.env.example` entry MUST include, in the PR body, a justification of why the value cannot be a hardcoded default. Settings that only tune internals SHOULD NOT be added to `.env.example`.
 
 #### Scenario: Setting added with justification
 
-- **WHEN** a PR adds a new `CODEX_LB_*` setting and its PR body names the setting with a why-not-a-default justification
+- **WHEN** a PR adds a new `OPENHUB_*` setting and its PR body names the setting with a why-not-a-default justification
 - **THEN** the PR passes this gate
 
 #### Scenario: Setting added without justification
 
-- **WHEN** a PR adds a new `CODEX_LB_*` setting or `.env.example` line and the PR body carries no justification for it
+- **WHEN** a PR adds a new `OPENHUB_*` setting or `.env.example` line and the PR body carries no justification for it
 - **THEN** the reviewer blocks the PR until the justification is added or the setting is replaced by a default
 
 ### Requirement: README, configuration, and dashboard surface are budgeted

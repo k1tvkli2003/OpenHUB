@@ -30,7 +30,7 @@ When the proxy resolves or fails closed a continuity-sensitive follow-up request
 The proxy MUST provide an opt-in durable archive of Codex-to-upstream conversation traffic. When enabled, the archive MUST write gzip-compressed newline-delimited JSON records for upstream request payloads, streamed Responses events, compact response payloads, and websocket text or binary frames without performing gzip file I/O in the request event loop during normal operation. The archive writer queue MUST be bounded and MUST apply synchronous write backpressure instead of growing without limit when the background writer is saturated. Archive records MUST include request id, timestamp, direction, traffic kind, transport, account id when known, upstream target metadata, redacted headers, and the full payload or frame body. Credential-bearing headers such as authorization, cookies, proxy authorization, token headers, and API key headers MUST be redacted before persistence. JSON records MUST preserve non-ASCII payload text as UTF-8 rather than Unicode escape sequences. When disabled, no archive file MUST be created by the archive writer. Request-log API rows MUST expose an `archiveRequestId` lookup key when the persisted log id can differ from the archive record request id.
 
 #### Scenario: operator enables archive for audit
-- **WHEN** `CODEX_LB_CONVERSATION_ARCHIVE_ENABLED=true`
+- **WHEN** `OPENHUB_CONVERSATION_ARCHIVE_ENABLED=true`
 - **AND** a Codex Responses request is proxied upstream
 - **THEN** the archive records both the outbound upstream payload and inbound upstream events or response body as gzip JSONL
 - **AND** credential-bearing headers are stored as redacted values
@@ -75,7 +75,7 @@ The service MUST expose metrics and structured logs for HTTP bridge routing deci
 
 The service MUST expose low-cardinality logs and metrics for account-local in-flight create count, active stream count, leased token/cost pressure, cap rejections, lease stale reclaims, soft-affinity reroutes, and local-vs-upstream 429 classification. Observability MUST avoid raw prompt text, raw affinity keys, API keys, emails, request ids, session ids, and request payload content.
 
-The service MUST expose a Prometheus gauge named `codex_lb_account_inflight_leases` labeled by `account_id` and `kind`, where `kind` is either `stream` or `response_create`. The gauge value MUST equal the current in-process account lease count for that account and kind. The gauge MUST update when a lease is acquired, explicitly released, or reclaimed as stale. Gauge labels MUST NOT include raw prompt text, raw affinity keys, API keys, emails, request ids, session ids, or request payload content.
+The service MUST expose a Prometheus gauge named `openhub_account_inflight_leases` labeled by `account_id` and `kind`, where `kind` is either `stream` or `response_create`. The gauge value MUST equal the current in-process account lease count for that account and kind. The gauge MUST update when a lease is acquired, explicitly released, or reclaimed as stale. Gauge labels MUST NOT include raw prompt text, raw affinity keys, API keys, emails, request ids, session ids, or request payload content.
 
 #### Scenario: Local and upstream 429s are separated
 
@@ -86,13 +86,13 @@ The service MUST expose a Prometheus gauge named `codex_lb_account_inflight_leas
 #### Scenario: Active account leases update gauge
 
 - **WHEN** the proxy acquires a `stream` lease for account `acc_1`
-- **THEN** `codex_lb_account_inflight_leases{account_id="acc_1",kind="stream"}` increases to the current active stream lease count
-- **AND** `codex_lb_account_inflight_leases{account_id="acc_1",kind="response_create"}` remains the current active response-create lease count
+- **THEN** `openhub_account_inflight_leases{account_id="acc_1",kind="stream"}` increases to the current active stream lease count
+- **AND** `openhub_account_inflight_leases{account_id="acc_1",kind="response_create"}` remains the current active response-create lease count
 
 #### Scenario: Released account leases reset gauge
 
 - **WHEN** the proxy explicitly releases or stale-reclaims the last active `stream` lease for account `acc_1`
-- **THEN** `codex_lb_account_inflight_leases{account_id="acc_1",kind="stream"}` is set to `0`
+- **THEN** `openhub_account_inflight_leases{account_id="acc_1",kind="stream"}` is set to `0`
 
 ### Requirement: Streaming timeout diagnostics are emitted
 
@@ -127,7 +127,7 @@ When an HTTP bridge startup wait times out locally, the service MUST log the req
 - **AND** the log includes only low-cardinality affinity metadata, not raw affinity key values
 
 ### Requirement: Runtime continuity canary reports raw-error exposure and build parity
-Operators MUST have a local verifier that reports whether the running `codex-lb` runtime is built from the expected code and whether recent Codex client logs contain raw `previous_response_not_found` errors.
+Operators MUST have a local verifier that reports whether the running `openhub` runtime is built from the expected code and whether recent Codex client logs contain raw `previous_response_not_found` errors.
 
 #### Scenario: live runtime is checked after a continuity patch
 - **WHEN** an operator runs the verifier on the Mac host
@@ -630,11 +630,11 @@ the reasoning-inclusive `output_tokens` numerator used for TPS.
 
 ### Requirement: Cap partition replica count is observable
 
-The service MUST expose a Prometheus gauge named `codex_lb_cap_partition_replicas` whose value equals the live replica count currently used for account cap partitioning, and it MUST log adopted partition rebalances at info level with the old count, the new count, and this replica's rank. The gauge and log MUST NOT include account ids, instance secrets, or request payload content.
+The service MUST expose a Prometheus gauge named `openhub_cap_partition_replicas` whose value equals the live replica count currently used for account cap partitioning, and it MUST log adopted partition rebalances at info level with the old count, the new count, and this replica's rank. The gauge and log MUST NOT include account ids, instance secrets, or request payload content.
 
 #### Scenario: Partition rebalance updates the gauge
 
 - **GIVEN** a replica whose adopted partition has replica count 1
 - **WHEN** a partition refresh observes and adopts two active members
-- **THEN** `codex_lb_cap_partition_replicas` reports 2
+- **THEN** `openhub_cap_partition_replicas` reports 2
 - **AND** an info-level log records the rebalance from count 1 to count 2 with the replica's rank

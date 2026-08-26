@@ -7,7 +7,7 @@ Every proxy request pays an upstream-route resolution before the first upstream 
 - Add a per-account upstream-route resolution cache consulted by the proxy hot path. A cache hit skips the session open and all resolver SELECTs.
 - Cache the resolver's outcome **verbatim**: a resolved route, `None` (direct egress permitted), or the fail-closed `UpstreamProxyRouteError` reason. A hit can therefore never change the degradation path the resolver chose — fail-closed outcomes keep failing closed and never fall back to the default pool or direct egress.
 - Add an `upstream_route` cache-invalidation namespace. Account-binding upserts and pool-member additions clear the local cache and durably bump the namespace before their HTTP response returns. Dashboard settings changes already bump the durable `settings` namespace; the route cache also subscribes to it, and the settings update path clears the local cache immediately when either upstream-proxy field changed.
-- Add `CODEX_LB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS` (default 60, `0` disables caching) as a TTL backstop for out-of-band database edits; invalidation bumps remain the binding freshness mechanism (~0.5 s cross-replica).
+- Add `OPENHUB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS` (default 60, `0` disables caching) as a TTL backstop for out-of-band database edits; invalidation bumps remain the binding freshness mechanism (~0.5 s cross-replica).
 
 ## Capabilities
 

@@ -41,7 +41,9 @@ from app.core.middleware import (
     add_app_version_middleware,
     add_backend_api_codex_v1_alias_middleware,
     add_dashboard_auth_proxy_middleware,
+    add_managed_codex_route_middleware,
     add_multipart_content_encoding_middleware,
+    add_openhub_shared_route_middleware,
     add_request_body_limit_middleware,
     add_request_decompression_middleware,
     add_request_id_middleware,
@@ -49,6 +51,7 @@ from app.core.middleware import (
 )
 from app.core.middleware.dashboard_gzip import add_dashboard_gzip_middleware
 from app.core.middleware.inflight import InFlightMiddleware
+from app.core.native_fixture import validate_native_fixture_data_dir
 from app.core.openai.model_refresh_scheduler import build_model_refresh_scheduler
 from app.core.resilience.backpressure import BackpressureMiddleware
 from app.core.resilience.bulkhead import BulkheadMiddleware, get_bulkhead
@@ -58,6 +61,7 @@ from app.core.scheduling.leader_election import get_leader_election
 from app.core.shutdown import close_control_plane_task_admission
 from app.core.usage.refresh_scheduler import build_usage_refresh_scheduler
 from app.core.usage.reset_credits_refresh_scheduler import build_rate_limit_reset_credits_scheduler
+from app.core.utils.async_tasks import stop_periodic_task
 from app.core.utils.time import utcnow
 from app.db.session import SessionLocal, close_db, close_session, init_background_db, init_db
 from app.modules.accounts import api as accounts_api
@@ -67,6 +71,7 @@ from app.modules.api_keys.reset_scheduler import build_api_key_limit_reset_sched
 from app.modules.audit import api as audit_api
 from app.modules.automations import api as automations_api
 from app.modules.automations.scheduler import build_automations_scheduler
+from app.modules.codex_integration import api as codex_integration_api
 from app.modules.conversation_archive import api as conversation_archive_api
 from app.modules.dashboard import api as dashboard_api
 from app.modules.dashboard_auth import api as dashboard_auth_api
@@ -75,6 +80,7 @@ from app.modules.fleet import api as fleet_api
 from app.modules.health import api as health_api
 from app.modules.model_sources import api as model_sources_api
 from app.modules.oauth import api as oauth_api
+from app.modules.openhub_integration import api as openhub_integration_api
 from app.modules.proxy import api as proxy_api
 from app.modules.proxy.cap_partitioning import refresh_cap_partition
 from app.modules.proxy.durable_bridge_coordinator import DurableBridgeSessionCoordinator
@@ -92,12 +98,14 @@ from app.modules.rate_limit_reset_credits import api as rate_limit_reset_credits
 from app.modules.reports import api as reports_api
 from app.modules.request_logs import api as request_logs_api
 from app.modules.runtime import api as runtime_api
+from app.modules.runtime_control import api as runtime_control_api
 from app.modules.settings import api as settings_api
 from app.modules.sticky_sessions import api as sticky_sessions_api
 from app.modules.sticky_sessions.cleanup_scheduler import (
     _abandoned_bridge_retention_seconds,
     build_sticky_session_cleanup_scheduler,
 )
+from app.modules.storage_cleanup import api as storage_cleanup_api
 from app.modules.usage import api as usage_api
 from app.modules.usage.additional_quota_keys import reload_additional_quota_registry
 from app.modules.usage.live_ingest import start_live_usage_ingestor, stop_live_usage_ingestor
@@ -243,6 +251,7 @@ async def lifespan(app: FastAPI):
     metrics_server_task: asyncio.Task[None] | None = None
     ring_service = None
     heartbeat_task: asyncio.Task[None] | None = None
+    heartbeat_stop = asyncio.Event()
     instance_id = None
 
     startup_module._startup_complete = False
@@ -252,6 +261,8 @@ async def lifespan(app: FastAPI):
     await get_rate_limit_headers_cache().invalidate()
     reload_additional_quota_registry()
     settings = get_settings()
+    if settings.native_fixture_mode:
+        validate_native_fixture_data_dir(settings.data_dir)
     warn_removed_settings()
     # Anchor round-robin tie-break decorrelation to this replica's stable bridge
     # instance identity so peer replicas spread exact ties across equally-good
@@ -261,7 +272,7 @@ async def lifespan(app: FastAPI):
     if settings.otel_enabled:
         from app.core.tracing.otel import init_tracing
 
-        init_tracing(service_name="codex-lb", endpoint=settings.otel_exporter_endpoint, app=app)
+        init_tracing(service_name="openhub", endpoint=settings.otel_exporter_endpoint, app=app)
     await init_db()
     init_background_db()
     await verify_encryption_key_fingerprint()
@@ -396,17 +407,18 @@ async def lifespan(app: FastAPI):
     rate_limit_reset_credits_scheduler = build_rate_limit_reset_credits_scheduler()
     account_usage_rollup_scheduler = build_account_usage_rollup_scheduler()
     data_retention_scheduler = build_data_retention_scheduler()
-    start_live_usage_ingestor()
-    await usage_scheduler.start()
-    await api_key_limit_reset_scheduler.start()
-    await model_scheduler.start()
-    await sticky_session_cleanup_scheduler.start()
-    await quota_planner_scheduler.start()
-    await auth_guardian_scheduler.start()
-    await automations_scheduler.start()
-    await rate_limit_reset_credits_scheduler.start()
-    await account_usage_rollup_scheduler.start()
-    await data_retention_scheduler.start()
+    if not settings.native_fixture_mode:
+        start_live_usage_ingestor()
+        await usage_scheduler.start()
+        await api_key_limit_reset_scheduler.start()
+        await model_scheduler.start()
+        await sticky_session_cleanup_scheduler.start()
+        await quota_planner_scheduler.start()
+        await auth_guardian_scheduler.start()
+        await automations_scheduler.start()
+        await rate_limit_reset_credits_scheduler.start()
+        await account_usage_rollup_scheduler.start()
+        await data_retention_scheduler.start()
     if settings.metrics_enabled and PROMETHEUS_AVAILABLE:
         import uvicorn
 
@@ -465,8 +477,13 @@ async def lifespan(app: FastAPI):
         startup_module.mark_bridge_registration_complete()
 
     async def _heartbeat_only(svc: RingMembershipService, iid: str) -> None:
-        while True:
-            await asyncio.sleep(RING_HEARTBEAT_INTERVAL_SECONDS)
+        while not heartbeat_stop.is_set():
+            try:
+                await asyncio.wait_for(heartbeat_stop.wait(), timeout=RING_HEARTBEAT_INTERVAL_SECONDS)
+            except TimeoutError:
+                pass
+            if heartbeat_stop.is_set():
+                return
             try:
                 await svc.heartbeat(iid, endpoint_base_url=bridge_endpoint_base_url)
             except Exception:
@@ -481,7 +498,7 @@ async def lifespan(app: FastAPI):
 
     async def _register_and_heartbeat(svc: RingMembershipService, iid: str) -> None:
         attempt = 0
-        while True:
+        while not heartbeat_stop.is_set():
             attempt += 1
             try:
                 await _complete_bridge_registration(svc, iid)
@@ -490,8 +507,16 @@ async def lifespan(app: FastAPI):
             except Exception:
                 delay = min(5.0 * (2 ** min(attempt - 1, 5)), 60.0)
                 logger.warning("Ring registration attempt %d failed, retrying in %.0fs", attempt, delay, exc_info=True)
-                await asyncio.sleep(delay)
+                try:
+                    await asyncio.wait_for(heartbeat_stop.wait(), timeout=delay)
+                except TimeoutError:
+                    continue
+                return
+        if heartbeat_stop.is_set():
+            return
         await refresh_cap_partition(svc.list_active, iid)
+        if heartbeat_stop.is_set():
+            return
         await _heartbeat_only(svc, iid)
 
     async def _activate_bridge_membership(svc: RingMembershipService, iid: str) -> None:
@@ -543,11 +568,10 @@ async def lifespan(app: FastAPI):
 
         # Cancel heartbeat and age the shared ring row near expiry.
         if heartbeat_task is not None:
-            heartbeat_task.cancel()
             try:
-                await asyncio.wait_for(heartbeat_task, timeout=2)
-            except (asyncio.CancelledError, TimeoutError):
-                pass
+                await stop_periodic_task(heartbeat_task, heartbeat_stop)
+            except Exception:
+                logger.warning("Failed to stop bridge ring heartbeat cleanly", exc_info=True)
 
         if ring_service is not None and instance_id is not None:
             try:
@@ -635,7 +659,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_memory_monitor(reject_threshold_mb=settings.memory_reject_threshold_mb)
     app = FastAPI(
-        title="codex-lb",
+        title="openhub",
         version="0.1.0",
         lifespan=lifespan,
         swagger_ui_parameters={"persistAuthorization": True},
@@ -669,6 +693,8 @@ def create_app() -> FastAPI:
     add_backend_api_codex_v1_alias_middleware(app)
     add_app_version_middleware(app)
     add_exception_handlers(app)
+    add_managed_codex_route_middleware(app)
+    add_openhub_shared_route_middleware(app)
     add_trusted_proxy_headers_middleware(app)
 
     app.include_router(proxy_api.router)
@@ -689,9 +715,13 @@ def create_app() -> FastAPI:
     app.include_router(quota_planner_api.router)
     app.include_router(reports_api.router)
     app.include_router(conversation_archive_api.router)
+    app.include_router(storage_cleanup_api.router)
     app.include_router(runtime_api.router)
+    app.include_router(runtime_control_api.router)
     app.include_router(oauth_api.router)
     app.include_router(dashboard_auth_api.router)
+    app.include_router(codex_integration_api.router)
+    app.include_router(openhub_integration_api.router)
     app.include_router(settings_api.router)
     app.include_router(firewall_api.router)
     app.include_router(fleet_api.router)

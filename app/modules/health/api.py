@@ -18,6 +18,13 @@ from app.modules.proxy.ring_membership import RING_STALE_THRESHOLD_SECONDS
 
 router = APIRouter(tags=["health"])
 
+# Increment this marker when a native OpenHUB build requires backend behavior
+# that is not safely interchangeable with another build sharing the same
+# public openhub release version. The native supervisor fails closed when an
+# older sidecar is still occupying the loopback port after a side-by-side app
+# update.
+OPENHUB_MANAGED_ROUTE_PROTOCOL = "2"
+
 
 def _is_internal_client_host(client_host: str | None) -> bool:
     if client_host in {"localhost"}:
@@ -58,7 +65,10 @@ async def health_ready() -> HealthCheckResponse:
         async for session in get_session():
             try:
                 await session.execute(text("SELECT 1"))
-                checks = {"database": "ok"}
+                checks = {
+                    "database": "ok",
+                    "openhub_managed_route_protocol": OPENHUB_MANAGED_ROUTE_PROTOCOL,
+                }
                 status = "ok"
 
                 # Upstream health (degradation flag, circuit breaker) is NOT

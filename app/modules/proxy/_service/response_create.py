@@ -43,12 +43,12 @@ _UPSTREAM_RESPONSE_CREATE_MAX_BYTES = get_settings().upstream_response_create_ma
 _UPSTREAM_RESPONSE_CREATE_WARN_BYTES = int(_UPSTREAM_RESPONSE_CREATE_MAX_BYTES * 0.8)
 _OVERSIZED_RESPONSE_CREATE_LARGEST_ITEMS = 10
 _RESPONSE_CREATE_HISTORY_OMISSION_NOTICE = (
-    "[codex-lb omitted {count} historical input items to fit upstream websocket budget]"
+    "[openhub omitted {count} historical input items to fit upstream websocket budget]"
 )
 _RESPONSE_CREATE_TOOL_OUTPUT_OMISSION_NOTICE = (
-    "[codex-lb omitted historical tool output ({bytes} bytes) to fit upstream websocket budget]"
+    "[openhub omitted historical tool output ({bytes} bytes) to fit upstream websocket budget]"
 )
-_RESPONSE_CREATE_IMAGE_OMISSION_NOTICE = "[codex-lb omitted historical inline image to fit upstream websocket budget]"
+_RESPONSE_CREATE_IMAGE_OMISSION_NOTICE = "[openhub omitted historical inline image to fit upstream websocket budget]"
 _OVERSIZED_RESPONSE_CREATE_DUMP_DIR: Path | None = None
 _RESPONSE_CREATE_DUMP_SUFFIX = ".response-create.json.gz"
 _RESPONSE_CREATE_META_SUFFIX = ".meta.json"

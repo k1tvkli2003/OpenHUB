@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 
 import pytest
 
 from app.core.clients.rate_limit_reset_credits import RateLimitResetCreditsSnapshot
 from app.core.crypto import TokenEncryptor
-from app.db.models import Account, AccountStatus
+from app.db.models import Account, AccountStatus, UsageHistory
 from app.modules.accounts.mappers import build_account_summaries
 from app.modules.rate_limit_reset_credits.store import RateLimitResetCreditsStore
 
@@ -134,3 +134,30 @@ def test_account_summary_does_not_crash_when_store_is_empty() -> None:
     assert len(summaries) == 3
     assert all(s.available_reset_credits == 0 for s in summaries)
     assert all(s.reset_credit_nearest_expires_at is None for s in summaries)
+
+
+def test_account_summary_exposes_real_weekly_usage_sample_time() -> None:
+    account = _account("weekly")
+    sampled_at = datetime(2026, 8, 10, 13, 28, tzinfo=UTC)
+    weekly_usage = UsageHistory(
+        account_id=account.id,
+        recorded_at=sampled_at,
+        window="primary",
+        used_percent=4.0,
+        window_minutes=10080,
+    )
+
+    [summary] = build_account_summaries(
+        accounts=[account],
+        primary_usage={account.id: weekly_usage},
+        secondary_usage={},
+        encryptor=TokenEncryptor(),
+        include_auth=False,
+        reset_credits_store=RateLimitResetCreditsStore(),
+    )
+
+    assert summary.usage is not None
+    assert summary.usage.primary_remaining_percent is None
+    assert summary.usage.secondary_remaining_percent == 96.0
+    assert summary.usage_sample_at == sampled_at
+    assert summary.last_refresh_at == account.last_refresh

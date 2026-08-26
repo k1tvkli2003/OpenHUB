@@ -6,18 +6,19 @@ import re
 import shutil
 import sqlite3
 from collections.abc import Callable, Iterable, Sequence
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import cast
+from typing import Iterator, cast
 from urllib.parse import quote
 
 JsonObject = dict[str, object]
 ProgressLogger = Callable[[str], None]
 
 PROVIDER_RETAG_BACKUP_DIR = "provider-retag"
-_SUPPORTED_PROVIDERS = {"openai", "codex-lb"}
+_SUPPORTED_PROVIDERS = {"openai", "openhub"}
 _STATE_DB_PATTERN = "state_*.sqlite"
 
 
@@ -376,15 +377,28 @@ def _replace_sqlite_db(source: Path, destination: Path) -> None:
         sidecar.unlink(missing_ok=True)
 
 
-def _connect_sqlite(db_path: Path, *, read_only: bool = False, immutable: bool = False) -> sqlite3.Connection:
+@contextmanager
+def _connect_sqlite(
+    db_path: Path,
+    *,
+    read_only: bool = False,
+    immutable: bool = False,
+) -> Iterator[sqlite3.Connection]:
     target = str(db_path)
     if read_only:
         quoted_path = _quote_sqlite_uri_path(str(db_path.resolve()))
         immutable_flag = "&immutable=1" if immutable else ""
         target = f"file:{quoted_path}?mode=ro{immutable_flag}"
     conn = sqlite3.connect(target, timeout=5, uri=read_only)
-    conn.execute("PRAGMA busy_timeout=5000")
-    return conn
+    try:
+        conn.execute("PRAGMA busy_timeout=5000")
+        with conn:
+            yield conn
+    finally:
+        # sqlite3.Connection.__exit__ commits/rolls back but does not close.
+        # An explicit close is required before replacing/unlinking databases
+        # on Windows.
+        conn.close()
 
 
 def _quote_sqlite_uri_path(path_text: str) -> str:
@@ -459,10 +473,14 @@ def _create_backup(codex_home: Path, jsonl_files: Sequence[Path], state_dbs: Seq
 
 def _backup_sqlite_db(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with _connect_sqlite(source, read_only=True) as source_conn, sqlite3.connect(str(destination)) as backup_conn:
+    with (
+        _connect_sqlite(source, read_only=True) as source_conn,
+        closing(sqlite3.connect(str(destination))) as backup_conn,
+    ):
         source_conn.backup(backup_conn)
         backup_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         backup_conn.execute("PRAGMA journal_mode=DELETE")
+        backup_conn.commit()
     for sidecar in _sqlite_sidecar_paths(destination):
         sidecar.unlink(missing_ok=True)
 

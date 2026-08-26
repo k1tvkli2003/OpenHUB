@@ -1,6 +1,6 @@
 ## Context
 
-codex-lb supports accounts whose upstream usage payload reports the weekly
+openhub supports accounts whose upstream usage payload reports the weekly
 window in the `primary_window` slot rather than `secondary_window`. The
 `normalize_weekly_only_rows` / `should_use_weekly_primary` path exists to
 remap such a weekly `primary` row into the `secondary` slot so the 5h/7d

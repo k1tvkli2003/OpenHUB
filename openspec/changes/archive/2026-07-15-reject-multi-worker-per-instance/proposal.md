@@ -25,7 +25,7 @@ startup, instead of silently over-admitting against every account.
 ## What Changes
 
 - Add a single fail-fast tripwire: `workers_per_instance`
-  (`CODEX_LB_WORKERS_PER_INSTANCE`, default 1). A value `> 1` raises a clear
+  (`OPENHUB_WORKERS_PER_INSTANCE`, default 1). A value `> 1` raises a clear
   settings `ValidationError` at startup explaining that multi-worker-per-instance
   is unsupported for shared caps and that operators should run one worker per
   pod/container and scale via replicas. Default `1` is a no-op requiring zero
@@ -39,6 +39,6 @@ startup, instead of silently over-admitting against every account.
   per-worker reserve split): dropped as unworkable — no portable per-worker index
   and inherited environment make it unreliable.
 - Auto-detecting the worker count: not portably detectable. The tripwire only
-  catches the explicit `CODEX_LB_WORKERS_PER_INSTANCE > 1` declaration;
+  catches the explicit `OPENHUB_WORKERS_PER_INSTANCE > 1` declaration;
   documentation covers the one-worker-per-pod deployment guidance. This is the
   accepted trade-off.

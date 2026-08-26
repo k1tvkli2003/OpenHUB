@@ -59,7 +59,7 @@ def _postgres_async_connect_args(url: str) -> dict[str, object] | None:
     # mis-evaluated. Forcing UTC keeps stored timestamps correct regardless of
     # the container time zone.
     connect_args: dict[str, object] = {"server_settings": {"timezone": "UTC"}}
-    if os.environ.get("CODEX_LB_TEST_DATABASE_URL"):
+    if os.environ.get("OPENHUB_TEST_DATABASE_URL"):
         connect_args["prepared_statement_cache_size"] = 0
     return connect_args
 
@@ -73,7 +73,7 @@ def _postgres_async_engine_kwargs(url: str) -> dict[str, object]:
     """
     connect_args = _postgres_async_connect_args(url)
     kwargs: dict[str, object] = {"connect_args": connect_args or {}}
-    if os.environ.get("CODEX_LB_TEST_DATABASE_URL") and url.startswith("postgresql+asyncpg://"):
+    if os.environ.get("OPENHUB_TEST_DATABASE_URL") and url.startswith("postgresql+asyncpg://"):
         kwargs["poolclass"] = NullPool
     else:
         kwargs["pool_size"] = _settings.database_pool_size

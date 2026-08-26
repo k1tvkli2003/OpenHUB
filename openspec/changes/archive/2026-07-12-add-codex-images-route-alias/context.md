@@ -4,7 +4,7 @@
 
 Codex's built-in `imagegen` tool performs both standalone image generation and
 reference-image edits against the model provider `base_url`, not against
-`/v1`. codex-lb documents `base_url = "http://127.0.0.1:2455/backend-api/codex"`
+`/v1`. openhub documents `base_url = "http://127.0.0.1:2455/backend-api/codex"`
 for Codex clients, so the tool POSTs to `/backend-api/codex/images/generations`
 and `/backend-api/codex/images/edits`. Before this change only `/v1/images/*`
 had handlers, so Codex edit requests returned `405 Method Not Allowed`.
@@ -24,7 +24,7 @@ All citations are at tag `rust-v0.144.1` (commit
   `/api/codex/images/{generations,edits}` when `base_url = "<server>/api/codex"`
   (`codex-rs/app-server/tests/suite/v2/imagegen_extension.rs:160,496,550,562`).
 - The client never sends a trailing slash (`url_for_path` joins with exactly
-  one separator). In codex-lb the trailing-slash variants are not aliased:
+  one separator). In openhub the trailing-slash variants are not aliased:
   they fall through to the SPA `GET /{path:path}` catch-all
   (`app/main.py`), so a POST returns 405 with the OpenAI error envelope —
   identically on `/v1/images/*/` and `/backend-api/codex/images/*/`.
@@ -78,7 +78,7 @@ discussion) confirms the same shape live:
 
 `ImageResponse` (`codex-rs/codex-api/src/images.rs:55-70`) requires `created`
 and non-empty `data[].b64_json`; `background`, `quality`, `size` are optional
-and unknown extras (`usage`, `revised_prompt`) are ignored by serde. codex-lb's
+and unknown extras (`usage`, `revised_prompt`) are ignored by serde. openhub's
 `V1ImageResponse` (`app/core/openai/images.py`) satisfies this. The tool
 renders `data[0].b64_json` as `data:image/png;base64,...`, matching the
 adapter's default `output_format="png"`.
@@ -107,7 +107,7 @@ adapter's default `output_format="png"`.
 - Missing/empty `images`, non-object entries, or non-data-URL `image_url` →
   400 with `param=images`.
 - Theoretical divergence: `background: "transparent"` is representable in the
-  client's types but never sent by the shipped tool; codex-lb rejects it for
+  client's types but never sent by the shipped tool; openhub rejects it for
   `gpt-image-2` per its validation matrix. Only reachable by non-official
   callers.
 

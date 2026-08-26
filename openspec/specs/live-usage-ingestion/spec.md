@@ -53,11 +53,11 @@ Live snapshot writes SHALL be throttled per account by a change fingerprint and 
 
 ### Requirement: Live ingestion is decoupled and switchable
 
-The core client layer SHALL publish snapshots through a hub that no-ops until the module layer registers an ingestor at startup. Ingestion SHALL be enabled by default and disableable via `CODEX_LB_LIVE_USAGE_INGESTION_ENABLED`.
+The core client layer SHALL publish snapshots through a hub that no-ops until the module layer registers an ingestor at startup. Ingestion SHALL be enabled by default and disableable via `OPENHUB_LIVE_USAGE_INGESTION_ENABLED`.
 
 #### Scenario: Kill switch disables ingestion
 
-- **WHEN** `CODEX_LB_LIVE_USAGE_INGESTION_ENABLED` is false
+- **WHEN** `OPENHUB_LIVE_USAGE_INGESTION_ENABLED` is false
 - **THEN** proxied responses do not produce usage writes
 - **AND** the background poller remains the only usage source
 

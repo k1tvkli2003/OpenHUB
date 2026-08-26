@@ -518,8 +518,8 @@ class _WebSocketTransientRefreshFailover(Exception):
 # ``upstream_unavailable`` WITHOUT recording an account-health penalty, while a
 # genuine OAuth transport failure keeps its normal health accounting.
 
-_FAILED_ACCOUNT_ATTR = "_codex_lb_failed_account"
-_CLAIM_CONTENTION_UNPENALIZED_ATTR = "_codex_lb_claim_contention_unpenalized"
+_FAILED_ACCOUNT_ATTR = "_openhub_failed_account"
+_CLAIM_CONTENTION_UNPENALIZED_ATTR = "_openhub_claim_contention_unpenalized"
 
 
 class _RefreshFailoverProxy(Protocol):

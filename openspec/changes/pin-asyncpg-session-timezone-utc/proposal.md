@@ -2,7 +2,7 @@
 
 ## Why
 
-`codex-lb` stores naive UTC `datetime` values in PostgreSQL `timestamptz`
+`openhub` stores naive UTC `datetime` values in PostgreSQL `timestamptz`
 columns. `asyncpg` binds a naive datetime using the database session time zone,
 so a PostgreSQL session inheriting a non-UTC default silently shifts persisted
 timestamps away from real UTC. That corrupts wall-clock comparisons used by

@@ -54,7 +54,7 @@ The consult lives in `streaming/helpers._resolve_upstream_route_for_account`
 (the single funnel for all proxy-service operations). The miss path still goes
 through `_facade().SessionLocal()` / `_facade().resolve_upstream_route`, so
 existing tests that monkeypatch the service facade keep working. The test
-suite sets `CODEX_LB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS=0` globally (cache
+suite sets `OPENHUB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS=0` globally (cache
 transparent); cache-specific tests opt in explicitly. Background callers
 (usage refresh, model discovery, oauth, automations, auth dependencies) keep
 their existing fresh reads — they are not hot paths.

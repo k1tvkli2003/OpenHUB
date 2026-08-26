@@ -18,7 +18,7 @@ reset appear sooner.
 - **WHEN** the operator clicks the Usage panel Reset action
 - **AND** confirms the dialog
 - **THEN** the dashboard sends a usage reset consume request for the selected account
-- **AND** codex-lb does not send a model probe request
+- **AND** openhub does not send a model probe request
 - **AND** account-related usage, trend, reset-credit, and dashboard summary
   queries are invalidated after success
 - **AND** no reset-credit availability query is configured with a permanent

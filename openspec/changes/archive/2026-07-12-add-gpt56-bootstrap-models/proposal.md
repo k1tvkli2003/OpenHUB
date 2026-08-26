@@ -2,7 +2,7 @@
 
 Codex 0.144 ships GPT-5.6 family model catalog entries (`gpt-5.6-sol`,
 `gpt-5.6-terra`, and `gpt-5.6-luna`) with extended reasoning efforts. When
-codex-lb starts before a successful upstream model refresh, its bundled
+openhub starts before a successful upstream model refresh, its bundled
 bootstrap catalog still lacks those slugs and dashboard/API-key validation still
 rejects the new `max` and `ultra` reasoning effort values. A bootstrap-served
 Codex catalog must also match the upstream bundled metadata exactly
@@ -21,7 +21,7 @@ unparseable client-side.
   Sol's `availability_nux`, speed/service tiers, websocket preference). The
   large `base_instructions` / `model_messages` prompts are deliberately left
   to the live refresh.
-- Allow `max` and `ultra` reasoning efforts where codex-lb validates model
+- Allow `max` and `ultra` reasoning efforts where openhub validates model
   reasoning choices for dashboard model metadata, automations, and API-key
   reasoning enforcement, and accept them in the OpenAI-compatible `thinking`
   string alias.

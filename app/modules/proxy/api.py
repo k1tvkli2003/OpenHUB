@@ -2341,7 +2341,7 @@ async def v1_images_variations(
         request,
         status_code=404,
         content=images_service_module.make_not_found_error(
-            "/v1/images/variations is not supported by codex-lb. Use /v1/images/edits with an explicit prompt instead."
+            "/v1/images/variations is not supported by openhub. Use /v1/images/edits with an explicit prompt instead."
         ),
     )
 
@@ -3199,7 +3199,7 @@ def _to_model_list_item(slug: str, model: UpstreamModel, *, created: int) -> Mod
         {
             "id": slug,
             "created": created,
-            "owned_by": "codex-lb",
+            "owned_by": "openhub",
             "metadata": _to_model_metadata(model),
             "api_types": ["chat_completions"],
             "capabilities": _v1_model_capabilities(model),
@@ -5740,11 +5740,18 @@ async def _probe_chat_stream_startup_error(
     buffered: list[str] = []
     for _ in range(max_startup_events):
         first_task = _create_first_stream_probe_task(stream)
+        # Local capacity admission is complete once the upstream has emitted
+        # its first SSE item. Re-applying the capacity-marker discovery grace
+        # to every chat startup control event compounds the Windows timer
+        # quantum and can hold a healthy stream past the route's outer
+        # startup deadline. Later control events keep the normal bounded error
+        # probe but no longer wait for an admission marker that cannot apply.
+        capacity_probe_pending = not buffered
         probe_done = await _wait_for_first_stream_probe(
             first_task,
             timeout_seconds=timeout_seconds,
-            capacity_wait_event=capacity_wait_event,
-            capacity_ready_event=capacity_ready_event,
+            capacity_wait_event=capacity_wait_event if capacity_probe_pending else None,
+            capacity_ready_event=capacity_ready_event if capacity_probe_pending else None,
         )
         if not probe_done:
             return _prepend_items(buffered, _prepend_first_task(first_task, stream)), None

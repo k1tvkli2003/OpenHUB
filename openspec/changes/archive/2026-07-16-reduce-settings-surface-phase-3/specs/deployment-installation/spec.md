@@ -21,8 +21,8 @@ single warning log (names only, never values) for at least one release.
 #### Scenario: Phase-3 removed env vars are ignored with one startup warning
 
 - **GIVEN** a deployment whose environment still sets removed settings such
-  as `CODEX_LB_DATABASE_POOL_RECYCLE_SECONDS` and
-  `CODEX_LB_DRAIN_PRIMARY_THRESHOLD_PCT`
+  as `OPENHUB_DATABASE_POOL_RECYCLE_SECONDS` and
+  `OPENHUB_DRAIN_PRIMARY_THRESHOLD_PCT`
 - **WHEN** the application starts
 - **THEN** startup succeeds and the fixed built-in values are used
 - **AND** exactly one warning log lists both removed names without their
@@ -30,8 +30,8 @@ single warning log (names only, never values) for at least one release.
 
 #### Scenario: Background pool sizing derives from the main pool settings
 
-- **GIVEN** `CODEX_LB_DATABASE_POOL_SIZE=12` and
-  `CODEX_LB_DATABASE_MAX_OVERFLOW=4` on a PostgreSQL deployment
+- **GIVEN** `OPENHUB_DATABASE_POOL_SIZE=12` and
+  `OPENHUB_DATABASE_MAX_OVERFLOW=4` on a PostgreSQL deployment
 - **WHEN** the application creates the background-task database engine
 - **THEN** the background engine uses pool size 12 and max overflow 4
 - **AND** no separate background pool sizing can be configured
@@ -42,5 +42,5 @@ single warning log (names only, never values) for at least one release.
 - **WHEN** an account's primary window usage reaches 85%
 - **THEN** the account enters the draining health tier
 - **AND** a drained account enters the probing tier only after the fixed
-  60-second quiet window, regardless of any `CODEX_LB_PROBE_QUIET_SECONDS`
+  60-second quiet window, regardless of any `OPENHUB_PROBE_QUIET_SECONDS`
   value still present in the environment

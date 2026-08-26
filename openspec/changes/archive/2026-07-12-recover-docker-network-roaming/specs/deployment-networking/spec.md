@@ -2,12 +2,12 @@
 
 ### Requirement: Stock Docker networking explains network switching
 
-The documented portable standalone Docker deployment MUST attach codex-lb to a user-defined bridge network, and stock Compose deployments MUST declare a user-defined default bridge. The documentation MUST state that Docker's embedded resolver can retain stale external forwarding servers across a host network change. It MUST provide a Linux host-network launch option for operators whose host exposes a stable resolver address, and MUST state that a direct DHCP-provided resolver can still become stale in host-network mode. Stock configuration MUST NOT hard-code a public recursive DNS server.
+The documented portable standalone Docker deployment MUST attach openhub to a user-defined bridge network, and stock Compose deployments MUST declare a user-defined default bridge. The documentation MUST state that Docker's embedded resolver can retain stale external forwarding servers across a host network change. It MUST provide a Linux host-network launch option for operators whose host exposes a stable resolver address, and MUST state that a direct DHCP-provided resolver can still become stale in host-network mode. Stock configuration MUST NOT hard-code a public recursive DNS server.
 
 #### Scenario: Standalone quick start uses a user-defined bridge
 
 - **WHEN** an operator follows the documented standalone Docker quick start
-- **THEN** the instructions create the codex-lb bridge idempotently
+- **THEN** the instructions create the openhub bridge idempotently
 - **AND** start the container with that bridge selected by `--network`
 
 #### Scenario: Compose uses a user-defined default bridge

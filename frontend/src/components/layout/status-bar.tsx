@@ -10,7 +10,7 @@ import { getRuntimeVersion } from "@/features/runtime/api";
 import { getSettings } from "@/features/settings/api";
 import { formatTimeLong } from "@/utils/formatters";
 
-const GITHUB_REPOSITORY_URL = "https://github.com/soju06/codex-lb";
+const GITHUB_REPOSITORY_URL = "https://github.com/k1tvkli2003/openhub";
 
 type RoutingStrategy =
   | "usage_weighted"

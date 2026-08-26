@@ -1,24 +1,28 @@
 # Getting Started
 
-codex-lb runs with zero configuration — every setting has a working default, and Docker vs. host paths are auto-detected.
+OpenHUB runs locally with safe defaults and auto-detects its host paths.
 
 ## Quick Start
 
-```bash
-# Docker (recommended)
-docker volume create codex-lb-data
-docker run -d --name codex-lb \
-  -p 2455:2455 -p 1455:1455 \
-  -v codex-lb-data:/var/lib/codex-lb \
-  ghcr.io/soju06/codex-lb:latest
+On Windows, download and extract `OpenHUB-Windows-2.0.0.zip` from the latest
+GitHub Release, then run `Launch-OpenHUB.ps1`. The archive includes the pinned
+backend and native Flutter dashboard, and does not resolve packages at startup.
+The OpenHUB window opens automatically; add an account there and continue to
+[Client Setup](client-setup.md).
 
-# or uvx
-uvx codex-lb
+To run the backend from source:
+
+```bash
+git clone https://github.com/k1tvkli2003/OpenHUB.git
+cd OpenHUB
+uv sync --frozen
+uv run openhub
 ```
 
-Open [localhost:2455](http://localhost:2455) → Add account → Done.
+When running the backend from source (or from the container image), open
+[localhost:2455](http://localhost:2455) to use the optional web dashboard.
 
-Next: point your coding agent at codex-lb — see [Client Setup](client-setup.md).
+Next: point your coding agent at openhub — see [Client Setup](client-setup.md).
 
 ## Remote setup (bootstrap token)
 
@@ -26,8 +30,8 @@ When accessing the dashboard remotely for the first time, a bootstrap token is r
 
 **Auto-generated (default):** On first startup (no password configured), the server generates a one-time token and prints it to logs:
 
-```bash
-docker logs codex-lb
+```text
+# Read the process console output.
 # ============================================
 #   Dashboard bootstrap token (first-run):
 #   <token>
@@ -38,18 +42,15 @@ Open the dashboard → enter the token + new password → done. The token is sha
 
 **Manual token:** To use a fixed token instead, set the env var before starting:
 
-```bash
-docker run -d --name codex-lb \
-  -e CODEX_LB_DASHBOARD_BOOTSTRAP_TOKEN=your-secret-token \
-  -p 2455:2455 -p 1455:1455 \
-  -v codex-lb-data:/var/lib/codex-lb \
-  ghcr.io/soju06/codex-lb:latest
+```powershell
+$env:OPENHUB_DASHBOARD_BOOTSTRAP_TOKEN = 'replace-with-a-secret'
+uv run openhub
 ```
 
 **Local access** (localhost) bypasses bootstrap entirely — no token needed.
 
-Running behind a reverse proxy or exposing codex-lb to other machines? See [Remote Access](deployment/remote.md) and [Authentication](authentication.md).
+Running behind a reverse proxy or exposing openhub to other machines? See [Remote Access](deployment/remote.md) and [Authentication](authentication.md).
 
 ---
 
-*Spec: [deployment-installation](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/deployment-installation)*
+*Spec: [deployment-installation](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/deployment-installation)*

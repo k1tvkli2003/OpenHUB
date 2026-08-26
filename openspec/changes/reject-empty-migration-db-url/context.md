@@ -14,7 +14,7 @@ Validating later, trimming values, or changing global settings validation were c
 
 ## Constraints and Non-Goals
 
-- Existing deployment jobs omit `--db-url` and provide `CODEX_LB_DATABASE_URL`; that flow must continue unchanged.
+- Existing deployment jobs omit `--db-url` and provide `OPENHUB_DATABASE_URL`; that flow must continue unchanged.
 - Non-empty values pass through without normalization or new syntax checks.
 - Whitespace-only input and an empty global database setting retain existing behavior.
 - The change introduces no Alembic revision, settings field, deployment edit, or dashboard-visible output.

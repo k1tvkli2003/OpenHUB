@@ -2,7 +2,7 @@
 
 ## Purpose
 
-codex-lb's original value proposition was "run one command, get a load-balancing proxy and a dashboard you can read in one glance." Nothing in the contribution process defended that proposition: every merge gate checked correctness (CI, codex review, OpenSpec coverage) and none checked whether the default experience got heavier. This change codifies five principles (P1–P5 in `PRINCIPLES.md`) as reviewable merge gates so simplicity regressions are blocked the same way broken tests are.
+openhub's original value proposition was "run one command, get a load-balancing proxy and a dashboard you can read in one glance." Nothing in the contribution process defended that proposition: every merge gate checked correctness (CI, codex review, OpenSpec coverage) and none checked whether the default experience got heavier. This change codifies five principles (P1–P5 in `PRINCIPLES.md`) as reviewable merge gates so simplicity regressions are blocked the same way broken tests are.
 
 ## Erosion metrics (snapshot 2026-07-15, main @ fd529b21)
 
@@ -38,7 +38,7 @@ None of these numbers were decided; they accreted. The principles do not roll th
 
 ## Worked example (P2)
 
-A PR adds `CODEX_LB_FOO_TIMEOUT_SECONDS` to tune an upstream call. The PR body must answer "why can't this be a default?":
+A PR adds `OPENHUB_FOO_TIMEOUT_SECONDS` to tune an upstream call. The PR body must answer "why can't this be a default?":
 
 > Acceptable: "Operators behind corporate proxies see 30–120s handshake times; no single default works for both LAN and proxied deployments. Default stays 8s; the setting is not added to `.env.example` because it only matters for proxied networks (documented in docs/troubleshooting.md, which links back to openspec/specs/upstream-proxying/)."
 >

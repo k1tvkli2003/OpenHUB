@@ -4,7 +4,7 @@
 
 Native Codex requests can carry the installation identity in both
 `x-codex-installation-id` and the JSON-encoded
-`x-codex-turn-metadata.installation_id` field. codex-lb already replaces the
+`x-codex-turn-metadata.installation_id` field. openhub already replaces the
 standalone value with the selected account identity, but it can leave the
 nested value associated with the client or a previously selected account.
 That produces internally inconsistent upstream metadata after account

@@ -4,7 +4,7 @@ Issue #1313 identifies a remaining overload-code gap after the existing
 `overloaded_error` retry work from #565. Upstream can emit
 `server_is_overloaded` as a terminal Responses event after the HTTP stream has
 already returned status 200. Because that code is absent from both the failure
-classifier and streaming retry set, codex-lb can surface the event instead of
+classifier and streaming retry set, openhub can surface the event instead of
 using its bounded pre-visible retry and failover behavior.
 
 ## What Changes

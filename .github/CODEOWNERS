@@ -1,8 +1,8 @@
 # Release-please changes require approval by repo owner
-/.github/release-please-config.json @Soju06
-/.github/release-please-manifest.json @Soju06
-/.github/workflows/release-please.yml @Soju06
-/CHANGELOG.md @Soju06
-/app/__init__.py @Soju06
+/.github/release-please-config.json @k1tvkli2003
+/.github/release-please-manifest.json @k1tvkli2003
+/.github/workflows/release-please.yml @k1tvkli2003
+/CHANGELOG.md @k1tvkli2003
+/app/__init__.py @k1tvkli2003
 # optional: block if this file changes via release-please
-/uv.lock @Soju06
+/uv.lock @k1tvkli2003

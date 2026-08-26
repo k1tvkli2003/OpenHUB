@@ -257,7 +257,7 @@ async def test_live_ingestion_kill_switch_disables_publishing(monkeypatch, db_se
     del db_setup
     from app.core.config.settings import get_settings
 
-    monkeypatch.setenv("CODEX_LB_LIVE_USAGE_INGESTION_ENABLED", "false")
+    monkeypatch.setenv("OPENHUB_LIVE_USAGE_INGESTION_ENABLED", "false")
     get_settings.cache_clear()
     try:
         assert live_ingest.start_live_usage_ingestor() is None

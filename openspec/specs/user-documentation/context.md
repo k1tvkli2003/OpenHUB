@@ -8,7 +8,7 @@ rationale and operational notes for the docs site and entry-point documents.
 Restore the founding "1-click setup" promise of the entry-point documents. The
 README had grown to 653 lines and `.env.example` to 115 lines / ~45 active
 values; both buried the quickstart. Detailed material now has a real home (the
-published mkdocs-material site at https://soju06.github.io/codex-lb/) so the
+published mkdocs-material site at https://k1tvkli2003.github.io/OpenHUB/) so the
 README and sample env stay slim without losing content.
 
 ## Decisions
@@ -17,7 +17,7 @@ README and sample env stay slim without losing content.
   existing `docs/screenshots/` images ship into the site unchanged and README
   image paths keep working on GitHub. Pages live directly under `docs/` (not
   `docs/content/`) so the site homepage is
-  `https://soju06.github.io/codex-lb/` itself.
+  `https://k1tvkli2003.github.io/OpenHUB/` itself.
 - **Strict build as the docs gate.** The `validation:` block in `mkdocs.yml`
   plus `--strict` turns broken internal links, missing anchors, and
   nav-orphaned pages into CI failures. Corollary: any stray `.md` dropped into
@@ -36,7 +36,7 @@ README and sample env stay slim without losing content.
   generated table is bot-managed and is not hand-written complexity.
 - **`.env.example` drift values were deleted, not corrected.** The sample is
   all-commented so it can never drift into behavior changes again. The
-  commented `# CODEX_LB_LEADER_ELECTION_ENABLED=false` escape hatch is pinned
+  commented `# OPENHUB_LEADER_ELECTION_ENABLED=false` escape hatch is pinned
   by `tests/unit/test_helm_replica_artifacts.py`.
 - **OpenSpec stays normative.** Docs pages carry footer links to their
   governing capability; they render behavior, they do not define it.
@@ -46,7 +46,7 @@ README and sample env stay slim without losing content.
 ## Constraints / failure modes
 
 - GitHub Pages must be enabled out-of-band by an admin
-  (`gh api -X POST repos/Soju06/codex-lb/pages -f build_type=workflow`) before
+  (`gh api -X POST repos/k1tvkli2003/OpenHUB/pages -f build_type=workflow`) before
   the first `main` deploy; until then the deploy job fails while the build
   check still protects PRs.
 - `uv.lock` must be regenerated whenever the `docs` group changes — CI and the
@@ -59,6 +59,6 @@ README and sample env stay slim without losing content.
 
 A user asks "how do I upgrade the compose Postgres volume?" — the README
 Configuration section links the docs Database page;
-`https://soju06.github.io/codex-lb/database/` carries the verbatim 16→18
+`https://k1tvkli2003.github.io/OpenHUB/database/` carries the verbatim 16→18
 runbook and links the `database-backends` / `database-migrations` specs for the
 normative behavior.

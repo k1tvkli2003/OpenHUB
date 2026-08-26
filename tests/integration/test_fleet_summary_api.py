@@ -288,7 +288,7 @@ async def test_fleet_summary_returns_minimal_projection_with_valid_key(async_cli
     account = accounts[0]
     assert account["accountId"] == "acc_fleet_a"
     assert account["email"] == "fleet-a@example.com"
-    assert account["displayName"] == "fleet-a@example.com"
+    assert account["displayName"] == "Fleet a"
     assert account["status"] == "active"
     assert account["planType"] == "plus"
     assert account["lastRefreshAt"] is not None
@@ -587,7 +587,7 @@ async def test_fleet_observability_reports_pressure_and_sticky_without_sensitive
     payload = response.json()
     _assert_no_forbidden_keys(payload)
     assert payload["available"] is True
-    assert payload["source"] == "codex-lb fleet observability"
+    assert payload["source"] == "openhub fleet observability"
     assert payload["generatedAt"] is not None
     assert payload["pressure"]["available"] is True
     assert {window["key"] for window in payload["pressure"]["windows"]} == {"30m", "2h"}

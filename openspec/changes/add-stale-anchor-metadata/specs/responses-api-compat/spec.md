@@ -10,7 +10,7 @@ When a direct Responses WebSocket request fails closed because upstream rejects 
 - **AND** they include owner lookup and replay-availability metadata without raw response ids
 
 #### Scenario: proxy-injected stale anchor is classifiable
-- **GIVEN** codex-lb injects a session-continuity `previous_response_id` into a direct WebSocket request
+- **GIVEN** openhub injects a session-continuity `previous_response_id` into a direct WebSocket request
 - **AND** upstream rejects that anchor with `previous_response_not_found`
 - **THEN** the continuity failure log and request-log failure metadata identify `previous_response_source=proxy_injected`
 - **AND** they state whether a retry-safe fresh no-anchor replay body was available

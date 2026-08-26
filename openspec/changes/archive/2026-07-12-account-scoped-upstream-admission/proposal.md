@@ -2,7 +2,7 @@
 
 ## Problem
 
-codex-lb can currently turn local usage snapshots and synthetic quota estimates into account unavailability before a request reaches upstream. That makes local dashboards or planner data act as an upstream availability oracle, causing `no_accounts` / retry-hint failures even when the upstream account might still accept real traffic.
+openhub can currently turn local usage snapshots and synthetic quota estimates into account unavailability before a request reaches upstream. That makes local dashboards or planner data act as an upstream availability oracle, causing `no_accounts` / retry-hint failures even when the upstream account might still accept real traffic.
 
 The proxy should only fail closed before upstream for explicit local policy or local capacity guards. Upstream rate/quota failures should remain account-scoped because Codex/OpenAI exposes account credentials as the authoritative blast boundary here; local model/transport/request-kind dimensions are diagnostic metadata, not upstream policy dimensions.
 

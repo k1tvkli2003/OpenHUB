@@ -405,6 +405,13 @@ async def test_proxy_compact_headers_include_monthly_only_credits(async_client, 
     response = await async_client.post("/api/accounts/import", files=files)
     assert response.status_code == 200
 
+    # Free-family accounts remain visible in aggregate quota headers but are
+    # never eligible for routing. Seed a paid peer to carry the compact call.
+    paid_auth_json = _make_auth_json("acc_compact_paid", "compact-paid@example.com", plan_type="plus")
+    paid_files = {"auth_json": ("auth.json", json.dumps(paid_auth_json), "application/json")}
+    response = await async_client.post("/api/accounts/import", files=paid_files)
+    assert response.status_code == 200
+
     expected_account_id = generate_unique_account_id(raw_account_id, email)
 
     async def fake_compact(payload, headers, access_token, account_id):

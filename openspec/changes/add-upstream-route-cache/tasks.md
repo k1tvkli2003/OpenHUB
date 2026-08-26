@@ -6,7 +6,7 @@
 - [x] 1.4 Consult the cache in `streaming/helpers._resolve_upstream_route_for_account`; miss path keeps the facade session/resolver calls
 - [x] 1.5 Wire poller callbacks in `app/main.py` (`upstream_route` + `settings` namespaces clear the route cache)
 - [x] 1.6 Invalidate on mutations in `app/modules/settings/api.py`: binding PUT and pool-member POST (`invalidate()` after commit), settings PUT (local clear when either upstream field changed)
-- [x] 1.7 Disable the cache globally in the test suite (`CODEX_LB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS=0`) and reset it in `_reset_global_state`
+- [x] 1.7 Disable the cache globally in the test suite (`OPENHUB_UPSTREAM_ROUTE_CACHE_TTL_SECONDS=0`) and reset it in `_reset_global_state`
 
 ## 2. Tests
 

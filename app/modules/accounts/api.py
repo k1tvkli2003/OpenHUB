@@ -105,6 +105,17 @@ async def list_accounts(
     return AccountsResponse(accounts=accounts)
 
 
+@router.post("/refresh", response_model=AccountsResponse)
+async def refresh_accounts(
+    _write_access=Depends(require_dashboard_write_access),
+    context: AccountsContext = Depends(get_accounts_context),
+) -> AccountsResponse:
+    """Refresh stale upstream usage and identity metadata for every account."""
+
+    accounts = await context.service.refresh_usage_for_codex_launch()
+    return AccountsResponse(accounts=accounts)
+
+
 @router.get("/{account_id}/trends", response_model=AccountTrendsResponse)
 async def get_account_trends(
     account_id: str,

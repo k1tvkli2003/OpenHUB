@@ -31,7 +31,7 @@ For direct Responses WebSocket requests, the proxy MUST NOT transparently replay
 
 - **WHEN** a direct WebSocket request has emitted `response.created` or another frame with a finite integer `sequence_number`
 - **AND** upstream closes before a terminal response event
-- **THEN** codex-lb does not transparently replay that request under the existing downstream response id
+- **THEN** openhub does not transparently replay that request under the existing downstream response id
 - **AND** no lower replay sequence is emitted downstream
 - **AND** the downstream WebSocket closes with code 1011
 
@@ -45,17 +45,17 @@ For direct Responses WebSocket requests, the proxy MUST NOT transparently replay
 
 - **WHEN** a direct WebSocket request has successfully emitted a finite integer `sequence_number`
 - **AND** upstream emits a terminal error that would ordinarily trigger transparent quota, authentication, or security-work replay
-- **THEN** codex-lb does not reconnect or resend the request
+- **THEN** openhub does not reconnect or resend the request
 - **AND** the terminal error is finalized and remains client-visible under the existing error contract
 
 #### Scenario: Sequence-free startup remains replayable
 
 - **WHEN** upstream closes before any numeric sequence-bearing frame has been successfully sent downstream
 - **AND** the request otherwise satisfies the existing one-shot replay guard
-- **THEN** codex-lb MAY transparently replay the request on a fresh upstream connection
+- **THEN** openhub MAY transparently replay the request on a fresh upstream connection
 
 #### Scenario: Suppressed frame does not establish exposure
 
-- **WHEN** codex-lb suppresses an upstream frame before downstream emission
+- **WHEN** openhub suppresses an upstream frame before downstream emission
 - **AND** the suppressed frame contains a numeric `sequence_number`
 - **THEN** that frame does not establish the downstream sequence watermark

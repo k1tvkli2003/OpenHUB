@@ -6,7 +6,7 @@ This change closes a liveness hole in replica-local soft drain. `PROBING` is int
 
 ## Decision rationale
 
-Recovery uses the existing fixed 60-second quiet interval and `last_selected_at`. A dedicated scheduler, random percentage, or new `CODEX_LB_*` setting would add machinery without improving the low-traffic guarantee. Oldest-due selection also makes multiple probing accounts progress without relying on randomness.
+Recovery uses the existing fixed 60-second quiet interval and `last_selected_at`. A dedicated scheduler, random percentage, or new `OPENHUB_*` setting would add machinery without improving the low-traffic guarantee. Oldest-due selection also makes multiple probing accounts progress without relying on randomness.
 
 ## Constraints and failure modes
 

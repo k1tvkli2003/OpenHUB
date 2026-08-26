@@ -1,5 +1,5 @@
 PYTEST_ARGS := -q -ra -o faulthandler_timeout=300 -o faulthandler_exit_on_timeout=true --timeout=180 --timeout-method=thread --durations=20
-POSTGRES_TEST_DATABASE_URL ?= postgresql+asyncpg://codex_lb:codex_lb@127.0.0.1:5432/codex_lb
+POSTGRES_TEST_DATABASE_URL ?= postgresql+asyncpg://openhub:openhub@127.0.0.1:5432/openhub
 INTEGRATION_CORE_SHARD_COUNT := 3
 POSTGRES_PYTEST_TARGETS := \
 	tests/integration/test_migrations.py::test_postgresql_migration_contract_policy_and_drift_match \
@@ -118,23 +118,23 @@ test-e2e: frontend-build
 
 test-postgres:
 	uv sync --dev --frozen
-	CODEX_LB_TEST_DATABASE_URL="$${CODEX_LB_TEST_DATABASE_URL:-$(POSTGRES_TEST_DATABASE_URL)}" \
+	OPENHUB_TEST_DATABASE_URL="$${OPENHUB_TEST_DATABASE_URL:-$(POSTGRES_TEST_DATABASE_URL)}" \
 	  PYTHONFAULTHANDLER=1 \
 	  uv run pytest $(PYTEST_ARGS) $(POSTGRES_PYTEST_TARGETS)
 
 .PHONY: migration-check migration-check-postgres
 migration-check:
 	uv sync --dev --frozen
-	TMP_DB="$$(mktemp -u /tmp/codex-lb-ci-migrate-XXXXXX.db)"; \
+	TMP_DB="$$(mktemp -u /tmp/openhub-ci-migrate-XXXXXX.db)"; \
 	DB_URL="sqlite+aiosqlite:///$${TMP_DB}"; \
 	trap 'rm -f "$${TMP_DB}"' EXIT; \
-	uv run codex-lb-db --db-url "$${DB_URL}" upgrade head; \
-	uv run codex-lb-db --db-url "$${DB_URL}" check
+	uv run openhub-db --db-url "$${DB_URL}" upgrade head; \
+	uv run openhub-db --db-url "$${DB_URL}" check
 
 migration-check-postgres:
 	uv sync --dev --frozen
-	uv run codex-lb-db --db-url "$(POSTGRES_TEST_DATABASE_URL)" upgrade head
-	uv run codex-lb-db --db-url "$(POSTGRES_TEST_DATABASE_URL)" check
+	uv run openhub-db --db-url "$(POSTGRES_TEST_DATABASE_URL)" upgrade head
+	uv run openhub-db --db-url "$(POSTGRES_TEST_DATABASE_URL)" check
 
 .PHONY: package
 package: frontend-build
@@ -146,36 +146,36 @@ package: frontend-build
 
 .PHONY: docker
 docker:
-	docker build -t codex-lb:ci .
-	trivy image --format table --exit-code 1 --severity CRITICAL --ignore-unfixed codex-lb:ci
+	docker build -t openhub:ci .
+	trivy image --format table --exit-code 1 --severity CRITICAL --ignore-unfixed openhub:ci
 
 .PHONY: helm-deps helm-lint helm-template helm-kubeconform
 helm-deps:
-	helm dependency build deploy/helm/codex-lb/
+	helm dependency build deploy/helm/openhub/
 
 helm-lint: helm-deps
-	helm lint --strict deploy/helm/codex-lb/ --set postgresql.auth.password=test-password
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-dev.yaml --set postgresql.auth.password=test-password
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-bundled.yaml --set postgresql.auth.password=test-password
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-external-db.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-external-secrets.yaml --set externalSecrets.secretStoreRef.name=test-store
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-staging.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test
-	helm lint --strict deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-prod.yaml --set externalSecrets.secretStoreRef.name=test-store
+	helm lint --strict deploy/helm/openhub/ --set postgresql.auth.password=test-password
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-dev.yaml --set postgresql.auth.password=test-password
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-bundled.yaml --set postgresql.auth.password=test-password
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-external-db.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-external-secrets.yaml --set externalSecrets.secretStoreRef.name=test-store
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-staging.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test
+	helm lint --strict deploy/helm/openhub/ -f deploy/helm/openhub/values-prod.yaml --set externalSecrets.secretStoreRef.name=test-store
 
 helm-template:
-	helm template codex-lb deploy/helm/codex-lb/ --set postgresql.auth.password=test-password > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-dev.yaml --set postgresql.auth.password=test-password > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-bundled.yaml --set postgresql.auth.password=test-password > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-external-db.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-external-secrets.yaml --set externalSecrets.secretStoreRef.name=test-store > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-staging.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test > /dev/null
-	helm template codex-lb deploy/helm/codex-lb/ -f deploy/helm/codex-lb/values-prod.yaml --set externalSecrets.secretStoreRef.name=test-store > /dev/null
+	helm template openhub deploy/helm/openhub/ --set postgresql.auth.password=test-password > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-dev.yaml --set postgresql.auth.password=test-password > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-bundled.yaml --set postgresql.auth.password=test-password > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-external-db.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-external-secrets.yaml --set externalSecrets.secretStoreRef.name=test-store > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-staging.yaml --set externalDatabase.url=postgresql+asyncpg://test:test@localhost/test > /dev/null
+	helm template openhub deploy/helm/openhub/ -f deploy/helm/openhub/values-prod.yaml --set externalSecrets.secretStoreRef.name=test-store > /dev/null
 
 helm-kubeconform:
 	set -e -o pipefail; \
 	for version in 1.32.0 1.35.0; do \
-	  helm template codex-lb deploy/helm/codex-lb/ \
-	    -f deploy/helm/codex-lb/values-prod.yaml \
+	  helm template openhub deploy/helm/openhub/ \
+	    -f deploy/helm/openhub/values-prod.yaml \
 	    --set externalSecrets.secretStoreRef.name=test \
 	    --set externalSecrets.secretStoreRef.kind=SecretStore \
 	    --set gatewayApi.enabled=true \
@@ -193,11 +193,11 @@ helm-kubeconform:
 helm-check: helm-lint helm-template helm-kubeconform
 
 helm-smoke-kind:
-	kind create cluster --name codex-lb-smoke --image kindest/node:v1.35.0 --wait 120s
-	docker build -t ghcr.io/soju06/codex-lb:ci .
-	kind load docker-image ghcr.io/soju06/codex-lb:ci --name codex-lb-smoke
-	KUBE_CONTEXT=kind-codex-lb-smoke IMAGE_REGISTRY=ghcr.io IMAGE_REPOSITORY=soju06/codex-lb IMAGE_TAG=ci ./scripts/helm-kind-smoke.sh bundled
-	KUBE_CONTEXT=kind-codex-lb-smoke IMAGE_REGISTRY=ghcr.io IMAGE_REPOSITORY=soju06/codex-lb IMAGE_TAG=ci ./scripts/helm-kind-smoke.sh external-db
+	kind create cluster --name openhub-smoke --image kindest/node:v1.35.0 --wait 120s
+	docker build -t ghcr.io/k1tvkli2003/openhub:ci .
+	kind load docker-image ghcr.io/k1tvkli2003/openhub:ci --name openhub-smoke
+	KUBE_CONTEXT=kind-openhub-smoke IMAGE_REGISTRY=ghcr.io IMAGE_REPOSITORY=k1tvkli2003/openhub IMAGE_TAG=ci ./scripts/helm-kind-smoke.sh bundled
+	KUBE_CONTEXT=kind-openhub-smoke IMAGE_REGISTRY=ghcr.io IMAGE_REPOSITORY=k1tvkli2003/openhub IMAGE_TAG=ci ./scripts/helm-kind-smoke.sh external-db
 
 .PHONY: ci-fast ci
 ci-fast: lint typecheck frontend-test test-unit package

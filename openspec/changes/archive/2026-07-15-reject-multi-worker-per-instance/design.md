@@ -24,7 +24,7 @@ index in `[0, W)`. There is no portable way to obtain one:
 - Neither uvicorn `--workers` nor gunicorn exposes a stable per-worker index in
   the child environment.
 - A standard multi-worker launch inherits the SAME environment into every child,
-  so an operator-declared `CODEX_LB_WORKER_INDEX` lands identically in all
+  so an operator-declared `OPENHUB_WORKER_INDEX` lands identically in all
   workers — every worker resolves to slot 0 and enforces slot 0's share
   independently, which over-admits while the other slots go uncovered.
 - Auto-deriving the index from PID/hostname hashing does not yield the contiguous
@@ -42,7 +42,7 @@ per replica correctly (`partition_cap(cap, R, rank)`), so this needs no code
 change to the partitioning path — it is exactly `main`'s behavior.
 
 The only addition is a fail-fast tripwire. `workers_per_instance`
-(`CODEX_LB_WORKERS_PER_INSTANCE`, default 1) is an explicit operator declaration.
+(`OPENHUB_WORKERS_PER_INSTANCE`, default 1) is an explicit operator declaration.
 A `model_validator(mode="after")` on `Settings` rejects a declared value `> 1` at
 startup with a clear error naming the variable and directing the operator to run
 one worker per pod/container and scale via replicas. The default `1` is a no-op:

@@ -11,7 +11,7 @@ without discarding the task-specific account ownership needed after recovery.
 
 ## Motivation
 
-When codex-lb restarts, the in-memory WebSocket connections are gone, but
+When openhub restarts, the in-memory WebSocket connections are gone, but
 persisted durable bridge rows remain in SQLite. The first request after
 restart finds these stale rows and attempts recovery/rebind, which can hang
 silently - no `request_logs` entry, no assistant response, no terminal event.

@@ -1,6 +1,6 @@
 ## Why
 
-An OpenAI service rate-limit error can carry malformed or wrong-unit reset metadata, and codex-lb currently persists that value without validation. An implausible deadline can therefore keep an account `rate_limited` indefinitely even after fresh usage proves quota is available.
+An OpenAI service rate-limit error can carry malformed or wrong-unit reset metadata, and openhub currently persists that value without validation. An implausible deadline can therefore keep an account `rate_limited` indefinitely even after fresh usage proves quota is available.
 
 ## What Changes
 

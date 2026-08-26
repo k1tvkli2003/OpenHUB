@@ -14,7 +14,7 @@
 
 - [x] 3.1 Rewrite README.md to a slim quickstart (~120 hand-written lines) with one prominent documentation link line; keep the all-contributors block and markers intact.
 - [x] 3.2 Add the canonical-English-docs banner to README.zh-CN.md without restructuring the rest.
-- [x] 3.3 Rewrite `.env.example`: fully commented, no default-drift values, keep the commented `# CODEX_LB_LEADER_ELECTION_ENABLED=false` escape hatch; `uv run pytest tests/unit/test_helm_replica_artifacts.py` passes.
+- [x] 3.3 Rewrite `.env.example`: fully commented, no default-drift values, keep the commented `# OPENHUB_LEADER_ELECTION_ENABLED=false` escape hatch; `uv run pytest tests/unit/test_helm_replica_artifacts.py` passes.
 
 ## 4. Validation
 

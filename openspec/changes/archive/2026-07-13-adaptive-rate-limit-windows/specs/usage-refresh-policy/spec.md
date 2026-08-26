@@ -11,7 +11,7 @@ Background usage refresh MUST treat a latest usage row as stale when that row's 
 - **AND** no strictly newer main-window row exists for the account
 - **WHEN** background usage refresh evaluates the account
 - **THEN** the row is treated as stale
-- **AND** codex-lb attempts a fresh upstream usage fetch
+- **AND** openhub attempts a fresh upstream usage fetch
 
 #### Scenario: Newer sibling row supersedes an elapsed primary row
 
@@ -19,7 +19,7 @@ Background usage refresh MUST treat a latest usage row as stale when that row's 
 - **AND** a later refresh recorded a secondary-window row within the normal refresh interval
 - **WHEN** background usage refresh evaluates the account
 - **THEN** the account is treated as fresh
-- **AND** codex-lb does not fetch upstream usage again until the newest row ages out or its own reset elapses
+- **AND** openhub does not fetch upstream usage again until the newest row ages out or its own reset elapses
 
 #### Scenario: Secondary-only accounts are fresh by their newest row
 

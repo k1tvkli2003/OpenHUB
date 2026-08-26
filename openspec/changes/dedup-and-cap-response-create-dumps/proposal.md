@@ -33,4 +33,4 @@ operator's data volume.
   no consumer contract beyond its location, and the meta file continues to
   carry the full `request_text_sha256`.
 - No API, schema, or configuration changes are introduced. The retention bound
-  is a hardcoded default, not a new `CODEX_LB_*` setting.
+  is a hardcoded default, not a new `OPENHUB_*` setting.

@@ -11,7 +11,7 @@ Background usage refresh MUST apply a cooldown to accounts that repeatedly fail 
 - **GIVEN** a free-plan account whose persisted status is `rate_limited`
 - **AND** its latest primary usage row is a zero-capacity non-5h window (for example a monthly upstream snapshot)
 - **AND** its normalized quota state reports available monthly quota
-- **WHEN** codex-lb derives account status for account summaries or proxy runtime state
+- **WHEN** openhub derives account status for account summaries or proxy runtime state
 - **THEN** the non-5h primary row is ignored for rate-limit recovery
 - **AND** the account is treated as `active`
 - **AND** downstream account views keep the monthly-only quota presentation
@@ -278,7 +278,7 @@ Background usage refresh MUST treat a latest usage row as stale when that row's 
 - **AND** no strictly newer main-window row exists for the account
 - **WHEN** background usage refresh evaluates the account
 - **THEN** the row is treated as stale
-- **AND** codex-lb attempts a fresh upstream usage fetch
+- **AND** openhub attempts a fresh upstream usage fetch
 
 #### Scenario: Newer sibling row supersedes an elapsed primary row
 
@@ -286,7 +286,7 @@ Background usage refresh MUST treat a latest usage row as stale when that row's 
 - **AND** a later refresh recorded a secondary-window row within the normal refresh interval
 - **WHEN** background usage refresh evaluates the account
 - **THEN** the account is treated as fresh
-- **AND** codex-lb does not fetch upstream usage again until the newest row ages out or its own reset elapses
+- **AND** openhub does not fetch upstream usage again until the newest row ages out or its own reset elapses
 
 #### Scenario: Secondary-only accounts are fresh by their newest row
 
@@ -305,14 +305,14 @@ When an account is `RATE_LIMITED` or `QUOTA_EXCEEDED` and its persisted `reset_a
 - **AND** the account's persisted `reset_at` timestamp has elapsed
 - **AND** the latest primary usage row is still within the normal refresh interval
 - **WHEN** background usage refresh evaluates the account
-- **THEN** codex-lb performs an upstream usage fetch instead of waiting for the primary row to age out
+- **THEN** openhub performs an upstream usage fetch instead of waiting for the primary row to age out
 
 #### Scenario: Rate-limited account reaches reset deadline
 
 - **GIVEN** an account is marked `RATE_LIMITED`
 - **AND** the account's persisted `reset_at` timestamp has elapsed
 - **WHEN** background usage refresh evaluates the account
-- **THEN** codex-lb performs an upstream usage fetch instead of waiting for the normal refresh interval
+- **THEN** openhub performs an upstream usage fetch instead of waiting for the normal refresh interval
 
 ### Requirement: Credit-backed secondary quota remains usable
 
@@ -570,7 +570,7 @@ account is bound to MUST continue to be rejected as a slot mismatch.
 
 ### Requirement: Codex usage exposes reset-credit availability
 
-codex-lb SHALL include upstream reset-credit availability on Codex usage
+openhub SHALL include upstream reset-credit availability on Codex usage
 responses when ChatGPT usage identity validation returns earned usage limit
 reset credits, without altering aggregate usage-window semantics.
 
@@ -579,12 +579,12 @@ reset credits, without altering aggregate usage-window semantics.
 - **GIVEN** a registered active `chatgpt-account-id`
 - **AND** upstream `/wham/usage` returns `rate_limit_reset_credits.available_count`
 - **WHEN** the caller requests `/api/codex/usage` with a ChatGPT bearer token
-- **THEN** codex-lb returns a successful Codex usage payload
+- **THEN** openhub returns a successful Codex usage payload
 - **AND** the top-level `rate_limit_reset_credits.available_count` equals the upstream value
 
 ### Requirement: Codex usage can consume upstream reset credits
 
-codex-lb SHALL expose a Codex-compatible endpoint for consuming one upstream
+openhub SHALL expose a Codex-compatible endpoint for consuming one upstream
 usage limit reset credit. The endpoint SHALL require ChatGPT caller identity,
 forward the caller's bearer token and `chatgpt-account-id`, preserve the
 caller-provided `redeem_request_id`, and return the upstream consume outcome.
@@ -594,25 +594,25 @@ caller-provided `redeem_request_id`, and return the upstream consume outcome.
 - **GIVEN** a registered active `chatgpt-account-id`
 - **AND** upstream reset-credit consume returns `code: reset`
 - **WHEN** the caller posts to `/api/codex/rate-limit-reset-credits/consume` with `redeem_request_id`
-- **THEN** codex-lb returns `code: reset`
-- **AND** codex-lb force-refreshes the matching account usage snapshot
+- **THEN** openhub returns `code: reset`
+- **AND** openhub force-refreshes the matching account usage snapshot
 - **AND** the force-refresh runs even when background usage refresh scheduling is disabled
 
 #### Scenario: API-key caller cannot consume ChatGPT reset credits
 
-- **GIVEN** a codex-lb API key caller without ChatGPT caller identity
+- **GIVEN** a openhub API key caller without ChatGPT caller identity
 - **WHEN** the caller posts to `/api/codex/rate-limit-reset-credits/consume`
-- **THEN** codex-lb rejects the request as unauthenticated for ChatGPT reset credits
+- **THEN** openhub rejects the request as unauthenticated for ChatGPT reset credits
 
 #### Scenario: Empty redemption id is rejected
 
 - **GIVEN** a registered active `chatgpt-account-id`
 - **WHEN** the caller posts to `/api/codex/rate-limit-reset-credits/consume` with an empty `redeem_request_id`
-- **THEN** codex-lb rejects the request without forwarding it upstream
+- **THEN** openhub rejects the request without forwarding it upstream
 
 ### Requirement: Account details expose reset-credit availability
 
-codex-lb SHALL expose upstream usage limit reset-credit availability for a
+openhub SHALL expose upstream usage limit reset-credit availability for a
 selected dashboard account without creating local reset-credit accounting.
 
 #### Scenario: Dashboard account detail shows reset credits
@@ -620,12 +620,12 @@ selected dashboard account without creating local reset-credit accounting.
 - **GIVEN** a registered active account with a `chatgpt-account-id`
 - **AND** upstream `/wham/usage` returns `rate_limit_reset_credits.available_count`
 - **WHEN** the dashboard requests the account's reset-credit summary
-- **THEN** codex-lb returns the selected account id
+- **THEN** openhub returns the selected account id
 - **AND** `rate_limit_reset_credits.available_count` equals the upstream value
 
 ### Requirement: Dashboard account details can consume reset credits
 
-codex-lb SHALL expose a dashboard write-authorized endpoint for consuming one
+openhub SHALL expose a dashboard write-authorized endpoint for consuming one
 upstream usage limit reset credit for a selected account. The endpoint SHALL use
 the selected account's stored ChatGPT access token and `chatgpt-account-id`,
 generate a non-empty `redeem_request_id`, return the upstream consume outcome,
@@ -637,16 +637,16 @@ idempotently successful consume.
 - **GIVEN** a registered active dashboard account with a `chatgpt-account-id`
 - **AND** upstream reset-credit consume returns `code: reset`
 - **WHEN** the dashboard posts to the selected account reset-credit consume endpoint
-- **THEN** codex-lb forwards a non-empty `redeem_request_id` upstream
-- **AND** codex-lb returns `code: reset`
-- **AND** codex-lb force-refreshes the matching account usage snapshot
+- **THEN** openhub forwards a non-empty `redeem_request_id` upstream
+- **AND** openhub returns `code: reset`
+- **AND** openhub force-refreshes the matching account usage snapshot
 - **AND** the force-refresh runs even when background usage refresh scheduling is disabled
 
 #### Scenario: Read-only dashboard cannot consume reset credits
 
 - **GIVEN** a read-only dashboard session
 - **WHEN** the dashboard posts to the selected account reset-credit consume endpoint
-- **THEN** codex-lb rejects the request without consuming a reset credit
+- **THEN** openhub rejects the request without consuming a reset credit
 
 ### Requirement: Usage refresh is account-slot scoped
 
@@ -668,14 +668,14 @@ Usage refresh MUST write usage and change account status only for the credential
 
 ### Requirement: Proactive active account credential refresh
 
-Codex-LB SHALL periodically refresh active account credentials in the background when an active account's last refresh is older than a configured maximum age.
+OpenHUB SHALL periodically refresh active account credentials in the background when an active account's last refresh is older than a configured maximum age.
 
 #### Scenario: Idle active account becomes stale
 
 - **GIVEN** an account has status `active`
 - **AND** its `last_refresh` is older than the configured Auth Guardian max age
 - **WHEN** Auth Guardian runs on the elected leader
-- **THEN** Codex-LB force-refreshes that account without requiring request traffic to select it first
+- **THEN** OpenHUB force-refreshes that account without requiring request traffic to select it first
 
 ### Requirement: Auth Guardian bounded and safe execution
 

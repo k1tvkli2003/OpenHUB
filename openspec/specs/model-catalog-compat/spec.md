@@ -169,7 +169,7 @@ When serving `GET /v1/models`, the system SHALL preserve upstream speed-tier met
 
 ### Requirement: GPT-5.6 bootstrap metadata matches the upstream bundled catalog
 
-The GPT-5.6 bootstrap catalog entries (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) MUST mirror the upstream bundled catalog (`codex-rs/models-manager/models.json` at codex release rust-v0.144.1) field-for-field for every metadata field codex-lb serves. In particular each
+The GPT-5.6 bootstrap catalog entries (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) MUST mirror the upstream bundled catalog (`codex-rs/models-manager/models.json` at codex release rust-v0.144.1) field-for-field for every metadata field openhub serves. In particular each
 entry MUST carry: `context_window` and `max_context_window` of `372000`;
 `minimal_client_version` `"0.144.0"`; `tool_mode` `"code_mode_only"`;
 `use_responses_lite` `true`; `apply_patch_tool_type` `"freeform"`;
@@ -653,7 +653,7 @@ Chat Completions-only sources that cannot satisfy Codex-native Responses
 requests. Disabled sources and disabled source models MUST NOT be listed.
 Subscription-backed Codex catalog entries MUST continue to be listed through the
 existing registry path. If a source model entry emits `model_provider`, it MUST
-emit `codex-lb` and MUST NOT advertise the external upstream provider name.
+emit `openhub` and MUST NOT advertise the external upstream provider name.
 
 #### Scenario: Responses-capable source is advertised to Codex-native clients
 
@@ -661,7 +661,7 @@ emit `codex-lb` and MUST NOT advertise the external upstream provider name.
 - **AND** the source declares Responses-compatible support
 - **WHEN** a client calls `GET /backend-api/codex/models`
 - **THEN** the response includes `deepseek-v4-flash`
-- **AND** the model entry does not change the Codex provider away from `codex-lb`
+- **AND** the model entry does not change the Codex provider away from `openhub`
 
 #### Scenario: Chat-only source is not advertised to Codex-native clients
 

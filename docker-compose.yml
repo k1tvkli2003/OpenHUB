@@ -1,7 +1,7 @@
 # NOTE: This Compose file defines a SINGLE-REPLICA topology.
 # Do not use `docker compose up --scale server=N` — the SQLite default supports
 # only one writer and the published host ports collide. Multi-replica deployments
-# require the Helm chart with PostgreSQL and leader election (deploy/helm/codex-lb).
+# require the Helm chart with PostgreSQL and leader election (deploy/helm/openhub).
 services:
   server:
     build:
@@ -26,7 +26,7 @@ services:
       - --ws-max-size
       - "134217728"
     volumes:
-      - codex-lb-data:/var/lib/codex-lb
+      - openhub-data:/var/lib/openhub
     develop:
       watch:
         - action: sync
@@ -92,32 +92,32 @@ services:
           set -- postgres
         fi
         exec docker-entrypoint.sh "$@"
-      - codex-lb-postgres-entrypoint-guard
+      - openhub-postgres-entrypoint-guard
     environment:
-      POSTGRES_USER: codex_lb
-      POSTGRES_PASSWORD: codex_lb
-      POSTGRES_DB: codex_lb
+      POSTGRES_USER: openhub
+      POSTGRES_PASSWORD: openhub
+      POSTGRES_DB: openhub
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U codex_lb -d codex_lb"]
+      test: ["CMD-SHELL", "pg_isready -U openhub -d openhub"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
-      - codex-lb-postgres-data:/var/lib/postgresql
+      - openhub-postgres-data:/var/lib/postgresql
     restart: unless-stopped
 
   postgres-upgrade:
     image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:01136fdc26ce0234df32e09f1dd7a43e9a1012c5055c9d04a2f7c789c833ba90
     profiles: ["postgres-upgrade"]
     environment:
-      POSTGRES_USER: codex_lb
-      POSTGRES_PASSWORD: codex_lb
-      POSTGRES_DB: codex_lb
+      POSTGRES_USER: openhub
+      POSTGRES_PASSWORD: openhub
+      POSTGRES_DB: openhub
       PGAUTO_ONESHOT: "yes"
     volumes:
-      - codex-lb-postgres-data:/var/lib/postgresql
+      - openhub-postgres-data:/var/lib/postgresql
     restart: "no"
 
 networks:
@@ -125,7 +125,7 @@ networks:
     driver: bridge
 
 volumes:
-  codex-lb-data:
-    name: codex-lb-data
-  codex-lb-postgres-data:
-    name: codex-lb-postgres-data
+  openhub-data:
+    name: openhub-data
+  openhub-postgres-data:
+    name: openhub-postgres-data

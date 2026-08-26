@@ -39,7 +39,7 @@ Before persisting a permanent failure, re-read token material via `get_by_id_fre
 
 ### 4. Guardian dynamic multi-replica detection
 
-Keep `enabled = auth_guardian_enabled and (leader_election_enabled or not static_multi_replica)` at build time, and add a per-tick guard in `_refresh_once`: when leader election is disabled, COUNT `bridge_ring_members` with `last_heartbeat_at` within `RING_STALE_THRESHOLD_SECONDS` (30s); if >1, skip the pass and log a warning naming `CODEX_LB_LEADER_ELECTION_ENABLED`. One COUNT per guardian tick (default hours apart) — negligible. This is defense-in-depth against duplicate upstream load; the claim is the hard correctness guarantee (deployments that never register ring members still cannot double-refresh).
+Keep `enabled = auth_guardian_enabled and (leader_election_enabled or not static_multi_replica)` at build time, and add a per-tick guard in `_refresh_once`: when leader election is disabled, COUNT `bridge_ring_members` with `last_heartbeat_at` within `RING_STALE_THRESHOLD_SECONDS` (30s); if >1, skip the pass and log a warning naming `OPENHUB_LEADER_ELECTION_ENABLED`. One COUNT per guardian tick (default hours apart) — negligible. This is defense-in-depth against duplicate upstream load; the claim is the hard correctness guarantee (deployments that never register ring members still cannot double-refresh).
 
 **Rejected**: requiring leader election unconditionally on non-SQLite — breaks existing single-replica Postgres deployments that legitimately run with it disabled.
 

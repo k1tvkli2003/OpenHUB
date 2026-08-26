@@ -1,6 +1,6 @@
 # Remote Access
 
-Running codex-lb on a server and connecting from other machines involves three pieces: the one-time dashboard bootstrap token, API keys for clients, and (usually) a reverse proxy.
+Running openhub on a server and connecting from other machines involves three pieces: the one-time dashboard bootstrap token, API keys for clients, and (usually) a reverse proxy.
 
 ## First login
 
@@ -12,14 +12,14 @@ Remote clients hit the protected proxy routes, which reject non-local requests u
 
 ## Reverse proxy
 
-When codex-lb sits behind a reverse proxy (nginx, Traefik, Caddy, Authelia, ...):
+When openhub sits behind a reverse proxy (nginx, Traefik, Caddy, Authelia, ...):
 
 - **Forward WebSocket upgrades.** Codex streaming uses WebSockets on `/backend-api/codex/responses`; a proxy that only forwards plain HTTP silently degrades to POST fallback. See [verify WebSocket transport](../client-setup.md#verify-websocket-transport).
-- **Declare the proxy as trusted** so codex-lb sees real client IPs from `X-Forwarded-For`:
+- **Declare the proxy as trusted** so openhub sees real client IPs from `X-Forwarded-For`:
 
 ```bash
-CODEX_LB_FIREWALL_TRUST_PROXY_HEADERS=true
-CODEX_LB_FIREWALL_TRUSTED_PROXY_CIDRS=172.18.0.0/16
+OPENHUB_FIREWALL_TRUST_PROXY_HEADERS=true
+OPENHUB_FIREWALL_TRUSTED_PROXY_CIDRS=172.18.0.0/16
 ```
 
 Only sources inside the trusted CIDRs may set forwarded headers; everything else is treated as the direct peer address.
@@ -28,4 +28,4 @@ Only sources inside the trusted CIDRs may set forwarded headers; everything else
 
 ---
 
-*Specs: [deployment-networking](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/deployment-networking) · [api-firewall](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/api-firewall)*
+*Specs: [deployment-networking](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/deployment-networking) · [api-firewall](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/api-firewall)*

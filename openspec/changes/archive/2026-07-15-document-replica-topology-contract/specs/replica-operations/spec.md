@@ -4,12 +4,12 @@
 
 ### Requirement: Multi-replica deployments require shared PostgreSQL coordination
 
-Running more than one application replica SHALL require: a shared PostgreSQL database through which all cross-replica coordination flows (`scheduler_leader` lease, `bridge_ring_members`, `http_bridge_sessions`, `cache_invalidation`, `sticky_sessions`, `runtime_sentinels`); leader election enabled (`CODEX_LB_LEADER_ELECTION_ENABLED=true`) so singleton schedulers run on exactly one replica; a unique instance id and a reachable replica-specific advertise URL per replica for bridge owner forwarding; and identical encryption key material mounted on every replica.
+Running more than one application replica SHALL require: a shared PostgreSQL database through which all cross-replica coordination flows (`scheduler_leader` lease, `bridge_ring_members`, `http_bridge_sessions`, `cache_invalidation`, `sticky_sessions`, `runtime_sentinels`); leader election enabled (`OPENHUB_LEADER_ELECTION_ENABLED=true`) so singleton schedulers run on exactly one replica; a unique instance id and a reachable replica-specific advertise URL per replica for bridge owner forwarding; and identical encryption key material mounted on every replica.
 
 #### Scenario: Supported two-replica topology
 
-- **GIVEN** two replicas configured with the same PostgreSQL `CODEX_LB_DATABASE_URL`
-- **AND** `CODEX_LB_LEADER_ELECTION_ENABLED=true` on both replicas
+- **GIVEN** two replicas configured with the same PostgreSQL `OPENHUB_DATABASE_URL`
+- **AND** `OPENHUB_LEADER_ELECTION_ENABLED=true` on both replicas
 - **AND** each replica has a unique bridge instance id with a reachable replica-specific advertise URL
 - **AND** both replicas mount the same encryption key file
 - **WHEN** both replicas start
@@ -19,7 +19,7 @@ Running more than one application replica SHALL require: a shared PostgreSQL dat
 #### Scenario: Leader election left at its default disables the singleton guarantee
 
 - **GIVEN** two replicas sharing one PostgreSQL database
-- **AND** `CODEX_LB_LEADER_ELECTION_ENABLED` is left at its default (disabled)
+- **AND** `OPENHUB_LEADER_ELECTION_ENABLED` is left at its default (disabled)
 - **WHEN** both replicas start
 - **THEN** every replica treats itself as leader and singleton schedulers run N-fold
 - **AND** the operator observes duplicate upstream polling (usage refresh, automations, retention) until leader election is enabled
@@ -37,13 +37,13 @@ SQLite database backends SHALL be operated with exactly one application process;
 
 #### Scenario: Operator scales a SQLite deployment
 
-- **GIVEN** a deployment using a SQLite `CODEX_LB_DATABASE_URL`
+- **GIVEN** a deployment using a SQLite `OPENHUB_DATABASE_URL`
 - **WHEN** the operator wants more than one application process or replica
 - **THEN** the supported path is migrating to a shared PostgreSQL database, not sharing the SQLite file
 
 ### Requirement: Startup verifies encryption-key consistency against the shared database
 
-At startup, after schema readiness, each replica SHALL compute a fingerprint of its encryption key and atomically stamp it into `runtime_sentinels` (insert-if-absent), then compare its local fingerprint against the stored sentinel. When `CODEX_LB_ENCRYPTION_KEY_FINGERPRINT_MODE=enforce` (the default), a replica whose fingerprint differs from the stored sentinel SHALL refuse to start with an error naming both fingerprint prefixes and remediation steps; `warn` mode SHALL log an ERROR and continue; `off` SHALL disable the check.
+At startup, after schema readiness, each replica SHALL compute a fingerprint of its encryption key and atomically stamp it into `runtime_sentinels` (insert-if-absent), then compare its local fingerprint against the stored sentinel. When `OPENHUB_ENCRYPTION_KEY_FINGERPRINT_MODE=enforce` (the default), a replica whose fingerprint differs from the stored sentinel SHALL refuse to start with an error naming both fingerprint prefixes and remediation steps; `warn` mode SHALL log an ERROR and continue; `off` SHALL disable the check.
 
 #### Scenario: First boot stamps the sentinel
 
@@ -60,7 +60,7 @@ At startup, after schema readiness, each replica SHALL compute a fingerprint of 
 #### Scenario: Divergent-key replica refuses to start in enforce mode
 
 - **GIVEN** a stamped `encryption_key_fingerprint` sentinel
-- **AND** `CODEX_LB_ENCRYPTION_KEY_FINGERPRINT_MODE` is `enforce`
+- **AND** `OPENHUB_ENCRYPTION_KEY_FINGERPRINT_MODE` is `enforce`
 - **WHEN** a replica with a different encryption key starts
 - **THEN** startup fails with an error naming both fingerprint prefixes
 - **AND** the error names the remediation (mount the shared key; after an intentional rotation, delete the sentinel row or set the mode to `warn`)
@@ -68,7 +68,7 @@ At startup, after schema readiness, each replica SHALL compute a fingerprint of 
 #### Scenario: Divergent-key replica continues in warn mode
 
 - **GIVEN** a stamped `encryption_key_fingerprint` sentinel
-- **AND** `CODEX_LB_ENCRYPTION_KEY_FINGERPRINT_MODE=warn`
+- **AND** `OPENHUB_ENCRYPTION_KEY_FINGERPRINT_MODE=warn`
 - **WHEN** a replica with a different encryption key starts
 - **THEN** an ERROR is logged and startup continues
 
