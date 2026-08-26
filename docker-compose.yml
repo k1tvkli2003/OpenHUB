@@ -109,7 +109,7 @@ services:
     restart: unless-stopped
 
   postgres-upgrade:
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:01136fdc26ce0234df32e09f1dd7a43e9a1012c5055c9d04a2f7c789c833ba90
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:60580d98bb0c948efcd628d322091e965c1493ea6ccc4325ce22fc4dbd4dfa38
     profiles: ["postgres-upgrade"]
     environment:
       POSTGRES_USER: openhub
