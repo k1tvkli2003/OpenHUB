@@ -170,7 +170,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${OPENHUB_RELEASE_TAG}" --jq '.object.sha' 2>/dev/null || true)"
+          existing_sha=""
+          if existing_ref="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${OPENHUB_RELEASE_TAG}" 2>/dev/null)"; then
+            existing_sha="$(jq -er '.object.sha' <<<"${existing_ref}")"
+          fi
           if [[ -n "${existing_sha}" && "${existing_sha}" != "${GITHUB_SHA}" ]]; then
             echo "Tag ${OPENHUB_RELEASE_TAG} already targets ${existing_sha}, not ${GITHUB_SHA}." >&2
             exit 1

@@ -78,3 +78,12 @@ def test_release_contains_integrity_and_provenance_outputs() -> None:
     assert ".sbom.spdx.json" in text
     assert "actions/attest-build-provenance@" in text
     assert "cancel-in-progress: false" in text
+
+
+def test_release_treats_a_missing_tag_as_absent_not_as_error_json() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert 'if existing_ref="$(gh api ' in text
+    assert "existing_sha=\"\"" in text
+    assert "jq -er '.object.sha'" in text
+    assert "--jq '.object.sha' 2>/dev/null || true" not in text
