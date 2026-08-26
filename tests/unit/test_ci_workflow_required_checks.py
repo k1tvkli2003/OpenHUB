@@ -87,3 +87,10 @@ def test_release_treats_a_missing_tag_as_absent_not_as_error_json() -> None:
     assert "existing_sha=\"\"" in text
     assert "jq -er '.object.sha'" in text
     assert "--jq '.object.sha' 2>/dev/null || true" not in text
+
+
+def test_release_cli_has_explicit_repository_without_checkout() -> None:
+    workflow = _workflow(RELEASE_WORKFLOW)
+    publish = workflow["jobs"]["publish"]
+
+    assert publish["env"]["GH_REPO"] == "${{ github.repository }}"
