@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>Sign into OpenHUB</title>
+  <link rel="icon" href="/openhub-route-hub.png" type="image/png">
+  <style>
+    .container {
+      margin: auto;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: white;
+
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    .inner-container {
+      width: 400px;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 20px;
+      display: inline-flex;
+    }
+
+    .content {
+      align-self: stretch;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 20px;
+      display: flex;
+      margin-top: 15vh;
+    }
+
+    .title {
+      text-align: center;
+      color: var(--text-primary, #0D0D0D);
+      font-size: 32px;
+      font-weight: 400;
+      line-height: 40px;
+      word-wrap: break-word;
+    }
+
+    .setup-description {
+      align-self: stretch;
+      color: var(--text-secondary, #5D5D5D);
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+      word-wrap: break-word;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 6rem;
+      height: 6rem;
+      border-radius: 16px;
+      border: .5px solid rgba(0, 0, 0, 0.1);
+      box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 16px 0px;
+      box-sizing: border-box;
+      background-color: rgb(255, 255, 255);
+      overflow: hidden;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .wordmark {
+      width: min(260px, 72vw);
+      height: auto;
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="inner-container">
+      <div class="content">
+        <div class="logo">
+          <img src="/openhub-route-hub.png" alt="OpenHUB">
+        </div>
+        <img class="wordmark" src="/openhub-wordmark.png" alt="OpenHUB">
+        <div class="title">Signed in successfully</div>
+      </div>
+      <div class="close-box" style="display: flex;">
+        <div class="setup-description" id="close-message">
+          Closing in <span id="close-countdown">3</span>s...
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const countdown = document.getElementById("close-countdown");
+      const message = document.getElementById("close-message");
+      let remaining = 3;
+      const tick = () => {
+        if (remaining <= 0) {
+          if (message) {
+            message.textContent = "Closing...";
+          }
+          window.close();
+          return;
+        }
+        if (countdown) {
+          countdown.textContent = String(remaining);
+        } else if (message) {
+          message.textContent = `Closing in ${remaining}s...`;
+        }
+        remaining -= 1;
+        window.setTimeout(tick, 1000);
+      };
+      tick();
+    })();
+  </script>
+</body>
+
+</html>

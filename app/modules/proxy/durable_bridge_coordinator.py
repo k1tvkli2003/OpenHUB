@@ -1,0 +1,418 @@
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Callable, Sequence
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import datetime
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.clients.proxy import ProxyResponseError
+from app.core.errors import openai_error
+from app.db.models import HttpBridgeSessionState
+from app.db.session import close_session
+from app.modules.proxy.continuity import is_http_bridge_account_neutral_replay
+from app.modules.proxy.durable_bridge_repository import (
+    DurableBridgeAliasRegistration,
+    DurableBridgeAliasRegistrationReceipt,
+    DurableBridgeRepository,
+    DurableBridgeSessionSnapshot,
+    durable_bridge_api_key_scope,
+)
+
+_DURABLE_TURN_STATE_ALIAS = "turn_state"
+_DURABLE_PREVIOUS_RESPONSE_ALIAS = "previous_response_id"
+_DURABLE_SESSION_HEADER_ALIAS = "session_header"
+
+
+@dataclass(frozen=True, slots=True)
+class DurableBridgeLookup:
+    session_id: str
+    canonical_kind: str
+    canonical_key: str
+    api_key_scope: str
+    account_id: str | None
+    owner_instance_id: str | None
+    owner_epoch: int
+    lease_expires_at: datetime | None
+    state: HttpBridgeSessionState
+    latest_turn_state: str | None
+    latest_response_id: str | None
+    latest_input_item_count: int | None = None
+    latest_input_full_fingerprint: str | None = None
+    model: str | None = None
+
+    def lease_is_active(self, *, now: datetime) -> bool:
+        if self.owner_instance_id is None:
+            return False
+        if self.lease_expires_at is None:
+            return False
+        return self.lease_expires_at > now
+
+
+class DurableBridgeSessionCoordinator:
+    def __init__(self, session_factory: Callable[[], AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def lookup_request_targets(
+        self,
+        *,
+        session_key_kind: str,
+        session_key_value: str,
+        api_key_id: str | None,
+        turn_state: str | None,
+        session_header: str | None,
+        previous_response_id: str | None,
+    ) -> DurableBridgeLookup | None:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            repository = DurableBridgeRepository(session)
+            resolved_aliases: list[tuple[str, DurableBridgeSessionSnapshot]] = []
+            for alias_kind, alias_value in (
+                (_DURABLE_TURN_STATE_ALIAS, turn_state),
+                (_DURABLE_PREVIOUS_RESPONSE_ALIAS, previous_response_id),
+                (_DURABLE_SESSION_HEADER_ALIAS, session_header),
+            ):
+                if alias_value is None:
+                    continue
+                snapshot = await repository.resolve_alias(
+                    alias_kind=alias_kind,
+                    alias_value=alias_value,
+                    api_key_scope=api_key_scope,
+                )
+                if snapshot is not None:
+                    resolved_aliases.append((alias_kind, snapshot))
+            resolved_identities = {(snapshot.id, snapshot.account_id) for _alias_kind, snapshot in resolved_aliases}
+            resolved_account_ids = {
+                snapshot.account_id for _alias_kind, snapshot in resolved_aliases if snapshot.account_id is not None
+            }
+            has_ownerless_snapshot = any(snapshot.account_id is None for _alias_kind, snapshot in resolved_aliases)
+            if len(resolved_identities) > 1:
+                same_account_handoff = len(resolved_account_ids) == 1 and not has_ownerless_snapshot
+                if same_account_handoff:
+                    account_id = next(iter(resolved_account_ids))
+                    same_account_snapshots = [
+                        snapshot for _alias_kind, snapshot in resolved_aliases if snapshot.account_id == account_id
+                    ]
+                    requested_response_snapshot = next(
+                        (
+                            snapshot
+                            for alias_kind, snapshot in resolved_aliases
+                            if alias_kind == _DURABLE_PREVIOUS_RESPONSE_ALIAS and snapshot.account_id == account_id
+                        ),
+                        None,
+                    )
+                    account_snapshot = requested_response_snapshot or max(
+                        same_account_snapshots,
+                        key=lambda snapshot: (
+                            snapshot.latest_response_id is not None,
+                            snapshot.last_seen_at,
+                        ),
+                    )
+                    # Same-account aliases may point at different durable rows
+                    # during a handoff. Preserve an explicitly requested
+                    # response anchor; otherwise prefer the newest persisted
+                    # response anchor rather than alias-resolution order.
+                    return _to_lookup(account_snapshot)
+                specific_aliases = [
+                    (alias_kind, snapshot)
+                    for alias_kind, snapshot in resolved_aliases
+                    if alias_kind != _DURABLE_SESSION_HEADER_ALIAS
+                ]
+                specific_identities = {(snapshot.id, snapshot.account_id) for _alias_kind, snapshot in specific_aliases}
+                if len(specific_identities) == 1:
+                    specific_snapshot = specific_aliases[0][1]
+                    specific_identity = (specific_snapshot.id, specific_snapshot.account_id)
+                    conflicting_alias_kinds = {
+                        alias_kind
+                        for alias_kind, snapshot in resolved_aliases
+                        if (snapshot.id, snapshot.account_id) != specific_identity
+                    }
+                    if is_http_bridge_account_neutral_replay(
+                        kind=specific_snapshot.session_key_kind,
+                        key=specific_snapshot.session_key_value,
+                    ) and conflicting_alias_kinds == {_DURABLE_SESSION_HEADER_ALIAS}:
+                        return _to_lookup(specific_snapshot)
+                # Turn-state/response/session aliases are independent hard
+                # evidence. Returning the first match would silently discard a
+                # conflicting durable owner based on source ordering.
+                raise ProxyResponseError(
+                    502,
+                    openai_error(
+                        "continuity_owner_conflict",
+                        "Durable continuity aliases resolve to conflicting upstream owners.",
+                        error_type="server_error",
+                    ),
+                )
+            if resolved_aliases:
+                return _to_lookup(resolved_aliases[0][1])
+            snapshot = await repository.get_session(
+                session_key_kind=session_key_kind,
+                session_key_value=session_key_value,
+                api_key_scope=api_key_scope,
+            )
+            if snapshot is None:
+                if turn_state is not None:
+                    snapshot = await repository.find_session_by_latest_turn_state(
+                        turn_state=turn_state,
+                        api_key_scope=api_key_scope,
+                    )
+                if snapshot is None and previous_response_id is not None:
+                    snapshot = await repository.find_session_by_latest_response_id(
+                        response_id=previous_response_id,
+                        api_key_scope=api_key_scope,
+                    )
+            if snapshot is None:
+                return None
+            return _to_lookup(snapshot)
+
+    async def lookup_turn_state_target(
+        self,
+        *,
+        turn_state: str,
+        api_key_id: str | None,
+    ) -> DurableBridgeLookup | None:
+        """Resolve only a previously registered turn-state continuity anchor."""
+
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            repository = DurableBridgeRepository(session)
+            snapshot = await repository.resolve_alias(
+                alias_kind=_DURABLE_TURN_STATE_ALIAS,
+                alias_value=turn_state,
+                api_key_scope=api_key_scope,
+            )
+            return _to_lookup(snapshot) if snapshot is not None else None
+
+    async def lookup_sessions(self, *, session_ids: Sequence[str]) -> list[DurableBridgeLookup]:
+        """Batch-load durable session snapshots for ownership reconciliation."""
+
+        if not session_ids:
+            return []
+        async with self._session() as session:
+            snapshots = await DurableBridgeRepository(session).get_sessions_by_ids(session_ids)
+        return [_to_lookup(snapshot) for snapshot in snapshots]
+
+    async def claim_live_session(
+        self,
+        *,
+        session_key_kind: str,
+        session_key_value: str,
+        api_key_id: str | None,
+        instance_id: str,
+        lease_ttl_seconds: float,
+        account_id: str | None,
+        model: str | None,
+        service_tier: str | None,
+        latest_turn_state: str | None,
+        latest_response_id: str | None,
+        allow_takeover: bool,
+        force_owner_epoch_advance: bool = False,
+    ) -> DurableBridgeLookup:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            snapshot = await DurableBridgeRepository(session).claim_session(
+                session_key_kind=session_key_kind,
+                session_key_value=session_key_value,
+                api_key_scope=api_key_scope,
+                instance_id=instance_id,
+                lease_ttl_seconds=lease_ttl_seconds,
+                account_id=account_id,
+                model=model,
+                service_tier=service_tier,
+                latest_turn_state=latest_turn_state,
+                latest_response_id=latest_response_id,
+                allow_takeover=allow_takeover,
+                force_owner_epoch_advance=force_owner_epoch_advance,
+            )
+        return _to_lookup(snapshot)
+
+    async def renew_live_session(
+        self,
+        *,
+        session_id: str,
+        api_key_id: str | None,
+        instance_id: str,
+        owner_epoch: int,
+        lease_ttl_seconds: float,
+        latest_turn_state: str | None = None,
+        latest_response_id: str | None = None,
+        latest_input_item_count: int | None = None,
+        latest_input_full_fingerprint: str | None = None,
+        state: HttpBridgeSessionState | None = None,
+    ) -> DurableBridgeLookup | None:
+        del api_key_id
+        async with self._session() as session:
+            snapshot = await DurableBridgeRepository(session).renew_session(
+                session_id=session_id,
+                instance_id=instance_id,
+                owner_epoch=owner_epoch,
+                lease_ttl_seconds=lease_ttl_seconds,
+                latest_turn_state=latest_turn_state,
+                latest_response_id=latest_response_id,
+                latest_input_item_count=latest_input_item_count,
+                latest_input_full_fingerprint=latest_input_full_fingerprint,
+                state=state,
+            )
+        if snapshot is None:
+            return None
+        return _to_lookup(snapshot)
+
+    async def release_live_session(
+        self,
+        *,
+        session_id: str,
+        instance_id: str,
+        owner_epoch: int,
+        draining: bool,
+    ) -> DurableBridgeLookup | None:
+        async with self._session() as session:
+            snapshot = await DurableBridgeRepository(session).release_session(
+                session_id=session_id,
+                instance_id=instance_id,
+                owner_epoch=owner_epoch,
+                draining=draining,
+            )
+        if snapshot is None:
+            return None
+        return _to_lookup(snapshot)
+
+    async def mark_instance_draining(self, *, instance_id: str) -> int:
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).mark_owner_draining(instance_id=instance_id)
+
+    async def purge_owned_sessions_on_startup(
+        self,
+        *,
+        instance_id: str,
+        ownerless_cutoff: datetime | None = None,
+    ) -> int:
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).purge_owned_sessions_on_startup(
+                instance_id=instance_id,
+                ownerless_cutoff=ownerless_cutoff,
+            )
+
+    async def register_turn_state(
+        self,
+        *,
+        session_id: str,
+        api_key_id: str | None,
+        instance_id: str,
+        owner_epoch: int,
+        turn_state: str,
+        lease_ttl_seconds: float,
+    ) -> DurableBridgeAliasRegistration:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).register_owned_alias(
+                session_id=session_id,
+                api_key_scope=api_key_scope,
+                instance_id=instance_id,
+                owner_epoch=owner_epoch,
+                alias_kind=_DURABLE_TURN_STATE_ALIAS,
+                alias_value=turn_state,
+                lease_ttl_seconds=lease_ttl_seconds,
+                latest_turn_state=turn_state,
+            )
+
+    async def register_recovery_turn_state(
+        self,
+        *,
+        session_id: str,
+        api_key_id: str | None,
+        instance_id: str,
+        owner_epoch: int,
+        turn_state: str,
+        lease_ttl_seconds: float,
+    ) -> DurableBridgeAliasRegistrationReceipt:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).register_reversible_turn_state_alias(
+                session_id=session_id,
+                api_key_scope=api_key_scope,
+                instance_id=instance_id,
+                owner_epoch=owner_epoch,
+                turn_state=turn_state,
+                lease_ttl_seconds=lease_ttl_seconds,
+            )
+
+    async def rollback_recovery_turn_state_registration(
+        self,
+        *,
+        receipt: DurableBridgeAliasRegistrationReceipt,
+    ) -> bool:
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).rollback_reversible_turn_state_alias(
+                receipt=receipt,
+            )
+
+    async def register_previous_response_id(
+        self,
+        *,
+        session_id: str,
+        api_key_id: str | None,
+        instance_id: str,
+        owner_epoch: int,
+        response_id: str,
+        lease_ttl_seconds: float,
+        input_item_count: int | None = None,
+        input_full_fingerprint: str | None = None,
+    ) -> DurableBridgeAliasRegistration:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            return await DurableBridgeRepository(session).register_owned_alias(
+                session_id=session_id,
+                api_key_scope=api_key_scope,
+                instance_id=instance_id,
+                owner_epoch=owner_epoch,
+                alias_kind=_DURABLE_PREVIOUS_RESPONSE_ALIAS,
+                alias_value=response_id,
+                lease_ttl_seconds=lease_ttl_seconds,
+                latest_response_id=response_id,
+                latest_input_item_count=input_item_count,
+                latest_input_full_fingerprint=input_full_fingerprint,
+            )
+
+    async def register_session_header(
+        self,
+        *,
+        session_id: str,
+        api_key_id: str | None,
+        session_header: str,
+    ) -> None:
+        api_key_scope = durable_bridge_api_key_scope(api_key_id)
+        async with self._session() as session:
+            await DurableBridgeRepository(session).upsert_alias(
+                session_id=session_id,
+                alias_kind=_DURABLE_SESSION_HEADER_ALIAS,
+                alias_value=session_header,
+                api_key_scope=api_key_scope,
+            )
+
+    @asynccontextmanager
+    async def _session(self) -> AsyncIterator[AsyncSession]:
+        session = self._session_factory()
+        try:
+            yield session
+        finally:
+            await close_session(session)
+
+
+def _to_lookup(snapshot: DurableBridgeSessionSnapshot) -> DurableBridgeLookup:
+    return DurableBridgeLookup(
+        session_id=snapshot.id,
+        canonical_kind=snapshot.session_key_kind,
+        canonical_key=snapshot.session_key_value,
+        api_key_scope=snapshot.api_key_scope,
+        account_id=snapshot.account_id,
+        owner_instance_id=snapshot.owner_instance_id,
+        owner_epoch=snapshot.owner_epoch,
+        lease_expires_at=snapshot.lease_expires_at,
+        state=snapshot.state,
+        latest_turn_state=snapshot.latest_turn_state,
+        latest_response_id=snapshot.latest_response_id,
+        latest_input_item_count=snapshot.latest_input_item_count,
+        latest_input_full_fingerprint=snapshot.latest_input_full_fingerprint,
+        model=snapshot.model,
+    )

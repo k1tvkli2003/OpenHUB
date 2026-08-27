@@ -1,0 +1,284 @@
+from __future__ import annotations
+
+import base64
+import json
+from unittest.mock import AsyncMock
+
+import pytest
+
+from app.core.auth import generate_unique_account_id
+from app.core.auth.refresh import RefreshError
+from app.core.usage.models import UsagePayload
+from app.modules.accounts import api as accounts_api
+from app.modules.accounts.schemas import AccountProbeResponse
+from app.modules.accounts.service import AccountsService
+from app.modules.usage.updater import AccountRefreshResult, UsageUpdater
+
+pytestmark = pytest.mark.integration
+
+
+def _encode_jwt(payload: dict) -> str:
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    body = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    return f"header.{body}.sig"
+
+
+async def _import_test_account(async_client, *, email: str, account_id: str, plan_type: str = "pro") -> str:
+    payload = {
+        "email": email,
+        "chatgpt_account_id": account_id,
+        "https://api.openai.com/auth": {"chatgpt_plan_type": plan_type},
+    }
+    auth_json = {
+        "tokens": {
+            "idToken": _encode_jwt(payload),
+            "accessToken": "access-token-not-a-real-secret",
+            "refreshToken": "refresh",
+            "accountId": account_id,
+        },
+    }
+    files = {"auth_json": ("auth.json", json.dumps(auth_json), "application/json")}
+    response = await async_client.post("/api/accounts/import", files=files)
+    assert response.status_code == 200, response.text
+    return generate_unique_account_id(account_id, email)
+
+
+@pytest.mark.asyncio
+async def test_probe_missing_account_returns_404(async_client):
+    response = await async_client.post("/api/accounts/missing/probe")
+    assert response.status_code == 404
+    body = response.json()
+    assert body["error"]["code"] == "account_not_found"
+
+
+@pytest.mark.asyncio
+async def test_probe_paused_account_returns_409(async_client, monkeypatch):
+    async def _fake_probe(self, **kwargs):  # noqa: ARG001 - signature match only
+        raise AssertionError("paused account should not invoke upstream probe")
+
+    monkeypatch.setattr(AccountsService, "_send_probe_request", _fake_probe)
+
+    account_id = await _import_test_account(
+        async_client,
+        email="probe-paused@example.com",
+        account_id="acc_probe_paused",
+    )
+    pause_resp = await async_client.post(f"/api/accounts/{account_id}/pause")
+    assert pause_resp.status_code == 200
+
+    response = await async_client.post(f"/api/accounts/{account_id}/probe")
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "account_not_probable"
+
+
+@pytest.mark.asyncio
+async def test_probe_refresh_failure_returns_structured_409(async_client, monkeypatch):
+    async def _fail_probe(self, account_id, model=None):  # noqa: ARG001 - route-level error handling only
+        raise RefreshError(
+            code="invalid_grant",
+            message="refresh token revoked",
+            is_permanent=True,
+        )
+
+    monkeypatch.setattr(AccountsService, "probe_account", _fail_probe)
+
+    response = await async_client.post("/api/accounts/acc_refresh_failed/probe")
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "account_probe_refresh_failed"
+    assert "refresh token revoked" in body["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_probe_active_account_returns_snapshot(async_client, monkeypatch):
+    captured: dict = {}
+    record_probe_result = AsyncMock()
+
+    async def _fake_probe(self, *, access_token, chatgpt_account_id, model):
+        captured["model"] = model
+        captured["chatgpt_account_id"] = chatgpt_account_id
+        # Do not capture the access token — only assert it was non-empty.
+        captured["had_token"] = bool(access_token)
+        return 200
+
+    async def _force_refresh_fetches_without_writing(self, account, *, ignore_refresh_disabled=False):  # noqa: ARG001
+        return AccountRefreshResult(usage_written=False, fetch_succeeded=True)
+
+    monkeypatch.setattr(AccountsService, "_send_probe_request", _fake_probe)
+    monkeypatch.setattr(UsageUpdater, "force_refresh_result", _force_refresh_fetches_without_writing)
+
+    proxy_service = type("_ProbeRecorder", (), {"record_account_probe_result": record_probe_result})()
+    monkeypatch.setattr(accounts_api, "get_proxy_service_for_app", lambda app: proxy_service)
+
+    account_id = await _import_test_account(
+        async_client,
+        email="probe-active@example.com",
+        account_id="acc_probe_active",
+    )
+
+    response = await async_client.post(
+        f"/api/accounts/{account_id}/probe",
+        json={"model": "gpt-5.5-test"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "probed"
+    assert body["accountId"] == account_id
+    assert body["probeStatusCode"] == 200
+    assert "usageRefreshSucceeded" not in body
+    assert body["accountStatusBefore"] == "active"
+    assert body["accountStatusAfter"] == "active"
+
+    assert captured["model"] == "gpt-5.5-test"
+    assert captured["chatgpt_account_id"] == "acc_probe_active"
+    assert captured["had_token"] is True
+    record_probe_result.assert_awaited_once_with(
+        account_id=account_id,
+        http_status=200,
+    )
+
+
+@pytest.mark.asyncio
+async def test_probe_active_account_returns_snapshot_when_advisory_settlement_fails(async_client, monkeypatch):
+    async def _fake_probe(self, *, access_token, chatgpt_account_id, model):
+        del access_token
+        del chatgpt_account_id
+        del model
+        return 200
+
+    async def _force_refresh_fetches_without_writing(self, account, *, ignore_refresh_disabled=False):  # noqa: ARG001
+        return AccountRefreshResult(usage_written=False, fetch_succeeded=True)
+
+    record_probe_result = AsyncMock(side_effect=RuntimeError("local settlement unavailable"))
+
+    monkeypatch.setattr(AccountsService, "_send_probe_request", _fake_probe)
+    monkeypatch.setattr(UsageUpdater, "force_refresh_result", _force_refresh_fetches_without_writing)
+    proxy_service = type("_ProbeRecorder", (), {"record_account_probe_result": record_probe_result})()
+    monkeypatch.setattr(accounts_api, "get_proxy_service_for_app", lambda app: proxy_service)
+
+    account_id = await _import_test_account(
+        async_client,
+        email="probe-settlement-fails@example.com",
+        account_id="acc_probe_settlement_fails",
+    )
+
+    response = await async_client.post(f"/api/accounts/{account_id}/probe")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "probed"
+    assert body["accountId"] == account_id
+    assert body["probeStatusCode"] == 200
+    record_probe_result.assert_awaited_once_with(
+        account_id=account_id,
+        http_status=200,
+    )
+
+
+@pytest.mark.asyncio
+async def test_probe_success_skips_advisory_settlement_when_usage_refresh_fails(async_client, monkeypatch):
+    record_probe_result = AsyncMock()
+
+    async def _probe_without_usage_refresh(self, account_id, model=None):  # noqa: ARG001 - route orchestration only
+        response = AccountProbeResponse(
+            status="probed",
+            account_id=account_id,
+            probe_status_code=200,
+            account_status_before="rate_limited",
+            account_status_after="rate_limited",
+        )
+        response._usage_refresh_fetch_succeeded = False
+        return response
+
+    monkeypatch.setattr(AccountsService, "probe_account", _probe_without_usage_refresh)
+    proxy_service = type("_ProbeRecorder", (), {"record_account_probe_result": record_probe_result})()
+    monkeypatch.setattr(accounts_api, "get_proxy_service_for_app", lambda app: proxy_service)
+
+    response = await async_client.post("/api/accounts/acc_probe_usage_refresh_failed/probe")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["probeStatusCode"] == 200
+    assert "usageRefreshSucceeded" not in body
+    record_probe_result.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_probe_failure_still_records_advisory_settlement_after_usage_refresh_fails(async_client, monkeypatch):
+    record_probe_result = AsyncMock()
+
+    async def _failed_probe_without_usage_refresh(self, account_id, model=None):  # noqa: ARG001 - route orchestration only
+        response = AccountProbeResponse(
+            status="probed",
+            account_id=account_id,
+            probe_status_code=429,
+            account_status_before="rate_limited",
+            account_status_after="rate_limited",
+        )
+        response._usage_refresh_fetch_succeeded = False
+        return response
+
+    monkeypatch.setattr(AccountsService, "probe_account", _failed_probe_without_usage_refresh)
+    proxy_service = type("_ProbeRecorder", (), {"record_account_probe_result": record_probe_result})()
+    monkeypatch.setattr(accounts_api, "get_proxy_service_for_app", lambda app: proxy_service)
+
+    response = await async_client.post("/api/accounts/acc_probe_usage_refresh_failed_429/probe")
+
+    assert response.status_code == 200, response.text
+    record_probe_result.assert_awaited_once_with(
+        account_id="acc_probe_usage_refresh_failed_429",
+        http_status=429,
+    )
+
+
+@pytest.mark.asyncio
+async def test_force_probe_persists_free_to_plus_plan_upgrade(async_client, monkeypatch):
+    async def _fake_probe(self, *, access_token, chatgpt_account_id, model):  # noqa: ARG001
+        return 200
+
+    async def _fake_fetch_usage(**_kwargs):
+        return UsagePayload.model_validate({"plan_type": "plus"})
+
+    monkeypatch.setattr(AccountsService, "_send_probe_request", _fake_probe)
+    monkeypatch.setattr("app.modules.usage.updater.fetch_usage", _fake_fetch_usage)
+
+    account_id = await _import_test_account(
+        async_client,
+        email="probe-plan-upgrade@example.com",
+        account_id="acc_probe_plan_upgrade",
+        plan_type="free",
+    )
+
+    response = await async_client.post(f"/api/accounts/{account_id}/probe")
+    assert response.status_code == 200, response.text
+
+    listing = await async_client.get("/api/accounts")
+    assert listing.status_code == 200
+    account = next(item for item in listing.json()["accounts"] if item["accountId"] == account_id)
+    assert account["planType"] == "plus"
+
+
+@pytest.mark.asyncio
+async def test_probe_uses_default_model_when_body_omitted(async_client, monkeypatch):
+    captured: dict = {}
+
+    async def _fake_probe(self, *, access_token, chatgpt_account_id, model):  # noqa: ARG001
+        captured["model"] = model
+        return 200
+
+    monkeypatch.setattr(AccountsService, "_send_probe_request", _fake_probe)
+
+    account_id = await _import_test_account(
+        async_client,
+        email="probe-default-model@example.com",
+        account_id="acc_probe_default_model",
+    )
+
+    response = await async_client.post(f"/api/accounts/{account_id}/probe")
+    assert response.status_code == 200, response.text
+    # The default model is service-owned; assert the helper was called with
+    # *some* model string rather than coupling the test to the constant.
+    assert isinstance(captured["model"], str)
+    assert captured["model"]

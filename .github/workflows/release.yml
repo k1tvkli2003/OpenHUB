@@ -1,0 +1,225 @@
+name: Windows release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional X.Y.Z or X.Y.Z-(alpha|beta|rc).N; empty creates the next run-numbered beta"
+        required: false
+        type: string
+
+concurrency:
+  group: openhub-windows-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    name: Resolve immutable release identity
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve and validate version
+        id: release
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          OPENHUB_RUN_NUMBER: ${{ github.run_number }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          from scripts.release_versions import parse_version
+
+          requested = os.environ.get("REQUESTED_VERSION", "").strip()
+          current = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+          base = parse_version(current).base
+          version = requested or f"{base}-beta.{int(os.environ['OPENHUB_RUN_NUMBER'])}"
+          release = parse_version(version)
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"version={release.version}\n")
+              output.write(f"tag=v{release.version}\n")
+              output.write(f"prerelease={str(release.is_prerelease).lower()}\n")
+          PY
+
+  build-windows:
+    name: Test and package Windows
+    needs: metadata
+    runs-on: windows-2025
+    env:
+      OPENHUB_RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+    steps:
+      - name: Check out exact source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Apply ephemeral release version
+        shell: pwsh
+        run: python -m scripts.prepare_openhub_release --version $env:OPENHUB_RELEASE_VERSION
+
+      - name: Install locked backend and packager dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          uv sync --dev --frozen
+          uv pip install --python .venv\Scripts\python.exe pyinstaller==6.21.0
+
+      - name: Verify backend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          uv run ruff check app tests scripts
+          uv run pytest tests/unit -q
+
+      - name: Verify native client
+        working-directory: native_windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          flutter config --enable-windows-desktop
+          flutter pub get
+          flutter analyze
+          flutter test
+          flutter build windows --release --no-pub
+
+      - name: Build self-contained package
+        shell: pwsh
+        run: |
+          $packager = (Resolve-Path -LiteralPath '.venv\Scripts\pyinstaller.exe').Path
+          .\scripts\native_windows\Build-NativeWindowsPackage.ps1 `
+            -SkipFlutterBuild `
+            -PyInstallerPath $packager `
+            -Version $env:OPENHUB_RELEASE_VERSION
+
+      - name: Write archive checksum
+        shell: pwsh
+        run: |
+          $archive = "native_windows\dist\OpenHUB-Windows-$env:OPENHUB_RELEASE_VERSION.zip"
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
+          "$hash  $([IO.Path]::GetFileName($archive))" |
+            Set-Content -LiteralPath 'native_windows\dist\SHA256SUMS.txt' -Encoding ascii
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          path: native_windows/dist/OpenHUB-Windows-${{ needs.metadata.outputs.version }}
+          format: spdx-json
+          output-file: native_windows/dist/OpenHUB-Windows-${{ needs.metadata.outputs.version }}.sbom.spdx.json
+          dependency-snapshot: false
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Upload verified release payload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openhub-windows-${{ needs.metadata.outputs.version }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            native_windows/dist/OpenHUB-Windows-${{ needs.metadata.outputs.version }}.zip
+            native_windows/dist/OpenHUB-Windows-${{ needs.metadata.outputs.version }}.sbom.spdx.json
+            native_windows/dist/SHA256SUMS.txt
+
+  publish:
+    name: Publish immutable GitHub release
+    needs: [metadata, build-windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      OPENHUB_RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+      OPENHUB_RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
+      OPENHUB_PRERELEASE: ${{ needs.metadata.outputs.prerelease }}
+    steps:
+      - name: Download verified release payload
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: openhub-windows-${{ needs.metadata.outputs.version }}
+          path: release-assets
+
+      - name: Create or verify immutable tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing_sha=""
+          if existing_ref="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${OPENHUB_RELEASE_TAG}" 2>/dev/null)"; then
+            existing_sha="$(jq -er '.object.sha' <<<"${existing_ref}")"
+          fi
+          if [[ -n "${existing_sha}" && "${existing_sha}" != "${GITHUB_SHA}" ]]; then
+            echo "Tag ${OPENHUB_RELEASE_TAG} already targets ${existing_sha}, not ${GITHUB_SHA}." >&2
+            exit 1
+          fi
+          if [[ -z "${existing_sha}" ]]; then
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${OPENHUB_RELEASE_TAG}" \
+              -f "sha=${GITHUB_SHA}" >/dev/null
+          fi
+
+      - name: Create or refresh GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          notes="release-notes.md"
+          printf '# OpenHUB %s\n\n' "${OPENHUB_RELEASE_VERSION}" > "${notes}"
+          printf 'Self-contained Windows client with a pinned local backend. No Python installation is required.\n\n' >> "${notes}"
+          printf '## Included\n\n' >> "${notes}"
+          printf -- '- Pulse task health, lineage, models, providers, native controls, and rolling token use for Codex, Hermes, and OpenCode.\n' >> "${notes}"
+          printf -- '- A loopback-only OpenAI-compatible account router with request-scoped failover and no global single-request queue.\n' >> "${notes}"
+          printf -- '- Live shared access to the canonical `~/.codex` skills, memories, and instructions without copied repositories.\n' >> "${notes}"
+          printf -- '- Preview-and-confirm cleanup for allowlisted old generated files.\n\n' >> "${notes}"
+          printf 'The retired experimental provider adapter and Codex provider-profile switcher are not included. Provider and model selection stay native to each runtime.\n\n' >> "${notes}"
+          printf 'Verify the archive with `SHA256SUMS.txt` before running `Launch-OpenHUB.ps1`. The binary is currently unsigned.\n' >> "${notes}"
+          if gh release view "${OPENHUB_RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${OPENHUB_RELEASE_TAG}" release-assets/* --clobber
+          else
+            prerelease_args=()
+            if [[ "${OPENHUB_PRERELEASE}" == "true" ]]; then
+              prerelease_args+=(--prerelease)
+            fi
+            gh release create "${OPENHUB_RELEASE_TAG}" release-assets/* \
+              --verify-tag \
+              --title "OpenHUB ${OPENHUB_RELEASE_VERSION}" \
+              --notes-file "${notes}" \
+              "${prerelease_args[@]}"
+          fi
+
+      - name: Attest Windows archive provenance
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: release-assets/OpenHUB-Windows-${{ needs.metadata.outputs.version }}.zip

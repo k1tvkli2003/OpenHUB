@@ -1,0 +1,32 @@
+{
+  "projectName": "OpenHUB",
+  "projectOwner": "k1tvkli2003",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "k1tvkli2003",
+      "name": "A.Keyvan Tavakkoli",
+      "avatar_url": "https://avatars.githubusercontent.com/u/257731495?v=4",
+      "profile": "https://github.com/k1tvkli2003",
+      "contributions": [
+        "code",
+        "test",
+        "maintenance",
+        "infra",
+        "design",
+        "doc",
+        "projectManagement"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "linkToUsage": false,
+  "commitType": "docs"
+}
