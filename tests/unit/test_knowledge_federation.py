@@ -31,7 +31,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     _write(
         hermes / "config.yaml",
         "memory:\n  memory_enabled: true\n  user_profile_enabled: true\n"
-        "skills:\n  external_dirs: []\n",
+        "skills:\n  external_dirs: []\n"
+        "plugins:\n"
+        "  enabled:\n    - user-enabled-plugin\n"
+        "  disabled:\n    - openhub-shared-knowledge\n    - user-disabled-plugin\n",
     )
     _write(
         hermes / "SOUL.md",
@@ -133,6 +136,11 @@ def test_federation_retires_verified_copies_and_reads_canonical_state(
         "user_profile_enabled": False,
     }
     assert canonical.joinpath("skills").as_posix() in config["skills"]["external_dirs"]
+    assert config["plugins"]["enabled"] == [
+        "user-enabled-plugin",
+        "openhub-shared-knowledge",
+    ]
+    assert config["plugins"]["disabled"] == ["user-disabled-plugin"]
     soul = (hermes / "SOUL.md").read_text(encoding="utf-8")
     assert "Existing persona." in soul
     assert "openhub:codex-agents" not in soul
