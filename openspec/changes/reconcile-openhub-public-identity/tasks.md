@@ -26,6 +26,8 @@
       builds, secret/personal-path scans, and packaged runtime smoke checks.
 - [x] 3.3 Inspect rendered Pages and packaged OpenHUB identity on both light and
       dark surfaces.
+- [x] 3.3a Make release verification fail fast on every external command and
+      keep native protocol tests valid for ephemeral prerelease versions.
 - [ ] 3.4 Publish the green commit, wait for CI/Pages, create the stable Windows
       release, upload the portable archive with its install script, checksums,
       SBOM, and attestation, and verify

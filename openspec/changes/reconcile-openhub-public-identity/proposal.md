@@ -25,8 +25,9 @@ identity. A public release must not ship that ambiguity.
 - Rename OpenHUB-owned shortcuts and browser icons, while retaining historical
   license/provenance records and explicitly thanking the upstream Codex LB
   project and contributors.
-- Add release gates that reject stale public branding, fake screenshots,
-  unpublished artifact locations, and mismatched release metadata.
+- Add fail-fast, release-version-invariant gates that reject stale public
+  branding, fake screenshots, unpublished artifact locations, mismatched
+  release metadata, and any failed verification command before packaging.
 
 ## Non-goals
 

@@ -89,12 +89,16 @@ jobs:
       - name: Install locked backend and packager dependencies
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           uv sync --dev --frozen
           uv pip install --python .venv\Scripts\python.exe pyinstaller==6.21.0
 
       - name: Verify backend
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           uv run ruff check app tests scripts
           uv run pytest tests/unit -q
 
@@ -102,6 +106,8 @@ jobs:
         working-directory: native_windows
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           flutter config --enable-windows-desktop
           flutter pub get
           flutter analyze

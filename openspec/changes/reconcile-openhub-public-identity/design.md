@@ -39,3 +39,10 @@ and explicit compatibility literals. It rejects old product names in active UI,
 the inherited terminal favicon, legacy screenshots referenced by Pages,
 upstream registry install commands, and release metadata that disagrees with
 OpenHUB.
+
+Release verification is part of that boundary. Every external lint, test, and
+build command must stop the job on a non-zero exit before packaging can start.
+Native compatibility fixtures derive their expected backend version from the
+same release-patched source constant as the client, so alpha, beta, RC, and
+stable runs exercise the protocol contract instead of failing on a hard-coded
+base version.

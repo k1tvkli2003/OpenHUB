@@ -90,12 +90,16 @@ jobs:
       - name: Enable Windows and resolve packages
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           flutter config --enable-windows-desktop
           flutter pub get
 
       - name: Analyze and test
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           flutter analyze
           flutter test
 

@@ -46,7 +46,10 @@ class _ReadyFixture {
     server.listen((request) async {
       request.response.statusCode = HttpStatus.ok;
       request.response.headers.contentType = ContentType.json;
-      request.response.headers.set('X-App-Version', '2.0.0');
+      request.response.headers.set(
+        'X-App-Version',
+        OpenHubRepository.compatibleBackendVersion,
+      );
       request.response.write(
         jsonEncode(<String, Object?>{
           'status': 'ok',
