@@ -8,6 +8,8 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: assets/brand/openhub-route-hub.png
+  favicon: assets/brand/openhub-route-hub.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -32,6 +34,7 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - toc:
       permalink: true
   - pymdownx.details
@@ -45,6 +48,9 @@ markdown_extensions:
 
 plugins:
   - search
+
+extra_css:
+  - assets/stylesheets/openhub.css
 
 # Fail the --strict build on bad internal links / orphaned pages.
 validation:

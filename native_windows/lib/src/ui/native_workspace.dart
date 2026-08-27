@@ -98,12 +98,7 @@ class _RuntimeGate extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text(
-                                'OpenHUB',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium,
-                              ),
+                              const OpenHubWordmark(height: 28),
                               const SizedBox(height: 3),
                               Text(
                                 isBusy

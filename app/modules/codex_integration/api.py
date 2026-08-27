@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import UTC, datetime
 
 from anyio import to_thread
@@ -20,13 +19,6 @@ from app.modules.codex_integration.launch_selection import (
     CodexLaunchExclusion,
     select_codex_launch_account,
 )
-from app.modules.codex_integration.profiles import (
-    CodexProfile,
-    CodexProfileConflictError,
-    CodexProfileError,
-    CodexProfileRegistry,
-    get_codex_profile_service,
-)
 from app.modules.codex_integration.schemas import (
     CodexIntegrationModeRequest,
     CodexIntegrationMutationResponse,
@@ -36,10 +28,6 @@ from app.modules.codex_integration.schemas import (
     CodexLaunchPrepareRequest,
     CodexLaunchPrepareResponse,
     CodexLaunchRouteResponse,
-    CodexProfileMutationRequest,
-    CodexProfileRegistryResponse,
-    CodexProfileResponse,
-    CodexProfileUpsertRequest,
 )
 from app.modules.codex_integration.service import (
     CodexIntegrationConflictError,
@@ -56,110 +44,6 @@ router = APIRouter(
     tags=["dashboard"],
     dependencies=[Depends(validate_dashboard_session), Depends(set_dashboard_error_format)],
 )
-
-
-@router.get("/profiles", response_model=CodexProfileRegistryResponse)
-async def get_codex_profiles() -> CodexProfileRegistryResponse:
-    try:
-        registry = await to_thread.run_sync(get_codex_profile_service().snapshot)
-    except CodexProfileError as exc:
-        raise _profile_dashboard_error(exc) from exc
-    return _profile_registry_response(registry)
-
-
-@router.put("/profiles/{profile_id}", response_model=CodexProfileRegistryResponse)
-async def upsert_codex_profile(
-    request: Request,
-    profile_id: str,
-    payload: CodexProfileUpsertRequest,
-    _write_access=Depends(require_dashboard_write_access),
-) -> CodexProfileRegistryResponse:
-    service = get_codex_profile_service()
-    try:
-        mutation = await to_thread.run_sync(
-            lambda: service.upsert(
-                expected_revision=payload.expected_revision,
-                profile=CodexProfile(
-                    id=profile_id,
-                    label=payload.label,
-                    kind=payload.kind,
-                    model_provider=payload.model_provider,
-                    model=payload.model,
-                    wire_api=payload.wire_api,
-                    base_url=payload.base_url,
-                    catalog_source=payload.catalog_source,
-                    catalog_uri=payload.catalog_uri,
-                    bridge_uri=payload.bridge_uri,
-                    context_window=payload.context_window,
-                    account_routing="none",
-                    builtin=False,
-                ),
-            )
-        )
-    except CodexProfileError as exc:
-        raise _profile_dashboard_error(exc) from exc
-    AuditService.log_async(
-        "codex_profile_upserted",
-        actor_ip=request.client.host if request.client else None,
-        details={"profile_id": profile_id, "changed": mutation.changed},
-    )
-    return _profile_registry_response(mutation.registry, changed=mutation.changed)
-
-
-@router.delete("/profiles/{profile_id}", response_model=CodexProfileRegistryResponse)
-async def delete_codex_profile(
-    request: Request,
-    profile_id: str,
-    expected_revision: int = Query(ge=0),
-    confirmed: bool = Query(),
-    _write_access=Depends(require_dashboard_write_access),
-) -> CodexProfileRegistryResponse:
-    if confirmed is not True:
-        raise DashboardBadRequestError(
-            "Deleting a Codex profile requires confirmation.",
-            code="codex_profile_confirmation_required",
-        )
-    try:
-        mutation = await to_thread.run_sync(
-            lambda: get_codex_profile_service().delete(
-                expected_revision=expected_revision,
-                profile_id=profile_id,
-            )
-        )
-    except CodexProfileError as exc:
-        raise _profile_dashboard_error(exc) from exc
-    AuditService.log_async(
-        "codex_profile_deleted",
-        actor_ip=request.client.host if request.client else None,
-        details={"profile_id": profile_id},
-    )
-    return _profile_registry_response(mutation.registry, changed=mutation.changed)
-
-
-@router.post("/profiles/{profile_id}/activate", response_model=CodexProfileRegistryResponse)
-async def activate_codex_profile(
-    request: Request,
-    profile_id: str,
-    payload: CodexProfileMutationRequest,
-    _write_access=Depends(require_dashboard_write_access),
-) -> CodexProfileRegistryResponse:
-    """Commit the profile identity after native runtime adoption succeeds."""
-
-    try:
-        mutation = await to_thread.run_sync(
-            lambda: get_codex_profile_service().activate(
-                expected_revision=payload.expected_revision,
-                profile_id=profile_id,
-            )
-        )
-    except CodexProfileError as exc:
-        raise _profile_dashboard_error(exc) from exc
-    AuditService.log_async(
-        "codex_profile_activated",
-        actor_ip=request.client.host if request.client else None,
-        details={"profile_id": profile_id, "changed": mutation.changed},
-    )
-    return _profile_registry_response(mutation.registry, changed=mutation.changed)
 
 
 @router.get("/status", response_model=CodexIntegrationStatusResponse)
@@ -385,23 +269,3 @@ def _dashboard_error(error: CodexIntegrationError):
     if isinstance(error, CodexIntegrationConflictError):
         return DashboardConflictError(str(error), code="codex_integration_conflict")
     return DashboardBadRequestError(str(error), code="codex_integration_error")
-
-
-def _profile_registry_response(
-    registry: CodexProfileRegistry,
-    *,
-    changed: bool = False,
-) -> CodexProfileRegistryResponse:
-    return CodexProfileRegistryResponse(
-        state_path=str(registry.state_path),
-        revision=registry.revision,
-        active_profile_id=registry.active_profile_id,
-        profiles=[CodexProfileResponse(**asdict(profile)) for profile in registry.profiles],
-        changed=changed,
-    )
-
-
-def _profile_dashboard_error(error: CodexProfileError):
-    if isinstance(error, CodexProfileConflictError):
-        return DashboardConflictError(str(error), code="codex_profile_conflict")
-    return DashboardBadRequestError(str(error), code="codex_profile_error")

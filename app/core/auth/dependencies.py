@@ -39,7 +39,7 @@ from app.modules.dashboard_auth.service import DASHBOARD_SESSION_COOKIE, get_das
 
 logger = logging.getLogger(__name__)
 
-_bearer = HTTPBearer(description="API key (e.g. sk-clb-…)", auto_error=False)
+_bearer = HTTPBearer(description="API key (e.g. sk-openhub-…)", auto_error=False)
 _CODEX_USAGE_IDENTITY_INACTIVE_WORKSPACE_STATUSES = {
     AccountStatus.PAUSED,
     AccountStatus.REAUTH_REQUIRED,
@@ -276,7 +276,7 @@ async def validate_codex_usage_identity(request: Request) -> ApiKeyData | None:
     raw_account_id = request.headers.get("chatgpt-account-id")
     account_id = raw_account_id.strip() if raw_account_id else ""
     if not account_id:
-        if token.startswith("sk-clb-"):
+        if token.startswith(("sk-openhub-", "sk-clb-")):
             return await _validate_api_key_token(token)
         raise ProxyAuthError("Missing chatgpt-account-id header")
 

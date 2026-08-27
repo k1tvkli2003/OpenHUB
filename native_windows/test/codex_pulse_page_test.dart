@@ -34,44 +34,20 @@ void main() {
     expect(find.text('OpenHUB Pulse'), findsOneWidget);
     expect(find.text('gpt-5.6-sol'), findsWidgets);
     expect(find.text('OpenAI'), findsWidgets);
-    expect(find.text('2 Ox adapter active'), findsOneWidget);
     expect(find.text('Agent runtimes'), findsOneWidget);
     expect(find.text('Hermes'), findsWidgets);
     expect(find.text('OpenCode'), findsWidgets);
     expect(find.text('kimi-k2.7'), findsWidgets);
-    expect(find.text('x-preview-f-free'), findsWidgets);
+    expect(find.text('glm-5'), findsWidgets);
     expect(find.text('750,000'), findsOneWidget);
-    expect(find.text('Repair provider bridge'), findsOneWidget);
+    expect(find.text('Repair runtime telemetry'), findsOneWidget);
     expect(find.text('1,200'), findsWidgets);
     expect(find.text('Reasoning · inferred'), findsNothing);
     expect(find.text('Reasoning'), findsWidgets);
 
-    await tester.tap(find.text('Repair provider bridge'));
+    await tester.tap(find.text('Repair runtime telemetry'));
     await tester.pump();
     expect(openedTask, '01a034bd-4062-7c40-80d2-407627226790');
-
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-  });
-
-  testWidgets('Pulse delegates provider changes to its source', (tester) async {
-    tester.view.physicalSize = const Size(1360, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final source = _FakePulseSource(_snapshot());
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildAppTheme(),
-        home: Scaffold(body: CodexPulsePage(source: source)),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 120));
-
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Ox'));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(source.switchedTo, CodexProviderMode.ox);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -97,12 +73,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Repair provider bridge'), findsOneWidget);
+    expect(find.text('Repair runtime telemetry'), findsOneWidget);
     expect(find.text('Task signal ledger'), findsOneWidget);
-    expect(find.text('3 waiting'), findsOneWidget);
-    expect(find.text('2 / 2'), findsOneWidget);
-    expect(find.text('2 / 4'), findsOneWidget);
-    expect(find.text('12.0 MiB / 24.0 MiB'), findsOneWidget);
+    expect(find.text('3 runtimes'), findsOneWidget);
+    expect(find.text('Agent runtimes'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -115,7 +89,7 @@ CodexPulseSnapshot _snapshot() {
     tasks: <CodexTaskSignal>[
       CodexTaskSignal(
         id: '01a034bd-4062-7c40-80d2-407627226790',
-        title: 'Repair provider bridge',
+        title: 'Repair runtime telemetry',
         model: 'gpt-5.6-sol',
         provider: 'OpenAI',
         phase: CodexTaskPhase.reasoning,
@@ -152,7 +126,7 @@ CodexPulseSnapshot _snapshot() {
         sessionId: 'ses_openhub',
         cwd: r'C:\workspace\opencode',
         title: 'OpenCode adapter',
-        model: 'x-preview-f-free',
+        model: 'glm-5',
         provider: 'OpenCode Zen',
         phase: CodexTaskPhase.idle,
         totalTokens: 220901221,
@@ -174,23 +148,6 @@ CodexPulseSnapshot _snapshot() {
       lastHour: 3840,
       startedAt: now.subtract(const Duration(minutes: 12)),
     ),
-    bridge: const CodexBridgeStatus(
-      reachable: true,
-      healthy: true,
-      supportsMetrics: true,
-      activeRequests: 2,
-      requests: <CodexBridgeRequest>[],
-      version: '3.3.0',
-      model: 'x-preview-f-free',
-      provider: 'opencode_zen',
-      queuedRequests: 3,
-      admissionLimit: 2,
-      admissionMaximum: 4,
-      inFlightBytes: 12 * 1024 * 1024,
-      byteBudgetBytes: 24 * 1024 * 1024,
-    ),
-    profileMode: CodexProviderMode.openai,
-    profileModel: 'gpt-5.6-sol',
     sampledAt: now,
     runtimeHealth: <RuntimeHealth>[
       const RuntimeHealth(
@@ -244,7 +201,6 @@ class _FakePulseSource implements CodexPulseSource {
   _FakePulseSource(this.snapshot);
 
   final CodexPulseSnapshot snapshot;
-  CodexProviderMode? switchedTo;
 
   @override
   DateTime get sessionStartedAt => snapshot.usage.startedAt;
@@ -254,10 +210,4 @@ class _FakePulseSource implements CodexPulseSource {
 
   @override
   Future<CodexPulseSnapshot> refresh() async => snapshot;
-
-  @override
-  Future<ProviderSwitchResult> switchProvider(CodexProviderMode mode) async {
-    switchedTo = mode;
-    return ProviderSwitchResult.success('Switched to ${mode.label}.');
-  }
 }

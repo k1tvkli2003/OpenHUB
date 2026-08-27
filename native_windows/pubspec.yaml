@@ -22,4 +22,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/brand/openhub-route-hub.png
-    - assets/ox/
+    - assets/brand/openhub-wordmark.png

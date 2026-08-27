@@ -196,6 +196,7 @@ try {
             $startupDirectory = [Environment]::GetFolderPath('Startup')
             $startupShortcuts = @(
                 (Join-Path $startupDirectory 'OpenHUB Auto Start.lnk'),
+                # Compatibility cleanup for the pre-OpenHUB installer only.
                 (Join-Path $startupDirectory 'Localhost Dashboard Auto Start.lnk')
             )
             foreach ($startupShortcut in $startupShortcuts) {

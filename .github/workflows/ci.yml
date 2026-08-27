@@ -196,3 +196,4 @@ jobs:
         run: |
           npm exec --yes --package=@fission-ai/openspec@1.10.0 -- openspec validate --specs --strict
           npm exec --yes --package=@fission-ai/openspec@1.10.0 -- openspec validate evolve-openhub-multi-runtime-control --type change --strict
+          npm exec --yes --package=@fission-ai/openspec@1.10.0 -- openspec validate reconcile-openhub-public-identity --type change --strict

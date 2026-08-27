@@ -2,7 +2,9 @@
   <img src="native_windows/assets/brand/openhub-route-hub.png" width="150" alt="OpenHUB logo">
 </p>
 
-# OpenHUB
+<h1 align="center">
+  <img src="native_windows/assets/brand/openhub-wordmark.png" width="340" alt="OpenHUB">
+</h1>
 
 OpenHUB is a local, provider-neutral control plane for AI coding agents. It gives Codex, Hermes Agent, and OpenCode one Windows dashboard for live task health, model/token telemetry, task controls, shared knowledge, and resilient OpenAI account routing.
 
@@ -16,7 +18,7 @@ The application is local-first: account credentials remain encrypted in the loca
 - **OpenAI account router** — exposes one loopback endpoint and selects an eligible account per request, allowing rate-limit failover without restarting the client.
 - **Current model catalog** — serves live upstream metadata with a complete bundled GPT-5.6 fallback (`gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`).
 - **Shared knowledge federation** — treats `~/.codex` as the canonical live source for skills, memories, global instructions, MCP definitions, and task-history access used by federated clients.
-- **Resilient streaming** — keeps connections alive, retries transient startup failures for at least 20 seconds, and recovers novel output after a reconnect without globally serializing unrelated tasks.
+- **Recovering runtime telemetry** — preserves the last verified state during a 20-second reconnect grace period, then reconciles durable task and usage deltas without globally serializing unrelated work.
 - **Safe cleanup** — previews exact allowlisted files and bytes, requires a second confirmation, then revalidates every candidate. Runtime chats, task stores, credentials, skills, and memories are never cleanup targets.
 - **Account operations** — refreshes the complete account pool concurrently and supports explicit account deletion with an independent history choice.
 
@@ -174,6 +176,12 @@ Release downloads include `SHA256SUMS.txt`; verify it before launching an artifa
 
 OpenHUB 2.0 is a Windows-first portable release. Linux/macOS backend deployment remains supported by the Python service, but the native operator UI and runtime-launch integration are currently verified on Windows x64. Production Windows code signing is not configured in this repository.
 
-## License and provenance
+## License, provenance, and thanks
 
-OpenHUB is released under the [MIT License](LICENSE). It retains the original MIT copyright and builds on substantial work by the original upstream maintainers and contributors, with the OpenHUB multi-runtime control plane, Windows client, federation, and routing changes maintained here.
+OpenHUB is released under the [MIT License](LICENSE) and retains the original
+MIT copyright. A sincere thank-you goes to the
+[Codex LB project](https://github.com/Soju06/codex-lb) and
+[all of its contributors](https://github.com/Soju06/codex-lb/graphs/contributors)
+for the substantial account-routing, dashboard, and compatibility foundation
+this project builds on. The OpenHUB multi-runtime control plane, Windows client,
+knowledge federation, public identity, and release work are maintained here.

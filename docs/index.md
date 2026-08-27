@@ -1,41 +1,76 @@
-# openhub
+<div class="openhub-hero" markdown>
+  <img class="openhub-hero__mark" src="assets/brand/openhub-route-hub.png" alt="OpenHUB hex-lightning mark">
 
-Load balancer for ChatGPT accounts. Pool multiple accounts, track usage, manage API keys, view everything in a dashboard.
+<h1 class="openhub-hero__title">
+  <img src="assets/brand/openhub-wordmark.png" alt="OpenHUB">
+</h1>
 
-| ![dashboard](screenshots/dashboard.jpg) | ![accounts](screenshots/accounts.jpg) |
-|:---:|:---:|
+**One local control plane for Codex, Hermes Agent, OpenCode, and an OpenAI account pool.**
 
-## Features
+[Download the Windows release](https://github.com/k1tvkli2003/OpenHUB/releases/latest){ .md-button .md-button--primary }
+[Read the source](https://github.com/k1tvkli2003/OpenHUB){ .md-button }
+</div>
 
-- **Account pooling** — load balance across multiple ChatGPT accounts
-- **Usage tracking** — per-account tokens, cost, 28-day trends
-- **API keys** — per-key rate limits by token, cost, window, model
-- **Dashboard auth** — password + optional TOTP
-- **OpenAI-compatible** — Codex CLI, OpenCode, any OpenAI client
-- **Auto model sync** — available models fetched from upstream
+OpenHUB is a Windows-first, local-first desktop application. Its native Pulse
+surface discovers supported coding-agent runtimes, reports task/model/token
+activity, keeps child-agent usage attached to the root task, and invokes only
+controls the owning runtime can actually perform. A bundled FastAPI sidecar also
+provides account, routing, automation, usage, and optional web-dashboard APIs.
 
-## Where to go
+## What is in this repository
 
-- [Getting Started](getting-started.md) — Docker / uvx quick start, remote bootstrap token
-- [Client Setup](client-setup.md) — Codex CLI, OpenCode, OpenClaw, Python SDK
-- [Configuration](configuration.md) — the few settings that matter
-- [Authentication](authentication.md) — dashboard auth modes
-- [API Keys](api-keys.md) — protecting proxy routes
-- [Routing](routing.md) — routing strategy guide
-- [Database](database.md) — SQLite / PostgreSQL, data paths, Postgres upgrades
-- [Deployment](deployment/docker.md) — Docker, [Kubernetes](deployment/kubernetes.md), [remote access](deployment/remote.md)
-- [Troubleshooting](troubleshooting.md)
+| Surface | Verified role |
+| --- | --- |
+| **Native Windows app** | Pulse for Codex, Hermes, and OpenCode; accounts; usage; runtime-aware actions; safe cleanup |
+| **Local OpenAI router** | Stable loopback Responses and Chat Completions endpoints with per-request eligible-account failover |
+| **Knowledge federation** | Live links/loaders to one canonical `~/.codex` skills, memory, and instruction store—no divergent copies |
+| **Optional web dashboard** | Browser administration for the same backend; it is not a hosted cloud service |
+| **Backend deployment** | Source, Docker, Compose, and Helm manifests for operators who provide/build their own image |
 
-## Screenshots
+The provider-neutral base URL used by local clients is:
 
-| Settings | Login |
-|:---:|:---:|
-| ![settings](screenshots/settings.jpg) | ![login](screenshots/login.jpg) |
+```text
+http://127.0.0.1:2455/backend-api/openhub/v1
+```
 
-| Dashboard (dark) | Accounts (dark) | Settings (dark) |
-|:---:|:---:|:---:|
-| ![dashboard-dark](screenshots/dashboard-dark.jpg) | ![accounts-dark](screenshots/accounts-dark.jpg) | ![settings-dark](screenshots/settings-dark.jpg) |
+Start with [Getting Started](getting-started.md), then copy the relevant
+[Client Setup](client-setup.md) example.
+
+## Runtime behavior
+
+OpenHUB keeps runtime-native chats and credentials in their original stores.
+It normalizes observable task identity, parent/child lineage, activity, model,
+and usage without rewriting transcripts. Pause, resume, stop, or open controls
+are shown only when the corresponding Codex, Hermes, or OpenCode adapter has a
+verified native primitive; unsupported actions stay visibly unsupported.
+
+Transient stream/adapter gaps remain in reconnecting state for 20 seconds. On
+recovery, durable state and token deltas are reconciled before the task returns
+to active or idle. Admission and backoff are scoped to requests/accounts, so an
+overloaded task does not turn every unrelated chat into a single global queue.
+
+## Identity and sign-in boundary
+
+The OpenHUB window, local callback, documentation, and releases use the
+OpenHUB identity shown above. OpenAI hosts its own authorization page using the
+official Codex OAuth client; that provider-hosted page may display Codex. This
+repository does not claim a separately registered OpenHUB OAuth application.
+OpenHUB never receives the password entered on OpenAI's page.
+
+## Release boundaries
+
+- Windows x64 is the verified native target for 2.0.0.
+- Release archives are SHA-256 checked but not Authenticode-signed.
+- No cloud-hosted OpenHUB service, public GHCR image, or OCI Helm chart is
+  advertised by this release. Docker/Helm guides build locally or require an
+  image location supplied by the operator.
+- Runtime chats, provider credentials, `.openhub`, and the canonical `.codex`
+  store are never release inputs.
+
+OpenHUB is MIT-licensed. Its upstream provenance and contributor acknowledgements
+are recorded in the
+[README provenance and thanks](https://github.com/k1tvkli2003/OpenHUB#license-provenance-and-thanks).
 
 ---
 
-openhub is spec-driven: normative behavior lives in [OpenSpec capabilities](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs) in the repository. Docs pages describe how to use the project and link back to the specs that govern them.
+*Specs: [public product identity](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/changes/reconcile-openhub-public-identity/specs/public-product-identity) · [multi-runtime control](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/changes/evolve-openhub-multi-runtime-control/specs/multi-runtime-control) · [shared OpenAI router](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/changes/evolve-openhub-multi-runtime-control/specs/shared-openai-router)*

@@ -13,11 +13,13 @@ README and sample env stay slim without losing content.
 
 ## Decisions
 
-- **mkdocs-material, docs at `docs/` root.** `docs_dir: docs` means the
-  existing `docs/screenshots/` images ship into the site unchanged and README
-  image paths keep working on GitHub. Pages live directly under `docs/` (not
-  `docs/content/`) so the site homepage is
+- **mkdocs-material, docs at `docs/` root.** `docs_dir: docs` keeps Pages
+  directly under `docs/` (not `docs/content/`) so the site homepage is
   `https://k1tvkli2003.github.io/OpenHUB/` itself.
+- **Public identity assets are evidence-bound.** The legacy screenshot set was
+  removed by `reconcile-openhub-public-identity`; Pages uses only the approved
+  OpenHUB mark/wordmark and current rendered evidence. Inherited screenshots
+  must not silently ship as current product documentation.
 - **Strict build as the docs gate.** The `validation:` block in `mkdocs.yml`
   plus `--strict` turns broken internal links, missing anchors, and
   nav-orphaned pages into CI failures. Corollary: any stray `.md` dropped into
@@ -32,8 +34,10 @@ README and sample env stay slim without losing content.
 - **README keeps exactly one client path inline** (Codex CLI `config.toml`) —
   the most common client — with a table linking the rest. No badges; a single
   prominent documentation link line instead (locked decision).
-- **all-contributors block stays in README.md** between its markers; the
-  generated table is bot-managed and is not hand-written complexity.
+- **Contributor provenance stays machine-readable.** `.all-contributorsrc`
+  remains the bot-managed contributor registry; the concise README thanks and
+  links the upstream project and its contributor graph without embedding a
+  generated table in the quickstart.
 - **`.env.example` drift values were deleted, not corrected.** The sample is
   all-commented so it can never drift into behavior changes again. The
   commented `# OPENHUB_LEADER_ELECTION_ENABLED=false` escape hatch is pinned
@@ -52,8 +56,8 @@ README and sample env stay slim without losing content.
 - `uv.lock` must be regenerated whenever the `docs` group changes — CI and the
   Makefile use `--frozen` unconditionally.
 - The README is the PyPI long description (`pyproject.toml`
-  `readme = "README.md"`); relative screenshot paths already did not render on
-  PyPI, so the diet does not regress it.
+  `readme = "README.md"`); its identity images use repository-relative paths on
+  GitHub while the surrounding text remains complete when images are absent.
 
 ## Example
 

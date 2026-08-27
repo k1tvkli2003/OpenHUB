@@ -594,7 +594,7 @@ async def test_create_key_stores_hash_and_prefix() -> None:
         )
     )
 
-    assert created.key.startswith("sk-clb-")
+    assert created.key.startswith("sk-openhub-")
     assert created.key_prefix == created.key[:15]
     assert created.allowed_models == ["o3-pro"]
     assert created.traffic_class == "foreground"
@@ -1661,7 +1661,7 @@ async def test_regenerate_key_rotates_hash_and_prefix() -> None:
     row_after = await repo.get_by_id(created.id)
     assert row_after is not None
 
-    assert regenerated.key.startswith("sk-clb-")
+    assert regenerated.key.startswith("sk-openhub-")
     assert row_after.key_hash != old_hash
     assert row_after.key_prefix != old_prefix
 

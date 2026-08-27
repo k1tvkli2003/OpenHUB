@@ -264,6 +264,28 @@ class OpenHubMark extends StatelessWidget {
   }
 }
 
+class OpenHubWordmark extends StatelessWidget {
+  const OpenHubWordmark({this.height = 24, this.excludeFromSemantics = false, super.key});
+
+  final double height;
+  final bool excludeFromSemantics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/brand/openhub-wordmark.png',
+      height: height,
+      fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
+      filterQuality: FilterQuality.high,
+      isAntiAlias: true,
+      gaplessPlayback: true,
+      semanticLabel: excludeFromSemantics ? null : 'OpenHUB',
+      excludeFromSemantics: excludeFromSemantics,
+    );
+  }
+}
+
 class OpenHubBrandLockup extends StatelessWidget {
   const OpenHubBrandLockup({this.compact = false, super.key});
 
@@ -289,15 +311,9 @@ class OpenHubBrandLockup extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  'OpenHUB',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
+                const OpenHubWordmark(
+                  height: 24,
+                  excludeFromSemantics: true,
                 ),
                 const SizedBox(height: 3),
                 const Text(

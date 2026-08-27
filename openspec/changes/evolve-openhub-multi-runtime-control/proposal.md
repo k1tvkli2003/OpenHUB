@@ -6,7 +6,8 @@ Codex, Hermes, and OpenCode are independent agent runtimes, but they should not
 drift into three copies of the user's skills, memories, and global agent
 instructions. OpenHUB must observe and control all three runtimes while keeping
 one canonical live knowledge repository and one provider-neutral local OpenAI
-account router. The earlier dual-runtime/resource-copy proposal is superseded.
+account router. The earlier dual-runtime/resource-copy and standalone Codex
+provider-profile proposals are superseded.
 
 ## What changes
 
@@ -25,6 +26,9 @@ account router. The earlier dual-runtime/resource-copy proposal is superseded.
 - Keep independent task traffic concurrent. Apply adaptive, scoped overload
   controls at account/request boundaries instead of a global single-request
   queue.
+- Remove the retired Ox adapter and Codex provider-profile switcher. Provider
+  and model selection remain owned by each native runtime; Pulse reports what
+  each task actually used.
 - Keep transient stream gaps in `reconnecting` for 20 seconds, reconcile
   durable task/usage deltas after recovery, and only then surface degradation.
 - Preserve all native chat/session stores. No Codex, Hermes, or OpenCode chat,

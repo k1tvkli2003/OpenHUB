@@ -1,6 +1,6 @@
 # openhub Helm Chart
 
-Production-ready Helm chart for [openhub](https://github.com/k1tvkli2003/openhub), an OpenAI API load balancer with account pooling, usage tracking, and dashboard.
+Production-ready Helm chart for [OpenHUB](https://github.com/k1tvkli2003/OpenHUB), a provider-neutral runtime control plane with OpenAI account routing, usage tracking, and an optional web dashboard.
 
 ## Design Goal
 
@@ -17,6 +17,23 @@ The same chart should work on Docker Desktop, kind, EKS, GKE, OKE, and other Kub
   - cert-manager for automated ingress TLS
   - Gateway API CRDs for `HTTPRoute`
   - External Secrets Operator for `externalSecrets.enabled=true`
+
+## Source and image contract
+
+OpenHUB 2.0.0 does not publish a public container image or OCI chart. Clone the
+repository and build the image used by these examples:
+
+```bash
+git clone https://github.com/k1tvkli2003/OpenHUB.git
+cd OpenHUB
+docker build -t openhub:local .
+helm dependency build deploy/helm/openhub
+```
+
+The chart defaults to `openhub:local`. Load that image into a local cluster
+(for example, `kind load docker-image openhub:local`) or push it to a registry
+you control and override `image.registry`, `image.repository`, and `image.tag`.
+Every chart command below runs from the repository root.
 
 ## Version Policy
 
@@ -41,7 +58,7 @@ Key properties:
 Example:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.auth.password=change-me \
   --set config.databaseMigrateOnStartup=true \
   --set migration.schemaGate.enabled=false
@@ -80,7 +97,7 @@ Supported DB wiring:
 Example using a direct URL:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.enabled=false \
   --set externalDatabase.url='postgresql+asyncpg://user:pass@db.example.com:5432/openhub'
 ```
@@ -88,7 +105,7 @@ helm install openhub oci://ghcr.io/soju06/charts/openhub \
 Example using separate secrets:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.enabled=false \
   --set externalDatabase.existingSecret=openhub-db \
   --set auth.existingSecret=openhub-app
@@ -121,7 +138,7 @@ Key properties:
 Example:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.enabled=false \
   --set externalSecrets.enabled=true \
   --set externalSecrets.secretStoreRef.name=my-store
@@ -167,7 +184,7 @@ No repo clone required — install directly from the OCI registry.
 Bundled PostgreSQL:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.auth.password=local-dev-password \
   --set config.databaseMigrateOnStartup=true \
   --set migration.schemaGate.enabled=false
@@ -176,7 +193,7 @@ helm install openhub oci://ghcr.io/soju06/charts/openhub \
 ### Managed PostgreSQL
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   --set postgresql.enabled=false \
   --set externalDatabase.url='postgresql+asyncpg://user:pass@db.example.com:5432/openhub'
 ```
@@ -411,7 +428,7 @@ externalSecrets:
 Install with:
 
 ```bash
-helm install openhub oci://ghcr.io/soju06/charts/openhub \
+helm install openhub deploy/helm/openhub \
   -f deploy/helm/openhub/values-prod.yaml \
   --set externalDatabase.url='postgresql+asyncpg://user:pass@db.example.com:5432/openhub'
 ```
@@ -578,7 +595,7 @@ Advanced snippet-based keys via `ingress.responses.nginx.configurationSnippet` a
 ## Upgrade Contract
 
 ```bash
-helm upgrade openhub oci://ghcr.io/soju06/charts/openhub <your values...>
+helm upgrade openhub deploy/helm/openhub <your values...>
 ```
 
 - External DB installs can migrate before StatefulSet creation.

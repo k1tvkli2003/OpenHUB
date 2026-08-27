@@ -66,6 +66,8 @@ from app.modules.proxy.account_cache import (
 _async_sleep = asyncio.sleep
 logger = logging.getLogger(__name__)
 _SUCCESS_TEMPLATE = Path(__file__).resolve().parent / "templates" / "oauth_success.html"
+_BRAND_LOGO = Path(__file__).resolve().parent / "templates" / "openhub-route-hub.png"
+_BRAND_WORDMARK = Path(__file__).resolve().parent / "templates" / "openhub-wordmark.png"
 _TERMINAL_OAUTH_STATUSES = {"error", "success"}
 _MAX_RETAINED_TERMINAL_OAUTH_FLOWS = 16
 _PENDING_BROWSER_OAUTH_FLOW_TTL_SECONDS = 15 * 60
@@ -296,10 +298,18 @@ class OAuthCallbackServer:
     async def start(self) -> None:
         app = web.Application()
         app.router.add_get("/auth/callback", self._handler)
+        app.router.add_get("/openhub-route-hub.png", self._brand_logo)
+        app.router.add_get("/openhub-wordmark.png", self._brand_wordmark)
         self._runner = web.AppRunner(app)
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, self._host, self._port)
         await self._site.start()
+
+    async def _brand_logo(self, _request: web.Request) -> web.StreamResponse:
+        return web.FileResponse(_BRAND_LOGO, headers={"Cache-Control": "no-store"})
+
+    async def _brand_wordmark(self, _request: web.Request) -> web.StreamResponse:
+        return web.FileResponse(_BRAND_WORDMARK, headers={"Cache-Control": "no-store"})
 
     async def stop(self) -> None:
         if self._runner:

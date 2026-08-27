@@ -39,54 +39,6 @@ void main() {
     );
   });
 
-  test(
-    'typed profile registry accepts portable OpenAI Pool and Ox profiles',
-    () {
-      final registry = CodexProfileRegistry.fromJson(<String, Object?>{
-        'statePath': r'C:\ProgramData\OpenHUB\openhub-profiles.json',
-        'revision': 2,
-        'activeProfileId': 'openai-pool',
-        'changed': false,
-        'profiles': <Object?>[
-          <String, Object?>{
-            'id': 'openai-pool',
-            'label': 'OpenAI Pool',
-            'kind': 'openai_pool',
-            'modelProvider': 'openai',
-            'model': 'gpt-5.6-sol',
-            'wireApi': 'responses',
-            'baseUrl': null,
-            'catalogSource': 'live_managed',
-            'catalogUri': null,
-            'bridgeUri': null,
-            'contextWindow': null,
-            'accountRouting': 'automatic',
-            'builtin': true,
-          },
-          <String, Object?>{
-            'id': 'ox',
-            'label': 'Ox',
-            'kind': 'ox',
-            'modelProvider': 'opencode_zen',
-            'model': 'x-preview-f-free',
-            'wireApi': 'responses',
-            'baseUrl': 'http://127.0.0.1:17891/v1',
-            'catalogSource': 'bundled',
-            'catalogUri': 'asset://ox/opencode-ox.json',
-            'bridgeUri': 'asset://ox/openhub-ox-adapter.mjs',
-            'contextWindow': 1000000,
-            'accountRouting': 'none',
-            'builtin': true,
-          },
-        ],
-      });
-
-      expect(registry.activeProfile.label, 'OpenAI Pool');
-      expect(registry.profiles, hasLength(2));
-      expect(registry.profiles.last.baseUrl, contains('17891'));
-    },
-  );
-
   testWidgets('Settings owns Auto Route and documents account launch', (
     tester,
   ) async {

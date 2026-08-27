@@ -1,0 +1,67 @@
+:root {
+  --openhub-cyan: #24d4e8;
+  --openhub-blue: #2387ef;
+  --openhub-amber: #ffad0a;
+  --openhub-ink: #081822;
+}
+
+.openhub-hero {
+  clear: both;
+  margin: 0 0 2rem;
+  padding: clamp(1.5rem, 5vw, 3.75rem);
+  border: 1px solid color-mix(in srgb, var(--openhub-cyan) 34%, transparent);
+  border-radius: 1.4rem;
+  background:
+    radial-gradient(circle at 18% 5%, color-mix(in srgb, var(--openhub-cyan) 19%, transparent), transparent 34%),
+    radial-gradient(circle at 88% 92%, color-mix(in srgb, var(--openhub-amber) 15%, transparent), transparent 32%),
+    linear-gradient(145deg, color-mix(in srgb, var(--openhub-ink) 96%, transparent), #102735);
+  color: #eefcff;
+  text-align: center;
+  box-shadow: 0 1.5rem 4rem rgb(0 24 35 / 18%);
+}
+
+.openhub-hero__title {
+  margin: 0.45rem auto 0.65rem;
+  line-height: 1;
+}
+
+.openhub-hero__title img {
+  width: clamp(13rem, 48vw, 25rem);
+  height: auto;
+  filter: drop-shadow(0 0.65rem 1.25rem rgb(0 0 0 / 24%));
+}
+
+.openhub-hero__title .headerlink {
+  display: none !important;
+}
+
+.openhub-hero p {
+  margin-inline: auto;
+  max-width: 46rem;
+  color: #c6dbe5;
+  font-size: 1.05rem;
+}
+
+.openhub-hero__mark {
+  width: clamp(7rem, 22vw, 11rem);
+  height: auto;
+  filter: drop-shadow(0 1.1rem 1.8rem rgb(0 0 0 / 28%));
+}
+
+.openhub-hero .md-button {
+  margin: 0.45rem 0.25rem 0;
+  border-color: color-mix(in srgb, var(--openhub-cyan) 58%, white);
+  color: #eefcff;
+}
+
+.openhub-hero .md-button--primary {
+  border-color: var(--openhub-cyan);
+  background: linear-gradient(110deg, var(--openhub-cyan), var(--openhub-blue));
+  color: var(--openhub-ink);
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  width: 2rem;
+  height: 2rem;
+}

@@ -1,5 +1,7 @@
 <p align="center">
   <img src="native_windows/assets/brand/openhub-route-hub.png" width="150" alt="OpenHUB 标志">
+  <br>
+  <img src="native_windows/assets/brand/openhub-wordmark.png" width="300" alt="OpenHUB">
 </p>
 
 # OpenHUB
@@ -14,7 +16,7 @@ OpenHUB 是一个本地优先、与模型供应商无关的 AI 编程代理控�
 - 一个仅限本机回环地址的 OpenAI 兼容端点，可在请求级切换可用账号；
 - GPT-5.6 Sol、Terra 和 Luna 的完整后备模型目录；
 - 以 `~/.codex` 为唯一来源的技能、记忆和全局指令实时共享；
-- Ox 流连接的 20 秒重连宽限、保活、有限重试和缺失增量补齐；
+- 运行时遥测断开后的 20 秒重连宽限与持久状态、用量增量补齐；
 - 只清理白名单旧文件的预览、摘要校验和二次确认流程；
 - 账号池并发刷新，以及可独立选择历史记录处理方式的账号删除。
 

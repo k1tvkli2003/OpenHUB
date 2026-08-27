@@ -20,7 +20,7 @@ import {
 import { createAccountSummary } from "../src/test/mocks/factories";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SCREENSHOT_DIR = path.resolve(__dirname, "../../docs/screenshots");
+const SCREENSHOT_DIR = path.resolve(__dirname, "../../artifacts/ui-screenshots");
 const SCREENSHOT_PORT = process.env.SCREENSHOT_PORT ?? "4173";
 const BASE_URL = process.env.SCREENSHOT_BASE_URL ?? `http://localhost:${SCREENSHOT_PORT}`;
 const THEME_KEY = "openhub-theme";

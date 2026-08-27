@@ -3,14 +3,21 @@
 ## Basic run
 
 ```bash
+git clone https://github.com/k1tvkli2003/OpenHUB.git
+cd OpenHUB
+docker build -t openhub:local .
 docker volume create openhub-data
 docker network inspect openhub-net >/dev/null 2>&1 || docker network create openhub-net
 docker run -d --name openhub \
   --network openhub-net \
   -p 2455:2455 -p 1455:1455 \
   -v openhub-data:/var/lib/openhub \
-  ghcr.io/k1tvkli2003/openhub:latest
+  openhub:local
 ```
+
+OpenHUB 2.0.0 does not publish a GHCR image. These commands intentionally build
+the image from the checked-out release. If you push it to your own registry,
+replace `openhub:local` with that fully qualified image reference.
 
 Ports:
 
@@ -36,7 +43,7 @@ docker volume create openhub-data
 docker run -d --name openhub \
   --network host \
   -v openhub-data:/var/lib/openhub \
-  ghcr.io/k1tvkli2003/openhub:latest
+  openhub:local
 ```
 
 In the verified Docker Engine setup on Linux, host networking does not use `-p`; openhub still listens on ports 2455 and 1455. It also removes Docker's network-namespace isolation. The command is an opt-in path to a stable host resolver, not a DNS fix by itself.
@@ -67,7 +74,7 @@ docker run -d --name openhub \
   -e OPENHUB_FIREWALL_TRUST_PROXY_HEADERS=true \
   -e OPENHUB_FIREWALL_TRUSTED_PROXY_CIDRS=172.18.0.0/16 \
   -v openhub-data:/var/lib/openhub \
-  ghcr.io/k1tvkli2003/openhub:latest
+  openhub:local
 ```
 
 **Hard override / no app-level dashboard auth**
@@ -77,7 +84,7 @@ docker run -d --name openhub \
   -p 2455:2455 -p 1455:1455 \
   -e OPENHUB_DASHBOARD_AUTH_MODE=disabled \
   -v openhub-data:/var/lib/openhub \
-  ghcr.io/k1tvkli2003/openhub:latest
+  openhub:local
 ```
 
 For Helm, pass the same values through `extraEnv`. What these modes mean and when to use them is covered in [Authentication](../authentication.md).

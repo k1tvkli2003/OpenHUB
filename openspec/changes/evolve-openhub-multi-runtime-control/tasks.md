@@ -39,9 +39,12 @@
       the existing logo unchanged, replace provider switching with runtime
       status/control, and remove legacy product/package/service/repository names
       from active product, documentation, and release surfaces.
-- [ ] 5.2 Run focused backend/Flutter tests, lint/type checks, concurrency and
+- [x] 5.1a Remove the retired Ox adapter, packaged assets, bridge telemetry,
+      Codex provider-profile API/UI, and switching runtime while preserving the
+      fixed OpenAI account route and native task controls.
+- [x] 5.2 Run focused backend/Flutter tests, lint/type checks, concurrency and
       stream-recovery tests, build/install, and live runtime smoke checks.
-- [ ] 5.3 Verify no native chat/project/credential data changed, no divergent
+- [x] 5.3 Verify no native chat/project/credential data changed, no divergent
       knowledge copies remain, and account refresh/delete still work.
 - [ ] 5.4 Finish standalone README, operational docs, safe cleanup controls,
       GitHub Actions, repository naming, and release artifacts after runtime

@@ -13,14 +13,18 @@ void main() {
       ),
     );
 
-    expect(find.text('OpenHUB'), findsOneWidget);
+    expect(find.text('OpenHUB'), findsNothing);
     expect(find.text('Local account router'), findsOneWidget);
     expect(find.byType(OpenHubMark), findsOneWidget);
+    expect(find.byType(OpenHubWordmark), findsOneWidget);
 
-    final image = tester.widget<Image>(find.byType(Image));
-    expect(image.fit, BoxFit.contain);
-    expect(image.filterQuality, FilterQuality.high);
-    expect(image.isAntiAlias, isTrue);
+    final images = tester.widgetList<Image>(find.byType(Image)).toList();
+    expect(images, hasLength(2));
+    for (final image in images) {
+      expect(image.fit, BoxFit.contain);
+      expect(image.filterQuality, FilterQuality.high);
+      expect(image.isAntiAlias, isTrue);
+    }
   });
 
   testWidgets('compact brand mark remains labeled without duplicate copy', (

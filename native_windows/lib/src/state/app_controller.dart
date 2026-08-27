@@ -9,9 +9,8 @@ import '../core/runtime/backend_supervisor.dart';
 import '../core/runtime/codex_app_server_supervisor.dart';
 import '../core/runtime/codex_desktop_launcher.dart';
 import '../core/runtime/codex_installation_discovery.dart';
-import '../core/runtime/codex_profile_runtime_planner.dart';
+import '../core/runtime/codex_managed_runtime_planner.dart';
 import '../core/runtime/codex_task_lifecycle_service.dart';
-import '../core/runtime/ox_bridge_supervisor.dart';
 import '../core/runtime/runtime_config.dart';
 import '../data/openhub_repository.dart';
 import '../models/account_summary.dart';
@@ -39,40 +38,6 @@ enum CodexManagedLaunchDisposition {
   launchedNormal,
   alreadyRunning,
   blocked,
-}
-
-enum CodexProfileSwitchDisposition {
-  unchanged,
-  confirmationRequired,
-  switched,
-  rolledBack,
-  failed,
-}
-
-class CodexProfileSwitchOutcome {
-  const CodexProfileSwitchOutcome({
-    required this.disposition,
-    required this.previousProfileId,
-    required this.targetProfileId,
-    required this.liveRootCount,
-    required this.liveDescendantCount,
-    this.error,
-    this.rollbackError,
-  });
-
-  final CodexProfileSwitchDisposition disposition;
-  final String previousProfileId;
-  final String targetProfileId;
-  final int liveRootCount;
-  final int liveDescendantCount;
-  final Object? error;
-  final Object? rollbackError;
-
-  bool get requiresConfirmation =>
-      disposition == CodexProfileSwitchDisposition.confirmationRequired;
-  bool get succeeded =>
-      disposition == CodexProfileSwitchDisposition.unchanged ||
-      disposition == CodexProfileSwitchDisposition.switched;
 }
 
 class CodexManagedLaunchOutcome {
@@ -108,8 +73,7 @@ class AppController extends ChangeNotifier {
     CodexDesktopLauncher? codexDesktopLauncher,
     WindowsCodexInstallationDiscovery? codexInstallationDiscovery,
     CodexAppServerSupervisor? codexAppServerSupervisor,
-    CodexProfileRuntimePlanner? codexProfileRuntimePlanner,
-    OxBridgeSupervisor? oxBridgeSupervisor,
+    CodexManagedRuntimePlanner? codexManagedRuntimePlanner,
     bool? managedAppServerEnabled,
   }) : _client = LocalApiClient(endpoint: config.endpoint),
        _config = config,
@@ -123,9 +87,8 @@ class AppController extends ChangeNotifier {
         codexInstallationDiscovery ?? WindowsCodexInstallationDiscovery();
     _codexAppServerSupervisor =
         codexAppServerSupervisor ?? CodexAppServerSupervisor();
-    _codexProfileRuntimePlanner =
-        codexProfileRuntimePlanner ?? const CodexProfileRuntimePlanner();
-    _oxBridgeSupervisor = oxBridgeSupervisor ?? OxBridgeSupervisor();
+    _codexManagedRuntimePlanner =
+        codexManagedRuntimePlanner ?? const CodexManagedRuntimePlanner();
   }
 
   final RuntimeConfig _config;
@@ -141,8 +104,7 @@ class AppController extends ChangeNotifier {
   late final CodexDesktopLauncher _codexDesktopLauncher;
   late final WindowsCodexInstallationDiscovery _codexInstallationDiscovery;
   late final CodexAppServerSupervisor _codexAppServerSupervisor;
-  late final CodexProfileRuntimePlanner _codexProfileRuntimePlanner;
-  late final OxBridgeSupervisor _oxBridgeSupervisor;
+  late final CodexManagedRuntimePlanner _codexManagedRuntimePlanner;
 
   RuntimeViewState runtime = const RuntimeViewState.checking();
   AsyncSection<AuthSession> auth = const AsyncSection<AuthSession>();
@@ -183,11 +145,6 @@ class AppController extends ChangeNotifier {
       const AsyncSection<CodexLaunchRoute>();
   AsyncSection<CodexInstallation> codexInstallation =
       const AsyncSection<CodexInstallation>();
-  AsyncSection<CodexProfileRegistry> codexProfiles =
-      const AsyncSection<CodexProfileRegistry>();
-  CodexTaskSwitchPreflight? lastCodexProfileSwitchPreflight;
-  CodexProfileSwitchOutcome? lastCodexProfileSwitchOutcome;
-  OxBridgeHealth? oxBridgeHealth;
   CodexLaunchPreparation? lastCodexLaunchPreparation;
   String? selectedManualCodexAccountId;
   AccountRemainingUsageOrder accountRemainingUsageOrder =
@@ -214,7 +171,6 @@ class AppController extends ChangeNotifier {
   bool advancedSettingsActionBusy = false;
   bool codexIntegrationActionBusy = false;
   bool codexLaunchActionBusy = false;
-  bool codexProfileActionBusy = false;
   bool codexModeChangeAffectsNextLaunch = false;
   Object? authActionError;
   Object? accountActionError;
@@ -228,7 +184,6 @@ class AppController extends ChangeNotifier {
   Object? advancedSettingsActionError;
   Object? codexIntegrationActionError;
   Object? codexLaunchActionError;
-  Object? codexProfileActionError;
   Object? codexTaskActionError;
   Object? runtimeTaskActionError;
   final Set<String> mutatingCodexTaskIds = <String>{};
@@ -259,7 +214,6 @@ class AppController extends ChangeNotifier {
   Future<void>? _codexIntegrationRefresh;
   Future<void>? _codexLaunchRouteRefresh;
   Future<void>? _codexInstallationRefresh;
-  Future<void>? _codexProfilesRefresh;
   Future<CodexManagedLaunchOutcome?>? _codexManagedLaunch;
   bool _disposed = false;
 
@@ -281,9 +235,7 @@ class AppController extends ChangeNotifier {
           codexIntegration.isBusy ||
           codexLaunchRoute.isBusy ||
           codexInstallation.isBusy ||
-          codexProfiles.isBusy ||
           codexLaunchActionBusy ||
-          codexProfileActionBusy ||
           upstreamProxy.isBusy ||
           modelSources.isBusy ||
           firewall.isBusy ||
@@ -316,7 +268,6 @@ class AppController extends ChangeNotifier {
       if (auth.value?.authenticated ?? false) {
         if (_managedAppServerEnabled) {
           unawaited(refreshCodexInstallation());
-          unawaited(refreshCodexProfiles());
         }
         if (_config.launchCodexOnReady) {
           await openCodex();
@@ -962,25 +913,6 @@ class AppController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> refreshCodexProfiles() {
-    return _codexProfilesRefresh ??= _loadCodexProfiles().whenComplete(
-      () => _codexProfilesRefresh = null,
-    );
-  }
-
-  Future<void> _loadCodexProfiles() async {
-    codexProfiles = codexProfiles.begin();
-    _notify();
-    try {
-      codexProfiles = codexProfiles.succeed(
-        await _repository.getCodexProfiles(),
-      );
-    } on Object catch (error) {
-      codexProfiles = codexProfiles.fail(error);
-    }
-    _notify();
-  }
-
   Future<void> refreshCodexLaunchRoute() {
     return _codexLaunchRouteRefresh ??= _loadCodexLaunchRoute().whenComplete(
       () => _codexLaunchRouteRefresh = null,
@@ -1097,7 +1029,6 @@ class AppController extends ChangeNotifier {
           refreshCodexIntegration(),
           refreshCodexLaunchRoute(),
           if (_managedAppServerEnabled) refreshCodexInstallation(),
-          if (_managedAppServerEnabled) refreshCodexProfiles(),
         ]);
         return;
       case AppDestination.automations:
@@ -1655,179 +1586,8 @@ class AppController extends ChangeNotifier {
     await refreshCodexIntegration();
   }
 
-  CodexProfileDefinition? get activeCodexProfile =>
-      codexProfiles.value?.activeProfile;
-
   CodexAppServerRuntime? get codexAppServerRuntime =>
       _codexAppServerSupervisor.runtime;
-
-  Future<CodexProfileSwitchOutcome?> switchCodexProfile(
-    String profileId, {
-    bool confirmed = false,
-  }) async {
-    final targetId = profileId.trim();
-    if (!_managedAppServerEnabled ||
-        targetId.isEmpty ||
-        codexProfileActionBusy) {
-      return null;
-    }
-    codexProfileActionBusy = true;
-    codexProfileActionError = null;
-    lastCodexProfileSwitchOutcome = null;
-    _notify();
-
-    CodexProfileRegistry? activatedRegistry;
-    CodexProfileDefinition? previousProfile;
-    var transactionStarted = false;
-    var liveRootCount = 0;
-    var liveDescendantCount = 0;
-    try {
-      final prerequisites = await _codexProfilePrerequisites();
-      final registry = prerequisites.registry;
-      previousProfile = registry.activeProfile;
-      final target = registry.profiles
-          .where((profile) => profile.id == targetId)
-          .firstOrNull;
-      if (target == null) {
-        throw StateError('Codex profile was not found: $targetId');
-      }
-      if (target.id == previousProfile.id) {
-        final result = CodexProfileSwitchOutcome(
-          disposition: CodexProfileSwitchDisposition.unchanged,
-          previousProfileId: previousProfile.id,
-          targetProfileId: target.id,
-          liveRootCount: 0,
-          liveDescendantCount: 0,
-        );
-        lastCodexProfileSwitchOutcome = result;
-        return result;
-      }
-
-      final currentRuntime = await _startCodexProfileRuntime(
-        previousProfile,
-        prerequisites.installation,
-        prerequisites.integration,
-      );
-      final lifecycle = CodexTaskLifecycleService(currentRuntime.client);
-      final preflight = await lifecycle.preflight();
-      lastCodexProfileSwitchPreflight = preflight;
-      liveRootCount = preflight.liveRootCount;
-      liveDescendantCount = preflight.liveDescendantCount;
-      if (liveRootCount > 0 && !confirmed) {
-        final result = CodexProfileSwitchOutcome(
-          disposition: CodexProfileSwitchDisposition.confirmationRequired,
-          previousProfileId: previousProfile.id,
-          targetProfileId: target.id,
-          liveRootCount: liveRootCount,
-          liveDescendantCount: liveDescendantCount,
-        );
-        lastCodexProfileSwitchOutcome = result;
-        return result;
-      }
-
-      if (confirmed) {
-        for (final group in preflight.liveGroups) {
-          await lifecycle.pause(group.sessionId);
-        }
-      }
-
-      transactionStarted = true;
-      if (await _codexDesktopLauncher.isRunning()) {
-        final stopped = await _codexDesktopLauncher.stopRunningForRestart();
-        if (!stopped || await _codexDesktopLauncher.isRunning()) {
-          throw StateError(
-            'Codex did not fully close, so the profile switch was cancelled.',
-          );
-        }
-      }
-      await _stopCodexProfileRuntime(previousProfile);
-
-      activatedRegistry = await _repository.activateCodexProfile(
-        registry,
-        target.id,
-      );
-      codexProfiles = codexProfiles.succeed(activatedRegistry);
-      _notify();
-
-      final targetRuntime = await _startCodexProfileRuntime(
-        target,
-        prerequisites.installation,
-        prerequisites.integration,
-      );
-      await _launchCodexProfileDesktop(
-        target,
-        targetRuntime,
-        prerequisites.integration,
-      );
-      final result = CodexProfileSwitchOutcome(
-        disposition: CodexProfileSwitchDisposition.switched,
-        previousProfileId: previousProfile.id,
-        targetProfileId: target.id,
-        liveRootCount: liveRootCount,
-        liveDescendantCount: liveDescendantCount,
-      );
-      lastCodexProfileSwitchOutcome = result;
-      return result;
-    } on Object catch (error) {
-      codexProfileActionError = error;
-      if (!transactionStarted || previousProfile == null) {
-        final result = CodexProfileSwitchOutcome(
-          disposition: CodexProfileSwitchDisposition.failed,
-          previousProfileId: previousProfile?.id ?? 'unknown',
-          targetProfileId: targetId,
-          liveRootCount: liveRootCount,
-          liveDescendantCount: liveDescendantCount,
-          error: error,
-        );
-        lastCodexProfileSwitchOutcome = result;
-        return result;
-      }
-
-      Object? rollbackError;
-      try {
-        await _codexAppServerSupervisor.stop();
-        await _oxBridgeSupervisor.stop();
-        var rollbackRegistry = activatedRegistry;
-        if (rollbackRegistry != null &&
-            rollbackRegistry.activeProfileId != previousProfile.id) {
-          rollbackRegistry = await _repository.activateCodexProfile(
-            rollbackRegistry,
-            previousProfile.id,
-          );
-          codexProfiles = codexProfiles.succeed(rollbackRegistry);
-        }
-        final prerequisites = await _codexProfilePrerequisites();
-        final rollbackRuntime = await _startCodexProfileRuntime(
-          previousProfile,
-          prerequisites.installation,
-          prerequisites.integration,
-        );
-        await _launchCodexProfileDesktop(
-          previousProfile,
-          rollbackRuntime,
-          prerequisites.integration,
-        );
-      } on Object catch (rollbackFailure) {
-        rollbackError = rollbackFailure;
-      }
-      final result = CodexProfileSwitchOutcome(
-        disposition: rollbackError == null
-            ? CodexProfileSwitchDisposition.rolledBack
-            : CodexProfileSwitchDisposition.failed,
-        previousProfileId: previousProfile.id,
-        targetProfileId: targetId,
-        liveRootCount: liveRootCount,
-        liveDescendantCount: liveDescendantCount,
-        error: error,
-        rollbackError: rollbackError,
-      );
-      lastCodexProfileSwitchOutcome = result;
-      return result;
-    } finally {
-      codexProfileActionBusy = false;
-      _notify();
-    }
-  }
 
   Future<CodexTaskPauseResult?> pauseCodexTask(String sessionId) async {
     final normalized = sessionId.trim();
@@ -1930,9 +1690,8 @@ class AppController extends ChangeNotifier {
     codexTaskActionError = null;
     _notify();
     try {
-      final prerequisites = await _codexProfilePrerequisites();
-      final runtime = await _startCodexProfileRuntime(
-        prerequisites.registry.activeProfile,
+      final prerequisites = await _codexRuntimePrerequisites();
+      final runtime = await _startCodexManagedRuntime(
         prerequisites.installation,
         prerequisites.integration,
       );
@@ -1946,27 +1705,14 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<
-    ({
-      CodexProfileRegistry registry,
-      CodexInstallation installation,
-      CodexIntegrationStatus integration,
-    })
-  >
-  _codexProfilePrerequisites() async {
+  Future<({CodexInstallation installation, CodexIntegrationStatus integration})>
+  _codexRuntimePrerequisites() async {
     await Future.wait<void>(<Future<void>>[
-      if (codexProfiles.value == null) refreshCodexProfiles(),
       if (codexInstallation.value == null) refreshCodexInstallation(),
       if (codexIntegration.value == null) refreshCodexIntegration(),
     ]);
-    final registry = codexProfiles.value;
     final installation = codexInstallation.value;
     final integration = codexIntegration.value;
-    if (registry == null) {
-      throw StateError(
-        'Codex profiles are unavailable: ${codexProfiles.error ?? 'unknown error'}',
-      );
-    }
     if (installation == null) {
       throw StateError(
         'Codex installation discovery failed: ${codexInstallation.error ?? 'unknown error'}',
@@ -1974,7 +1720,7 @@ class AppController extends ChangeNotifier {
     }
     if (!installation.supportsManagedProfiles) {
       throw StateError(
-        'The installed Codex build does not expose the managed WebSocket/profile capabilities.',
+        'The installed Codex build does not expose managed app-server attachment.',
       );
     }
     if (integration == null) {
@@ -1982,80 +1728,30 @@ class AppController extends ChangeNotifier {
         'OpenHUB managed route is unavailable: ${codexIntegration.error ?? 'unknown error'}',
       );
     }
-    return (
-      registry: registry,
-      installation: installation,
-      integration: integration,
-    );
+    return (installation: installation, integration: integration);
   }
 
-  Future<CodexAppServerRuntime> _startCodexProfileRuntime(
-    CodexProfileDefinition profile,
+  Future<CodexAppServerRuntime> _startCodexManagedRuntime(
     CodexInstallation installation,
     CodexIntegrationStatus integration,
   ) async {
     final existing = _codexAppServerSupervisor.runtime;
     if (existing != null) {
-      if (existing.profileId == profile.id && !existing.client.isClosed) {
+      if (existing.profileId == 'openhub-openai-router' &&
+          !existing.client.isClosed) {
         return existing;
       }
-      throw StateError(
-        'A different Codex profile runtime is still active; stop it before switching.',
-      );
+      await _codexAppServerSupervisor.stop();
     }
     final managedBaseUrl = Uri.tryParse(integration.managedBaseUrl);
     if (managedBaseUrl == null) {
       throw StateError('The managed Codex route URL is invalid.');
     }
-    final plan = await _codexProfileRuntimePlanner.build(
-      profile: profile,
+    final plan = _codexManagedRuntimePlanner.build(
       installation: installation,
       managedOpenAiBaseUrl: managedBaseUrl,
     );
-    if (profile.kind == 'ox') {
-      final bridgeScript = plan.bridgeScript;
-      final providerBaseUrl = Uri.tryParse(profile.baseUrl ?? '');
-      if (bridgeScript == null || providerBaseUrl == null) {
-        throw StateError('The Ox profile package is incomplete.');
-      }
-      final bridge = await _oxBridgeSupervisor.start(
-        bridgeScript: bridgeScript,
-        canonicalCodexHome: installation.canonicalCodexHome,
-        providerBaseUrl: providerBaseUrl,
-      );
-      oxBridgeHealth = bridge.health;
-      _notify();
-    }
     return _codexAppServerSupervisor.start(plan.appServerOptions);
-  }
-
-  Future<void> _stopCodexProfileRuntime(
-    CodexProfileDefinition previousProfile,
-  ) async {
-    await _codexAppServerSupervisor.stop();
-    if (previousProfile.kind == 'ox') {
-      await _oxBridgeSupervisor.stop();
-      oxBridgeHealth = null;
-    }
-  }
-
-  Future<void> _launchCodexProfileDesktop(
-    CodexProfileDefinition profile,
-    CodexAppServerRuntime runtime,
-    CodexIntegrationStatus integration,
-  ) async {
-    final managedBaseUrl = profile.kind == 'openai_pool'
-        ? Uri.tryParse(integration.managedBaseUrl)
-        : null;
-    final launch = await _codexDesktopLauncher.launch(
-      managedBaseUrl: managedBaseUrl,
-      appServerWebSocketUrl: runtime.endpoint,
-    );
-    if (!launch.launched || !launch.managed) {
-      throw StateError(
-        'Windows did not confirm that Codex adopted the selected profile runtime.',
-      );
-    }
   }
 
   Future<CodexManagedLaunchOutcome?> openCodex({String? manualAccountId}) {
@@ -2122,46 +1818,6 @@ class AppController extends ChangeNotifier {
     _notify();
     try {
       var current = codexLaunchRoute.value;
-      if (_managedAppServerEnabled) {
-        final prerequisites = await _codexProfilePrerequisites();
-        final activeProfile = prerequisites.registry.activeProfile;
-        if (activeProfile.kind != 'openai_pool') {
-          if (current == null) {
-            await refreshCodexLaunchRoute();
-            current = codexLaunchRoute.value;
-          }
-          if (current == null) {
-            throw StateError('The Codex launch route is unavailable.');
-          }
-          final running = await _codexDesktopLauncher.isRunning();
-          if (running && await _codexDesktopLauncher.focusRunning()) {
-            return CodexManagedLaunchOutcome(
-              disposition: CodexManagedLaunchDisposition.alreadyRunning,
-              route: current,
-            );
-          }
-          if (running) {
-            throw StateError(
-              'Codex is still running in the background. Fully quit it before attaching the ${activeProfile.label} profile.',
-            );
-          }
-          final runtime = await _startCodexProfileRuntime(
-            activeProfile,
-            prerequisites.installation,
-            prerequisites.integration,
-          );
-          await _launchCodexProfileDesktop(
-            activeProfile,
-            runtime,
-            prerequisites.integration,
-          );
-          codexModeChangeAffectsNextLaunch = false;
-          return CodexManagedLaunchOutcome(
-            disposition: CodexManagedLaunchDisposition.launchedManaged,
-            route: current,
-          );
-        }
-      }
       final codexProcessRunning = await _codexDesktopLauncher.isRunning();
       if (codexProcessRunning && await _codexDesktopLauncher.focusRunning()) {
         if (current == null) {
@@ -2272,10 +1928,8 @@ class AppController extends ChangeNotifier {
       }
       Uri? appServerWebSocketUrl;
       if (_managedAppServerEnabled) {
-        final prerequisites = await _codexProfilePrerequisites();
-        final activeProfile = prerequisites.registry.activeProfile;
-        final runtime = await _startCodexProfileRuntime(
-          activeProfile,
+        final prerequisites = await _codexRuntimePrerequisites();
+        final runtime = await _startCodexManagedRuntime(
           prerequisites.installation,
           prerequisites.integration,
         );
@@ -2647,7 +2301,6 @@ class AppController extends ChangeNotifier {
     );
     _notify();
     await _codexAppServerSupervisor.stop();
-    await _oxBridgeSupervisor.stop();
     await _supervisor.stopOwned();
   }
 
@@ -2661,7 +2314,6 @@ class AppController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     unawaited(_codexAppServerSupervisor.stop());
-    unawaited(_oxBridgeSupervisor.stop());
     unawaited(_supervisor.stopOwned());
     _client.close();
     super.dispose();

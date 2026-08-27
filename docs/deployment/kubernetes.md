@@ -1,8 +1,12 @@
 # Kubernetes
 
-Build chart dependencies and install from this repository:
+Build the image and chart dependencies, load the image into a local cluster,
+and install from this repository:
 
 ```bash
+docker build -t openhub:local .
+# For kind; use the equivalent import command for your local cluster.
+kind load docker-image openhub:local
 helm dependency build deploy/helm/openhub
 helm install openhub deploy/helm/openhub \
   --set postgresql.auth.password=changeme \
@@ -10,6 +14,10 @@ helm install openhub deploy/helm/openhub \
   --set migration.schemaGate.enabled=false
 kubectl port-forward svc/openhub 2455:2455
 ```
+
+OpenHUB 2.0.0 does not publish a public image or OCI chart. For a remote
+cluster, push `openhub:local` to a registry you control and override the chart's
+`image.registry`, `image.repository`, and `image.tag` values.
 
 Open [localhost:2455](http://localhost:2455) → Add account → Done.
 

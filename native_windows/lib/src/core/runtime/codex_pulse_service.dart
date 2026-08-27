@@ -13,47 +13,30 @@ abstract interface class CodexPulseSource {
 
   Future<CodexPulseSnapshot> refresh();
 
-  Future<ProviderSwitchResult> switchProvider(CodexProviderMode mode);
-
   void dispose();
 }
 
-typedef CodexBridgeReader = Future<CodexBridgeStatus> Function();
-typedef CodexProviderSwitchRunner =
-    Future<ProviderSwitchResult> Function(CodexProviderMode mode);
 typedef RuntimeSnapshotReader = Future<RuntimeControlSnapshot> Function();
 
 class CodexPulseService implements CodexPulseSource {
   CodexPulseService({
     Directory? codexHome,
-    Uri? bridgeBaseUri,
     DateTime Function()? now,
-    CodexBridgeReader? bridgeReader,
-    CodexProviderSwitchRunner? providerSwitchRunner,
     this._runtimeSnapshotReader,
     this.recentTaskLimit = 14,
     this.stallAfter = const Duration(seconds: 45),
     this.rolloutTailBytes = 786432,
   }) : _codexHome = codexHome ?? _defaultCodexHome(),
-       _bridgeBaseUri = bridgeBaseUri ?? Uri.parse('http://127.0.0.1:17891'),
-       _clock = now ?? DateTime.now,
-       _bridgeReaderOverride = bridgeReader,
-       _providerSwitchRunnerOverride = providerSwitchRunner {
+       _clock = now ?? DateTime.now {
     sessionStartedAt = _clock().toUtc();
-    _validateLoopbackBridge(_bridgeBaseUri);
   }
 
   final Directory _codexHome;
-  final Uri _bridgeBaseUri;
   final DateTime Function() _clock;
-  final CodexBridgeReader? _bridgeReaderOverride;
-  final CodexProviderSwitchRunner? _providerSwitchRunnerOverride;
   final RuntimeSnapshotReader? _runtimeSnapshotReader;
   final int recentTaskLimit;
   final Duration stallAfter;
   final int rolloutTailBytes;
-  final HttpClient _httpClient = HttpClient()
-    ..connectionTimeout = const Duration(milliseconds: 900);
   final Map<String, _RolloutCacheEntry> _rolloutCache =
       <String, _RolloutCacheEntry>{};
   final Map<String, _RolloutIdentity> _rolloutIdentityCache =
@@ -77,8 +60,6 @@ class CodexPulseService implements CodexPulseSource {
       throw StateError('CodexPulseService is disposed.');
     }
     final now = _clock().toUtc();
-    final profile = await _readProfile();
-    final bridge = await _readBridge();
     final runtimeRead = await _readRuntimeSnapshot(now);
 
     List<_ThreadRow> rows;
@@ -92,9 +73,6 @@ class CodexPulseService implements CodexPulseSource {
         final fallback = CodexPulseSnapshot(
           tasks: previous.tasks,
           usage: _combinedUsage(now, runtimeRead.snapshot),
-          bridge: bridge,
-          profileMode: profile.mode,
-          profileModel: profile.model,
           sampledAt: now,
           runtimeHealth: runtimeRead.snapshot?.health ?? previous.runtimeHealth,
           runtimeUsage: runtimeRead.snapshot?.usage ?? previous.runtimeUsage,
@@ -113,7 +91,7 @@ class CodexPulseService implements CodexPulseSource {
     _pruneTaskState(rows);
     _recordTokenDeltas(rows, now);
     final threadTasks = await Future.wait(
-      rows.map((row) => _buildTask(row, bridge, now)),
+      rows.map((row) => _buildTask(row, now)),
     );
     final aggregatedTasks = _aggregateRootTasks(threadTasks)
       ..sort(_compareTasks);
@@ -129,9 +107,6 @@ class CodexPulseService implements CodexPulseSource {
     final snapshot = CodexPulseSnapshot(
       tasks: List<CodexTaskSignal>.unmodifiable(tasks),
       usage: _combinedUsage(now, runtimeRead.snapshot),
-      bridge: bridge,
-      profileMode: profile.mode,
-      profileModel: profile.model,
       sampledAt: now,
       runtimeHealth: runtimeRead.snapshot?.health ?? const <RuntimeHealth>[],
       runtimeUsage: runtimeRead.snapshot?.usage,
@@ -200,83 +175,11 @@ class CodexPulseService implements CodexPulseSource {
   }
 
   @override
-  Future<ProviderSwitchResult> switchProvider(CodexProviderMode mode) async {
-    if (_disposed) {
-      return const ProviderSwitchResult.failure(
-        'Codex Pulse has already been disposed.',
-      );
-    }
-    if (mode == CodexProviderMode.unknown) {
-      return const ProviderSwitchResult.failure(
-        'Unknown provider mode cannot be selected.',
-      );
-    }
-    final override = _providerSwitchRunnerOverride;
-    if (override != null) {
-      return override(mode);
-    }
-
-    final switcher = File(
-      path.join(_codexHome.path, 'provider-switch', 'Start-CodexMode.ps1'),
-    );
-    if (!switcher.existsSync()) {
-      return ProviderSwitchResult.failure(
-        'Safe provider switcher was not found at ${switcher.path}.',
-      );
-    }
-    final windowsRoot = Platform.environment['WINDIR'];
-    if (windowsRoot == null || windowsRoot.trim().isEmpty) {
-      return const ProviderSwitchResult.failure(
-        'Windows PowerShell path could not be resolved.',
-      );
-    }
-    final powershell = path.join(
-      windowsRoot,
-      'System32',
-      'WindowsPowerShell',
-      'v1.0',
-      'powershell.exe',
-    );
-    try {
-      final result = await Process.run(powershell, <String>[
-        '-NoProfile',
-        '-WindowStyle',
-        'Hidden',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        switcher.path,
-        '-Mode',
-        mode == CodexProviderMode.ox ? 'ox' : 'openai',
-      ]);
-      if (result.exitCode == 0) {
-        return ProviderSwitchResult.success('Codex switched to ${mode.label}.');
-      }
-      if (result.exitCode == 2) {
-        return const ProviderSwitchResult.cancelled(
-          'Provider switch was cancelled.',
-        );
-      }
-      final detail = _boundedMessage(
-        '${result.stderr}\n${result.stdout}'.trim(),
-      );
-      return ProviderSwitchResult.failure(
-        detail.isEmpty ? 'Provider switch failed.' : detail,
-      );
-    } on Object catch (error) {
-      return ProviderSwitchResult.failure(
-        'Provider switch failed: ${_boundedMessage(error)}',
-      );
-    }
-  }
-
-  @override
   void dispose() {
     if (_disposed) {
       return;
     }
     _disposed = true;
-    _httpClient.close(force: true);
     _rolloutCache.clear();
     _rolloutIdentityCache.clear();
     _lastTaskTokens.clear();
@@ -448,11 +351,7 @@ LIMIT ?
     );
   }
 
-  Future<CodexTaskSignal> _buildTask(
-    _ThreadRow row,
-    CodexBridgeStatus bridge,
-    DateTime now,
-  ) async {
+  Future<CodexTaskSignal> _buildTask(_ThreadRow row, DateTime now) async {
     CodexRolloutPulse rollout;
     try {
       rollout = await _readRollout(row.rolloutPath);
@@ -466,20 +365,9 @@ LIMIT ?
 
     var phase = rollout.phase;
     var lastActivityAt = rollout.lastActivityAt ?? row.updatedAt;
-    var retryAttempt = rollout.retryAttempt;
-    int? retryMaximum;
-    int? streamedCharacters;
     var uncertain = rollout.uncertain;
 
-    final bridgeRequest = _matchingBridgeRequest(bridge, row.id);
-    if (bridgeRequest != null) {
-      phase = _bridgePhase(bridgeRequest.phase);
-      retryAttempt = bridgeRequest.attempt;
-      retryMaximum = bridge.maxAttempts;
-      streamedCharacters = bridgeRequest.streamedCharacters;
-      lastActivityAt = bridgeRequest.lastActivityAt ?? lastActivityAt;
-      uncertain = false;
-    } else if (phase == CodexTaskPhase.unknown &&
+    if (phase == CodexTaskPhase.unknown &&
         now.difference(row.updatedAt) <= const Duration(seconds: 18)) {
       phase = CodexTaskPhase.active;
       uncertain = true;
@@ -506,9 +394,7 @@ LIMIT ?
       reasoningEffort: row.reasoningEffort,
       contextTokens: rollout.contextTokens,
       contextWindow: rollout.contextWindow,
-      retryAttempt: retryAttempt,
-      retryMaximum: retryMaximum,
-      streamedCharacters: streamedCharacters,
+      retryAttempt: rollout.retryAttempt,
       errorSummary: rollout.errorSummary,
       uncertain: uncertain,
     );
@@ -534,195 +420,6 @@ LIMIT ?
       pulse: pulse,
     );
     return pulse;
-  }
-
-  Future<_ProviderProfile> _readProfile() async {
-    CodexProviderMode mode = CodexProviderMode.unknown;
-    String? model;
-    final activeMode = File(
-      path.join(_codexHome.path, 'provider-switch', 'active-mode.json'),
-    );
-    if (await activeMode.exists()) {
-      try {
-        final decoded = jsonDecode(await activeMode.readAsString());
-        if (decoded is Map<String, Object?>) {
-          mode = _modeFromText(decoded['mode'] as String?);
-        }
-      } on Object {
-        // The canonical config below remains the fallback source.
-      }
-    }
-    final config = File(path.join(_codexHome.path, 'config.toml'));
-    if (await config.exists()) {
-      try {
-        final text = await config.readAsString();
-        model = RegExp(
-          r'^\s*model\s*=\s*"([^"]+)"\s*$',
-          multiLine: true,
-        ).firstMatch(text)?.group(1);
-        final provider = RegExp(
-          r'^\s*model_provider\s*=\s*"([^"]+)"\s*$',
-          multiLine: true,
-        ).firstMatch(text)?.group(1);
-        final configMode = _modeFromText(provider);
-        if (configMode != CodexProviderMode.unknown) {
-          mode = configMode;
-        }
-      } on Object {
-        // An unreadable config is reported as unknown rather than guessed.
-      }
-    }
-    return _ProviderProfile(mode: mode, model: model);
-  }
-
-  Future<CodexBridgeStatus> _readBridge() async {
-    final override = _bridgeReaderOverride;
-    if (override != null) {
-      return override();
-    }
-    try {
-      final metrics = await _getJson('/metrics');
-      return _parseBridgeMetrics(metrics);
-    } on Object catch (metricsError) {
-      try {
-        final health = await _getJson('/health');
-        return _parseBridgeHealth(health, metricsError);
-      } on Object catch (healthError) {
-        return CodexBridgeStatus.unavailable(
-          'Bridge unavailable: ${_boundedMessage(healthError)}',
-        );
-      }
-    }
-  }
-
-  Future<Map<String, Object?>> _getJson(String route) async {
-    final uri = _bridgeBaseUri.replace(
-      path: route,
-      query: null,
-      fragment: null,
-    );
-    final request = await _httpClient
-        .getUrl(uri)
-        .timeout(const Duration(milliseconds: 1000));
-    final response = await request.close().timeout(
-      const Duration(milliseconds: 1200),
-    );
-    final body = await utf8.decoder
-        .bind(response)
-        .join()
-        .timeout(const Duration(milliseconds: 1200));
-    if (response.statusCode != HttpStatus.ok) {
-      throw HttpException(
-        'Bridge returned HTTP ${response.statusCode}.',
-        uri: uri,
-      );
-    }
-    final decoded = jsonDecode(body);
-    if (decoded is! Map<String, Object?>) {
-      throw const FormatException('Bridge response is not a JSON object.');
-    }
-    return decoded;
-  }
-
-  CodexBridgeStatus _parseBridgeMetrics(Map<String, Object?> json) {
-    final requestsJson = json['active_requests'];
-    final requests = <CodexBridgeRequest>[];
-    if (requestsJson is List<Object?>) {
-      for (final item in requestsJson) {
-        if (item is! Map<String, Object?>) {
-          continue;
-        }
-        requests.add(
-          CodexBridgeRequest(
-            requestId: _string(item['request_id']) ?? 'unknown',
-            threadId: _string(item['thread_id']),
-            phase: _string(item['phase']) ?? 'active',
-            attempt: _integer(item['attempt']),
-            lastActivityAt: DateTime.tryParse(
-              _string(item['last_activity_at']) ?? '',
-            )?.toUtc(),
-            streamedCharacters: _integer(item['streamed_chars']),
-            reasoningCharacters: _integer(item['reasoning_chars']),
-            retryReason: _string(item['retry_reason']),
-          ),
-        );
-      }
-    }
-    final usage = json['usage'];
-    final usageMap = usage is Map<String, Object?> ? usage : null;
-    final retryPolicy = json['retry_policy'];
-    final retryMap = retryPolicy is Map<String, Object?> ? retryPolicy : null;
-    final admission = json['admission'];
-    final admissionMap = admission is Map<String, Object?> ? admission : null;
-    return CodexBridgeStatus(
-      reachable: true,
-      healthy: true,
-      supportsMetrics: true,
-      activeRequests:
-          _nullableInteger(admissionMap?['active']) ?? requests.length,
-      requests: List<CodexBridgeRequest>.unmodifiable(requests),
-      version: _string(json['version']),
-      model: _string(json['model']),
-      provider: _string(json['provider']),
-      lastMinuteTokens: _usageTotal(usageMap?['last_minute']),
-      lastHourTokens: _usageTotal(usageMap?['last_hour']),
-      queuedRequests: _integer(admissionMap?['queued']),
-      admissionLimit: _nullableInteger(admissionMap?['current_limit']),
-      admissionMaximum: _nullableInteger(admissionMap?['max_limit']),
-      inFlightBytes: _integer(admissionMap?['in_flight_bytes']),
-      byteBudgetBytes: _nullableInteger(admissionMap?['byte_budget']),
-      cooldownUntil: DateTime.tryParse(
-        _string(admissionMap?['overload_until']) ?? '',
-      )?.toUtc(),
-      maxAttempts: _nullableInteger(retryMap?['max_upstream_attempts']),
-    );
-  }
-
-  CodexBridgeStatus parseBridgeMetricsForTest(Map<String, Object?> json) {
-    return _parseBridgeMetrics(json);
-  }
-
-  CodexBridgeStatus _parseBridgeHealth(
-    Map<String, Object?> json,
-    Object metricsError,
-  ) {
-    final admission = json['admission'];
-    final admissionMap = admission is Map<String, Object?> ? admission : null;
-    return CodexBridgeStatus(
-      reachable: true,
-      healthy: json['ok'] == true && json['shutting_down'] != true,
-      supportsMetrics: false,
-      activeRequests:
-          _nullableInteger(admissionMap?['active']) ??
-          _integer(json['active_requests']),
-      requests: const <CodexBridgeRequest>[],
-      version: _string(json['version']),
-      model: _string(json['upstream_model']),
-      provider: 'opencode_zen',
-      lastMinuteTokens: _usageTotal(json['token_usage_last_minute']),
-      lastHourTokens: _usageTotal(json['token_usage_last_hour']),
-      queuedRequests: _integer(admissionMap?['queued']),
-      admissionLimit: _nullableInteger(admissionMap?['current_limit']),
-      admissionMaximum: _nullableInteger(admissionMap?['max_limit']),
-      inFlightBytes: _integer(admissionMap?['in_flight_bytes']),
-      byteBudgetBytes: _nullableInteger(admissionMap?['byte_budget']),
-      cooldownUntil: DateTime.tryParse(
-        _string(admissionMap?['overload_until']) ?? '',
-      )?.toUtc(),
-      message: 'Detailed metrics unavailable: ${_boundedMessage(metricsError)}',
-    );
-  }
-
-  static CodexBridgeRequest? _matchingBridgeRequest(
-    CodexBridgeStatus bridge,
-    String threadId,
-  ) {
-    for (final request in bridge.requests) {
-      if (request.threadId == threadId) {
-        return request;
-      }
-    }
-    return null;
   }
 }
 
@@ -1250,13 +947,6 @@ class _TokenDelta {
   final int tokens;
 }
 
-class _ProviderProfile {
-  const _ProviderProfile({required this.mode, required this.model});
-
-  final CodexProviderMode mode;
-  final String? model;
-}
-
 Future<String> _readBoundedTail(File file, int maximumBytes) async {
   final handle = await file.open(mode: FileMode.read);
   try {
@@ -1285,23 +975,6 @@ Directory _defaultCodexHome() {
   return Directory(path.join(profile, '.codex'));
 }
 
-void _validateLoopbackBridge(Uri uri) {
-  final address = InternetAddress.tryParse(uri.host);
-  if (uri.scheme != 'http' ||
-      !uri.hasPort ||
-      uri.userInfo.isNotEmpty ||
-      uri.hasQuery ||
-      uri.hasFragment ||
-      !(uri.host.toLowerCase() == 'localhost' ||
-          (address?.isLoopback ?? false))) {
-    throw ArgumentError.value(
-      uri,
-      'bridgeBaseUri',
-      'Expected a loopback HTTP bridge endpoint with an explicit port.',
-    );
-  }
-}
-
 String _normalizeWindowsDevicePath(String value) {
   const devicePrefix = r'\\?\';
   return value.startsWith(devicePrefix)
@@ -1309,37 +982,14 @@ String _normalizeWindowsDevicePath(String value) {
       : value;
 }
 
-CodexProviderMode _modeFromText(String? value) {
-  return switch (value?.trim().toLowerCase()) {
-    'openai' => CodexProviderMode.openai,
-    'ox' || 'opencode_zen' => CodexProviderMode.ox,
-    _ => CodexProviderMode.unknown,
-  };
-}
-
 String _providerLabel(String value) {
   return switch (value.trim().toLowerCase()) {
     'openai' => 'OpenAI',
-    'opencode_zen' => 'Ox',
+    'opencode_zen' => 'OpenCode Zen',
     '' => 'Unknown',
     _ => value,
   };
 }
-
-CodexTaskPhase _bridgePhase(String phase) {
-  return switch (phase.trim().toLowerCase()) {
-    'queued' => CodexTaskPhase.queued,
-    'retry_wait' => CodexTaskPhase.retrying,
-    'reasoning' => CodexTaskPhase.reasoning,
-    'streaming' ||
-    'connecting' ||
-    'preparing' ||
-    'receiving_request' => CodexTaskPhase.active,
-    _ => CodexTaskPhase.active,
-  };
-}
-
-CodexTaskPhase bridgePhaseForTest(String phase) => _bridgePhase(phase);
 
 int _compareTasks(CodexTaskSignal left, CodexTaskSignal right) {
   final phase = _phaseRank(left.phase).compareTo(_phaseRank(right.phase));
@@ -1394,13 +1044,6 @@ int? _nullableInteger(Object? value) {
     return null;
   }
   return _integer(value);
-}
-
-int _usageTotal(Object? value) {
-  if (value is! Map<String, Object?>) {
-    return 0;
-  }
-  return _integer(value['total_tokens']);
 }
 
 String _boundedMessage(Object? value, {int maximum = 220}) {

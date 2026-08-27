@@ -67,6 +67,7 @@
   "accounts.oauth.expiresIn": "{{time}} 后过期",
   "accounts.oauth.generatingLink": "正在生成新的登录链接...",
   "accounts.oauth.introDescription": "选择登录方式并完成授权。",
+  "accounts.oauth.providerIdentityNotice": "授权页面由 OpenAI 托管，可能显示为官方 Codex 客户端；成功后，本地回调将返回 OpenHUB。",
   "accounts.oauth.manualCallback.aria": "手动 callback URL",
   "accounts.oauth.manualCallback.title": "粘贴 callback URL（用于远程服务器）",
   "accounts.oauth.methods.browser.description": "打开浏览器窗口进行登录，推荐大多数用户使用。",

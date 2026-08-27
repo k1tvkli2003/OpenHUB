@@ -228,7 +228,7 @@ async def case_non_streaming(client: openai.AsyncOpenAI, model: str) -> CaseResu
 async def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True, help="openhub /v1 base URL (e.g. http://127.0.0.1:2455/v1)")
-    parser.add_argument("--api-key", required=True, help="openhub API key (sk-clb-...)")
+    parser.add_argument("--api-key", required=True, help="OpenHUB API key (sk-openhub-...)")
     parser.add_argument("--model", default="gpt-5.5")
     parser.add_argument("--skip", default="", help="comma-separated case names to skip")
     args = parser.parse_args()

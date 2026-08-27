@@ -28,6 +28,17 @@ return an explicit unsupported result when no such primitive exists.
   pause one task
 - **THEN** Pulse disables pause for that task and does not simulate success
 
+### Requirement: Provider selection stays runtime-native
+
+OpenHUB SHALL report the provider and model observed for each task but SHALL NOT
+package a provider adapter or expose a Codex provider-profile switcher.
+
+#### Scenario: Operator opens Pulse
+
+- **WHEN** OpenHUB renders runtime status and task activity
+- **THEN** it shows Codex, Hermes, and OpenCode health, model, provider, and
+  usage evidence without an Ox bridge panel or provider-switch action
+
 ### Requirement: Transient disconnects are reconciled
 
 OpenHUB SHALL preserve the last verified state for a 20-second reconnect grace

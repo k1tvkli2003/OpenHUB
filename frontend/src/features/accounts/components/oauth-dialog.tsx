@@ -201,6 +201,9 @@ export function OauthDialog({
         {/* Intro stage */}
         {stage === "intro" ? (
           <div className="space-y-2">
+            <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs text-muted-foreground">
+              {t("accounts.oauth.providerIdentityNotice")}
+            </div>
             <button
               type="button"
               onClick={() => setSelectedMethod("browser")}

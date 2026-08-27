@@ -77,7 +77,7 @@ requires_openai_auth = true # required for codex app
 ```
 
 ```bash
-export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-openhub-..."   # key from dashboard
 codex
 ```
 
@@ -109,13 +109,9 @@ openhub codex-sessions retag --from openai --to openhub --dry-run
 openhub codex-sessions retag --from openai --to openhub --yes
 ```
 
-| Dry run (Docker) | Apply (Docker) |
-|:---:|:---:|
-| ![retag dry run in Docker](screenshots/codex-session-retag-docker-dry-run.png) | ![retag apply in Docker](screenshots/codex-session-retag-docker-apply.png) |
-
-| Dry run (WSL) | Apply (WSL) |
-|:---:|:---:|
-| ![retag dry run in WSL](screenshots/codex-session-retag-wsl-dry-run.png) | ![retag apply in WSL](screenshots/codex-session-retag-wsl-apply.png) |
+The command prints the exact affected rollout files and writes a backup before
+apply. Review the dry-run output instead of relying on a copied screenshot from
+another machine.
 
 ## OpenCode
 
@@ -175,7 +171,7 @@ jq 'del(.openai)' ~/.local/share/opencode/auth.json > auth.json.tmp && mv auth.j
 This overrides the built-in `openai` provider's endpoint to point at openhub while keeping the Responses API code path that handles reasoning properly.
 
 ```bash
-export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-openhub-..."   # key from dashboard
 opencode
 ```
 
@@ -263,7 +259,7 @@ Then select the model interactively with `hermes model`, or in a session:
 ```
 
 ```bash
-export OPENHUB_API_KEY="sk-clb-..."   # key from dashboard
+export OPENHUB_API_KEY="sk-openhub-..."   # key from dashboard
 hermes
 ```
 
@@ -274,7 +270,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="http://127.0.0.1:2455/v1",
-    api_key="sk-clb-...",  # from dashboard, or any non-empty string if auth is disabled
+    api_key="sk-openhub-...",  # from dashboard, or any non-empty string if auth is disabled
 )
 
 response = client.chat.completions.create(

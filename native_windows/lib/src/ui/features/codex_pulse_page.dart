@@ -38,7 +38,6 @@ class _CodexPulsePageState extends State<CodexPulsePage>
   CodexPulseSnapshot? _snapshot;
   Object? _refreshError;
   bool _refreshing = false;
-  bool _providerSwitchBusy = false;
   bool _reducedMotion = false;
 
   @override
@@ -138,32 +137,6 @@ class _CodexPulsePageState extends State<CodexPulsePage>
       SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
     );
     await _refresh(showSpinner: true);
-  }
-
-  Future<void> _switchProvider(CodexProviderMode mode) async {
-    if (_providerSwitchBusy) {
-      return;
-    }
-    setState(() => _providerSwitchBusy = true);
-    try {
-      final result = await _source.switchProvider(mode);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          duration: Duration(seconds: result.succeeded ? 3 : 5),
-        ),
-      );
-      if (result.succeeded) {
-        await _refresh(showSpinner: true);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _providerSwitchBusy = false);
-      }
-    }
   }
 
   Future<void> _resumeTask(CodexTaskSignal task) async {
@@ -380,21 +353,11 @@ class _CodexPulsePageState extends State<CodexPulsePage>
                         final rail = Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            PulseProviderPanel(
-                              mode: snapshot.profileMode,
-                              model: snapshot.profileModel,
-                              switchBusy: _providerSwitchBusy,
-                              onSwitch: (mode) =>
-                                  unawaited(_switchProvider(mode)),
-                            ),
-                            const SizedBox(height: 16),
                             PulseRuntimePanel(
                               health: snapshot.runtimeHealth,
                               usage: snapshot.runtimeUsage,
                               tasks: snapshot.tasks,
                             ),
-                            const SizedBox(height: 16),
-                            PulseBridgePanel(bridge: snapshot.bridge),
                             const SizedBox(height: 16),
                             PulseSessionPanel(
                               snapshot: snapshot,
@@ -444,11 +407,6 @@ class PulsePageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bridgeColor = !snapshot.bridge.reachable || !snapshot.bridge.healthy
-        ? AppPalette.red
-        : snapshot.bridge.activeRequests > 0
-        ? AppPalette.green
-        : AppPalette.textMuted;
     return LayoutBuilder(
       builder: (context, constraints) {
         final identity = Row(
@@ -508,15 +466,6 @@ class PulsePageHeader extends StatelessWidget {
               icon: Icons.route_outlined,
               label: '${snapshot.runtimeHealth.length} runtimes',
               color: AppPalette.cyan,
-            ),
-            _HeaderBadge(
-              icon: snapshot.bridge.reachable
-                  ? Icons.hub_outlined
-                  : Icons.cloud_off_outlined,
-              label: snapshot.bridge.activeRequests > 0
-                  ? '${snapshot.bridge.activeRequests} Ox adapter active'
-                  : 'Ox adapter ${snapshot.bridge.reachable ? 'idle' : 'offline'}',
-              color: bridgeColor,
             ),
             Tooltip(
               message: 'Refresh OpenHUB Pulse now',

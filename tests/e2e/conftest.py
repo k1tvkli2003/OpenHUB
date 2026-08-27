@@ -157,7 +157,7 @@ def create_api_key():
         response = await client.post("/api/api-keys/", json=payload)
         assert response.status_code == 200
         created = response.json()
-        assert created["key"].startswith("sk-clb-")
+        assert created["key"].startswith("sk-openhub-")
         return created
 
     return _create

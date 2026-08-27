@@ -618,41 +618,6 @@ class OpenHubRepository {
     return RuntimeTaskActionResult.fromJson(response);
   }
 
-  Future<CodexProfileRegistry> getCodexProfiles() async {
-    final response = await _client.getObject('/api/codex-integration/profiles');
-    return CodexProfileRegistry.fromJson(response);
-  }
-
-  Future<CodexProfileRegistry> activateCodexProfile(
-    CodexProfileRegistry current,
-    String profileId,
-  ) async {
-    final encodedId = Uri.encodeComponent(profileId);
-    final response = await _client.postObject(
-      '/api/codex-integration/profiles/$encodedId/activate',
-      body: <String, Object?>{
-        'expectedRevision': current.revision,
-        'confirmed': true,
-      },
-    );
-    return CodexProfileRegistry.fromJson(response);
-  }
-
-  Future<CodexProfileRegistry> deleteCodexProfile(
-    CodexProfileRegistry current,
-    String profileId,
-  ) async {
-    final encodedId = Uri.encodeComponent(profileId);
-    final response = await _client.deleteObject(
-      '/api/codex-integration/profiles/$encodedId',
-      query: <String, Object?>{
-        'expectedRevision': current.revision,
-        'confirmed': true,
-      },
-    );
-    return CodexProfileRegistry.fromJson(response);
-  }
-
   Future<CodexLaunchRoute> getCodexLaunchRoute() async {
     final response = await _client.getObject(
       '/api/codex-integration/launch-route',

@@ -1267,7 +1267,7 @@ def _get_usage_sections_with_default(row: ApiKey) -> str:
 
 
 def _generate_plain_key() -> str:
-    return f"sk-clb-{secrets.token_urlsafe(32)}"
+    return f"sk-openhub-{secrets.token_urlsafe(32)}"
 
 
 def _hash_key(plain_key: str) -> str:

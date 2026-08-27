@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
-import { CodexLogo } from "@/components/brand/codex-logo";
+import { OpenHubMark, OpenHubWordmark } from "@/components/brand/openhub-brand";
 import { LanguageToggle, LanguageToggleMobile } from "@/components/layout/language-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,12 +94,8 @@ export function AppHeader({
           to="/dashboard"
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg no-underline transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-primary/5">
-            <CodexLogo size={20} className="text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold tracking-tight">OpenHUB</p>
-          </div>
+          <OpenHubMark size={32} />
+          <OpenHubWordmark className="h-4 w-auto max-w-28" />
         </Link>
 
         {/* Desktop nav pills */}
@@ -200,10 +196,8 @@ export function AppHeader({
             <SheetContent side="right" className="w-72">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                    <CodexLogo size={16} className="text-primary" />
-                  </div>
-                  <span className="text-sm font-semibold">OpenHUB</span>
+                  <OpenHubMark size={28} />
+                  <OpenHubWordmark className="h-4 w-auto max-w-28" />
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-0.5 px-4 pt-2">

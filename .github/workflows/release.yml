@@ -191,7 +191,13 @@ jobs:
           set -euo pipefail
           notes="release-notes.md"
           printf '# OpenHUB %s\n\n' "${OPENHUB_RELEASE_VERSION}" > "${notes}"
-          printf 'Self-contained Windows client with pinned local backend. No Python installation is required.\n\n' >> "${notes}"
+          printf 'Self-contained Windows client with a pinned local backend. No Python installation is required.\n\n' >> "${notes}"
+          printf '## Included\n\n' >> "${notes}"
+          printf -- '- Pulse task health, lineage, models, providers, native controls, and rolling token use for Codex, Hermes, and OpenCode.\n' >> "${notes}"
+          printf -- '- A loopback-only OpenAI-compatible account router with request-scoped failover and no global single-request queue.\n' >> "${notes}"
+          printf -- '- Live shared access to the canonical `~/.codex` skills, memories, and instructions without copied repositories.\n' >> "${notes}"
+          printf -- '- Preview-and-confirm cleanup for allowlisted old generated files.\n\n' >> "${notes}"
+          printf 'The retired experimental provider adapter and Codex provider-profile switcher are not included. Provider and model selection stay native to each runtime.\n\n' >> "${notes}"
           printf 'Verify the archive with `SHA256SUMS.txt` before running `Launch-OpenHUB.ps1`. The binary is currently unsigned.\n' >> "${notes}"
           if gh release view "${OPENHUB_RELEASE_TAG}" >/dev/null 2>&1; then
             gh release upload "${OPENHUB_RELEASE_TAG}" release-assets/* --clobber

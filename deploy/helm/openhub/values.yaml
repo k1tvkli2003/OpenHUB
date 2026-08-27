@@ -26,11 +26,11 @@ image:
   # NOTE: Use fully qualified image names (e.g., docker.io/library/busybox:1.37)
   # for compatibility with cri-o runtimes that enforce short-name resolution policies.
   # @param image.registry Container image registry
-  registry: ghcr.io
+  registry: ""
   # @param image.repository Container image repository
-  repository: k1tvkli2003/openhub
+  repository: openhub
   # @param image.tag Container image tag (defaults to appVersion)
-  tag: ""
+  tag: local
   # @param image.digest Container image digest (overrides tag when set)
   digest: ""
   # @param image.pullPolicy Container image pull policy

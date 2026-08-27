@@ -26,6 +26,15 @@ Ready-to-run Docker commands for both non-default modes are in [Docker deploymen
 
 Setting the initial dashboard password from a remote machine requires a one-time bootstrap token — see [Getting Started](getting-started.md#remote-setup-bootstrap-token).
 
+## OpenAI account sign-in identity
+
+OpenHUB owns the account dialog and the callback page served locally at
+`localhost:1455`. OpenAI owns the authorization page and may identify that page
+as the official Codex client because OpenHUB uses the public Codex OAuth client
+contract for compatibility. This is expected and is disclosed before the page
+opens; it is not a separately registered OpenHUB OAuth application. Passwords
+entered on the OpenAI page are never sent to OpenHUB.
+
 ---
 
-*Specs: [admin-auth](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/admin-auth) · [api-firewall](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/api-firewall)*
+*Specs: [admin-auth](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/admin-auth) · [api-firewall](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/specs/api-firewall) · [public product identity](https://github.com/k1tvkli2003/OpenHUB/tree/main/openspec/changes/reconcile-openhub-public-identity/specs/public-product-identity)*

@@ -29,55 +29,11 @@ void main() {
         lastHour: 0,
         startedAt: now,
       ),
-      bridge: const CodexBridgeStatus.unavailable(),
-      profileMode: CodexProviderMode.openai,
       sampledAt: now,
     );
 
     expect(snapshot.tasks.single.phase, CodexTaskPhase.stalled);
     expect(snapshot.liveTaskCount, 0);
-  });
-
-  test('queued bridge work remains live and carries admission telemetry', () {
-    final service = CodexPulseService(codexHome: Directory.systemTemp);
-    addTearDown(service.dispose);
-    final status = service.parseBridgeMetricsForTest(<String, Object?>{
-      'version': '3.6.0',
-      'provider': 'opencode_zen',
-      'model': 'x-preview-f-free',
-      'active_requests': <Object?>[
-        <String, Object?>{
-          'request_id': 'request-1',
-          'thread_id': '01a034bd-4062-7c40-80d2-407627226790',
-          'phase': 'queued',
-          'attempt': 0,
-          'last_activity_at': '2026-08-24T18:00:00Z',
-        },
-      ],
-      'admission': <String, Object?>{
-        'active': 2,
-        'queued': 3,
-        'in_flight_bytes': 12 * 1024 * 1024,
-        'current_limit': 2,
-        'max_limit': 6,
-        'byte_budget': 24 * 1024 * 1024,
-        'overload_until': '2026-08-24T18:00:20Z',
-      },
-      'usage': <String, Object?>{},
-      'retry_policy': <String, Object?>{'max_upstream_attempts': 5},
-    });
-
-    expect(
-      bridgePhaseForTest(status.requests.single.phase),
-      CodexTaskPhase.queued,
-    );
-    expect(CodexTaskPhase.queued.isLive, isTrue);
-    expect(status.activeRequests, 2);
-    expect(status.queuedRequests, 3);
-    expect(status.admissionLimit, 2);
-    expect(status.admissionMaximum, 6);
-    expect(status.bytePressureRatio, 0.5);
-    expect(status.cooldownUntil, DateTime.utc(2026, 8, 24, 18, 0, 20));
   });
 
   test('task ordering keeps live work ahead of stale attention items', () {
@@ -200,17 +156,10 @@ CREATE TABLE threads (
       database.close();
 
       var now = DateTime.utc(2026, 8, 24, 18, 0, 2);
-      final service = CodexPulseService(
-        codexHome: codexHome,
-        now: () => now,
-        bridgeReader: () async =>
-            const CodexBridgeStatus.unavailable('test bridge'),
-      );
+      final service = CodexPulseService(codexHome: codexHome, now: () => now);
       addTearDown(service.dispose);
 
       final baseline = await service.refresh();
-      expect(baseline.profileMode, CodexProviderMode.openai);
-      expect(baseline.profileModel, 'gpt-5.6-sol');
       expect(baseline.usage.sinceStart, 0);
 
       final writer = sqlite3.open(stateFile.path);
@@ -340,7 +289,6 @@ CREATE TABLE threads (
       final service = CodexPulseService(
         codexHome: codexHome,
         now: () => DateTime.utc(2026, 8, 24, 18, 0, 3),
-        bridgeReader: () async => const CodexBridgeStatus.unavailable('test'),
       );
       addTearDown(service.dispose);
 

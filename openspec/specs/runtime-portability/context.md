@@ -36,18 +36,21 @@ openhub codex-sessions retag --from openhub --to openai --dry-run
 openhub codex-sessions retag --from openhub --to openai --yes
 ```
 
-For Docker, mount your Codex data directory only for this one-off command:
+For Docker, first build the release checkout as `openhub:local`, then mount your
+Codex data directory only for this one-off command:
 
 ```bash
+docker build -t openhub:local .
+
 docker run --rm \
   -v ~/.codex:/codex-home \
-  ghcr.io/k1tvkli2003/openhub:latest \
+  openhub:local \
   openhub codex-sessions retag --from openai --to openhub \
     --codex-home /codex-home --dry-run
 
 docker run --rm \
   -v ~/.codex:/codex-home \
-  ghcr.io/k1tvkli2003/openhub:latest \
+  openhub:local \
   openhub codex-sessions retag --from openai --to openhub \
     --codex-home /codex-home --yes
 ```

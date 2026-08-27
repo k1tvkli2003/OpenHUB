@@ -23,10 +23,11 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parents[3]
 ENV_FILES = (BASE_DIR / ".env", BASE_DIR / ".env.local")
 
-# OAuth protocol constants. These values identify openhub to OpenAI's OAuth
-# endpoints exactly like the Codex CLI; they are protocol constants, not
-# deployment tunables, and changing any of them breaks login
-# (PRINCIPLES.md P2, issue #1340).
+# OAuth protocol constants. The client id and originator are owned by OpenAI's
+# public Codex OAuth flow; they do not register or brand a separate OpenHUB app
+# on the provider-hosted authorization page. OpenHUB owns only its local dialog
+# and callback UI. These values are protocol constants, not deployment tunables,
+# and changing them breaks login (PRINCIPLES.md P2, issue #1340).
 AUTH_BASE_URL = "https://auth.openai.com"
 OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 OAUTH_ORIGINATOR = "codex_chatgpt_desktop"

@@ -10,25 +10,22 @@ Future<void> main() async {
     final snapshot = await service.refresh();
     final payload = <String, Object?>{
       'sampled_at': snapshot.sampledAt.toIso8601String(),
-      'profile': <String, Object?>{
-        'mode': snapshot.profileMode.label,
-        'model': snapshot.profileModel,
-      },
       'usage': <String, Object?>{
         'since_start': snapshot.usage.sinceStart,
         'last_minute': snapshot.usage.lastMinute,
         'last_hour': snapshot.usage.lastHour,
       },
-      'bridge': <String, Object?>{
-        'reachable': snapshot.bridge.reachable,
-        'healthy': snapshot.bridge.healthy,
-        'supports_metrics': snapshot.bridge.supportsMetrics,
-        'version': snapshot.bridge.version,
-        'active_requests': snapshot.bridge.activeRequests,
-        'model': snapshot.bridge.model,
-        'provider': snapshot.bridge.provider,
-        'message': snapshot.bridge.message,
-      },
+      'runtimes': snapshot.runtimeHealth
+          .map(
+            (health) => <String, Object?>{
+              'runtime': health.runtime.name,
+              'status': health.status,
+              'reconnecting': health.reconnecting,
+              'gateway_reachable': health.gatewayReachable,
+              'message': health.message,
+            },
+          )
+          .toList(growable: false),
       'source_error': snapshot.sourceError,
       'live_tasks': snapshot.liveTaskCount,
       'tasks': snapshot.tasks

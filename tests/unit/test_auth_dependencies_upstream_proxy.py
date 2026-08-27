@@ -27,6 +27,26 @@ def _account() -> Account:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("token", ["sk-openhub-current", "sk-clb-legacy"])
+async def test_validate_codex_usage_identity_accepts_current_and_legacy_api_key_prefixes(
+    monkeypatch: pytest.MonkeyPatch,
+    token: str,
+) -> None:
+    expected = SimpleNamespace(id="api-key")
+    request = SimpleNamespace(headers={"Authorization": f"Bearer {token}"}, state=SimpleNamespace())
+
+    async def validate(candidate: str) -> object:
+        assert candidate == token
+        return expected
+
+    monkeypatch.setattr(auth_dependencies, "_validate_api_key_token", validate)
+
+    result = await auth_dependencies.validate_codex_usage_identity(cast(Any, request))
+
+    assert result is expected
+
+
+@pytest.mark.asyncio
 async def test_validate_codex_usage_identity_passes_resolved_route(monkeypatch: pytest.MonkeyPatch) -> None:
     account = _account()
     request = SimpleNamespace(

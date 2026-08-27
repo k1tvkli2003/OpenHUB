@@ -502,6 +502,30 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Future<void> _startOauth({String? forceMethod, String? accountId}) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Continue to OpenAI'),
+        content: const Text(
+          'OpenAI hosts the authorization page and may identify it as the '
+          'official Codex client. OpenHUB owns the local callback and never '
+          'receives your password.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || proceed != true) {
+      return;
+    }
     final flow = await widget.controller.startOauth(
       forceMethod: forceMethod,
       accountId: accountId,
@@ -3141,7 +3165,7 @@ class _OauthFlowDialogState extends State<_OauthFlowDialog>
               ),
             ] else ...<Widget>[
               const Text(
-                'Your browser should open automatically. Complete the sign-in there; this dialog polls only the local backend.',
+                'OpenAI hosts this authorization page and may show the official Codex client identity. Complete sign-in there; the local callback and this polling dialog belong to OpenHUB.',
               ),
             ],
             if (_error != null) ...<Widget>[

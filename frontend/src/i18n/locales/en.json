@@ -67,6 +67,7 @@
   "accounts.oauth.expiresIn": "Expires in {{time}}",
   "accounts.oauth.generatingLink": "Generating a fresh sign-in link...",
   "accounts.oauth.introDescription": "Choose a sign-in method and complete authorization.",
+  "accounts.oauth.providerIdentityNotice": "OpenAI hosts the authorization page and may identify it as the official Codex client. The successful local callback returns to OpenHUB.",
   "accounts.oauth.manualCallback.aria": "OAuth callback URL",
   "accounts.oauth.manualCallback.title": "Paste callback URL (for remote server)",
   "accounts.oauth.methods.browser.description": "Opens a browser window for sign-in. Recommended for most users.",
