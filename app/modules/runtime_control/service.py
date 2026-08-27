@@ -159,6 +159,7 @@ class RuntimeControlService:
         self._last_totals: dict[str, int] = {}
         self._session_totals: dict[str, int] = {}
         self._deltas: deque[_TokenDelta] = deque()
+        self._baselined_runtimes: set[RuntimeId] = set()
 
     def snapshot(self) -> RuntimeSnapshot:
         with self._lock:
@@ -176,7 +177,10 @@ class RuntimeControlService:
                 now,
             )
             tasks = _attach_lineage((*codex_tasks, *hermes_tasks, *opencode_tasks))
-            tasks = self._record_usage(tasks, now)
+            available_runtimes = {
+                item.runtime for item in (codex_health, hermes_health, opencode_health) if item.status == "available"
+            }
+            tasks = self._record_usage(tasks, now, available_runtimes=available_runtimes)
             ordered = tuple(sorted(tasks, key=_task_sort_key))
             return RuntimeSnapshot(
                 sampled_at=now,
@@ -238,17 +242,29 @@ class RuntimeControlService:
             gateway_reachable=_runtime_gateway_reachable(runtime),
         )
 
-    def _record_usage(self, tasks: tuple[RuntimeTask, ...], now: datetime) -> tuple[RuntimeTask, ...]:
+    def _record_usage(
+        self,
+        tasks: tuple[RuntimeTask, ...],
+        now: datetime,
+        *,
+        available_runtimes: set[RuntimeId],
+    ) -> tuple[RuntimeTask, ...]:
         own_session: dict[str, int] = {}
+        baselined_before_sample = self._baselined_runtimes.copy()
         for task in tasks:
             current = max(0, task.usage.total_tokens)
             previous = self._last_totals.get(task.id)
             self._last_totals[task.id] = current
-            if previous is not None and current > previous:
-                delta = current - previous
+            if previous is None:
+                delta = current if task.runtime in baselined_before_sample else 0
+            else:
+                delta = max(0, current - previous)
+            if delta:
                 self._session_totals[task.id] = self._session_totals.get(task.id, 0) + delta
                 self._deltas.append(_TokenDelta(at=now, runtime=task.runtime, tokens=delta))
             own_session[task.id] = self._session_totals.get(task.id, 0)
+
+        self._baselined_runtimes.update(available_runtimes)
 
         cutoff = now - timedelta(hours=1)
         while self._deltas and self._deltas[0].at < cutoff:

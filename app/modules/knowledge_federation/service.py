@@ -402,8 +402,9 @@ def _configure_hermes(hermes: Path, canonical: Path) -> None:
         raise KnowledgeFederationError("Hermes config.yaml must contain a mapping.")
     memory = config.setdefault("memory", {})
     skills = config.setdefault("skills", {})
-    if not isinstance(memory, dict) or not isinstance(skills, dict):
-        raise KnowledgeFederationError("Hermes memory/skills configuration is invalid.")
+    plugins = config.setdefault("plugins", {})
+    if not isinstance(memory, dict) or not isinstance(skills, dict) or not isinstance(plugins, dict):
+        raise KnowledgeFederationError("Hermes memory/skills/plugins configuration is invalid.")
     memory["memory_enabled"] = False
     memory["user_profile_enabled"] = False
     external = skills.setdefault("external_dirs", [])
@@ -416,6 +417,13 @@ def _configure_hermes(hermes: Path, canonical: Path) -> None:
     ):
         if not any(_same_config_path(value, required) for value in external):
             external.append(required.as_posix())
+    enabled_plugins = plugins.setdefault("enabled", [])
+    disabled_plugins = plugins.setdefault("disabled", [])
+    if not isinstance(enabled_plugins, list) or not isinstance(disabled_plugins, list):
+        raise KnowledgeFederationError("Hermes plugins.enabled/plugins.disabled must be lists.")
+    if _PLUGIN_NAME not in enabled_plugins:
+        enabled_plugins.append(_PLUGIN_NAME)
+    plugins["disabled"] = [value for value in disabled_plugins if value != _PLUGIN_NAME]
     _atomic_write_text(
         config_path,
         yaml.safe_dump(config, allow_unicode=True, sort_keys=False, width=120),

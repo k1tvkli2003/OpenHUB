@@ -274,6 +274,93 @@ def test_reconnect_grace_hides_transient_error_and_backfills_token_delta(tmp_pat
     assert next(item for item in recovered.health if item.runtime == "hermes").status == "available"
 
 
+def test_new_task_after_runtime_baseline_counts_its_full_first_total(tmp_path: Path) -> None:
+    clock = [datetime(2026, 8, 26, 12, 0, tzinfo=UTC)]
+    hermes_tasks: list[RuntimeTask] = []
+    codex_home = tmp_path / "codex"
+    hermes_home = tmp_path / "hermes"
+    opencode_home = tmp_path / "opencode"
+    codex_home.mkdir()
+    hermes_home.mkdir()
+    opencode_home.mkdir()
+    (codex_home / "state_5.sqlite").touch()
+    (hermes_home / "state.db").touch()
+    (opencode_home / "opencode.db").touch()
+    service = RuntimeControlService(
+        codex_home=codex_home,
+        hermes_home=hermes_home,
+        opencode_data_home=opencode_home,
+        now=lambda: clock[0],
+        codex_reader=lambda: [],
+        hermes_reader=lambda: hermes_tasks,
+        opencode_reader=lambda: [],
+    )
+
+    assert service.snapshot().usage_hermes.since_start == 0
+    hermes_tasks.append(
+        RuntimeTask(
+            native_id="new-hermes-task",
+            runtime="hermes",
+            title="New Hermes task",
+            provider="custom:openhub",
+            model="gpt-5.6-luna",
+            state="idle",
+            usage=RuntimeUsage(total_tokens=7_706),
+        )
+    )
+    clock[0] += timedelta(seconds=5)
+
+    observed = service.snapshot()
+    assert observed.usage_hermes.since_start == 7_706
+    assert observed.usage_hermes.last_minute == 7_706
+    assert observed.usage_hermes.last_hour == 7_706
+    task = next(item for item in observed.tasks if item.id == "hermes:new-hermes-task")
+    assert task.usage.session_tokens == 7_706
+
+    repeated = service.snapshot()
+    assert repeated.usage_hermes.since_start == 7_706
+
+
+def test_runtime_recovery_establishes_baseline_without_replaying_history(tmp_path: Path) -> None:
+    clock = [datetime(2026, 8, 26, 12, 0, tzinfo=UTC)]
+    codex_home = tmp_path / "codex"
+    hermes_home = tmp_path / "hermes"
+    opencode_home = tmp_path / "opencode"
+    codex_home.mkdir()
+    hermes_home.mkdir()
+    opencode_home.mkdir()
+    (codex_home / "state_5.sqlite").touch()
+    (opencode_home / "opencode.db").touch()
+    historical = RuntimeTask(
+        native_id="historical-hermes-task",
+        runtime="hermes",
+        title="Historical Hermes task",
+        provider="custom:openhub",
+        model="gpt-5.6-luna",
+        state="idle",
+        usage=RuntimeUsage(total_tokens=9_000),
+    )
+    service = RuntimeControlService(
+        codex_home=codex_home,
+        hermes_home=hermes_home,
+        opencode_data_home=opencode_home,
+        now=lambda: clock[0],
+        codex_reader=lambda: [],
+        hermes_reader=lambda: [historical],
+        opencode_reader=lambda: [],
+    )
+
+    first = service.snapshot()
+    assert next(item for item in first.health if item.runtime == "hermes").status == "unavailable"
+    (hermes_home / "state.db").touch()
+    clock[0] += timedelta(seconds=5)
+
+    recovered = service.snapshot()
+    assert next(item for item in recovered.health if item.runtime == "hermes").status == "available"
+    assert recovered.usage_hermes.since_start == 0
+
+
+
 @pytest.mark.asyncio
 async def test_opencode_control_uses_real_abort_and_rejects_fake_resume() -> None:
     calls: list[str] = []
