@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -126,6 +127,14 @@ def test_readme_thanks_upstream_project_and_contributors() -> None:
     assert "License, provenance, and thanks" in readme
     assert "https://github.com/Soju06/codex-lb" in readme
     assert "https://github.com/Soju06/codex-lb/graphs/contributors" in readme
+
+
+def test_openhub_contributor_registry_lists_the_owner_only() -> None:
+    registry = json.loads((ROOT / ".all-contributorsrc").read_text(encoding="utf-8"))
+
+    assert registry["projectOwner"] == "k1tvkli2003"
+    assert [entry["login"] for entry in registry["contributors"]] == ["k1tvkli2003"]
+    assert registry["contributors"][0]["profile"] == "https://github.com/k1tvkli2003"
 
 
 def test_retired_provider_switcher_and_ox_adapter_are_not_shipped() -> None:
